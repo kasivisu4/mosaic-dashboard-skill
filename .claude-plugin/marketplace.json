@@ -1,0 +1,30 @@
+{
+  "name": "mosaic-dashboard-skills",
+  "owner": {
+    "name": "Kasi Vandanapu"
+  },
+  "metadata": {
+    "description": "A dashboard planner skill with swappable executors",
+    "version": "0.2.0"
+  },
+  "plugins": [
+    {
+      "name": "planning-dashboard",
+      "description": "Plans cross-filtered dashboards from any tabular data: reader-aware checkpoints, DuckDB profiling, and a validated plan any executor can build",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/planning-dashboard"
+      ]
+    },
+    {
+      "name": "building-dashboard-mosaic",
+      "description": "Executor: builds a dashboard plan into a cross-filtered Mosaic + DuckDB-WASM web page",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/building-dashboard-mosaic"
+      ]
+    }
+  ]
+}

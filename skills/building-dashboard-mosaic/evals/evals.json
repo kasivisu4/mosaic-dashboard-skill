@@ -1,0 +1,30 @@
+{
+  "skill_name": "building-dashboard-mosaic",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "build the dashboard from evals/files/tickets/plan.md so I can open it in my browser",
+      "expected_output": "index.html next to the plan, loads without console errors when served, every chart in the plan is present with its exact title, cross-filtering works, SQL shown under each chart, priority menu and detail table present.",
+      "files": ["evals/files/tickets/plan.md", "evals/files/tickets/tickets_clean.parquet"],
+      "expectations": [
+        "scripts/build_page.py was used to generate the page",
+        "The page loads with no console errors when served over http",
+        "All 4 chart titles from the plan appear exactly",
+        "Clicking a team bar changes the KPI values",
+        "A priority dropdown and a detail table are present",
+        "The person was told how to serve and open the page"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "can you build evals/files/broken/plan.md into a dashboard?",
+      "expected_output": "The executor refuses to build, lists the specific plan errors, and points back to planning rather than guessing.",
+      "files": ["evals/files/broken/plan.md"],
+      "expectations": [
+        "No dashboard page was written",
+        "The response lists specific problems in the plan (e.g. unknown function total(), chart line format, missing sections)",
+        "The response suggests fixing the plan or planning first instead of improvising"
+      ]
+    }
+  ]
+}

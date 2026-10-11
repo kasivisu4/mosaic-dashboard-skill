@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard</title>
+<!--
+  Mosaic + DuckDB-WASM dashboard template (destination: local / self-hosted).
+  scripts/build_page.py fills the CONFIG block from a plan; the engine below it stays the same.
+  Serve over http (not file://):  python -m http.server 8000
+  Guide: references/mosaic.md
+-->
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --ink: #18202c; --muted: #5d6878; --line: #dde2e9;
+    --accent: #2f6fde; --accent-soft: #e6eefc; --alert: #c2410c; --code: #f0f2f6;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f141b; --surface: #171e28; --ink: #e6ebf2; --muted: #9aa5b5; --line: #2a3443;
+      --accent: #6ea2ff; --accent-soft: #1c2a44; --alert: #fb923c; --code: #111821;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font); }
+  main { max-width: 1180px; margin: 0 auto; padding: 28px 16px 60px; display: flex; flex-direction: column; gap: 20px; }
+  h1 { margin: 0; font-size: clamp(1.5rem, 3vw, 2.1rem); line-height: 1.2; }
+  .takeaway { margin: 6px 0 0; color: var(--muted); max-width: 70ch; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .chip { font-size: .8rem; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+  .muted { color: var(--muted); font-size: .85rem; }
+  button { font: inherit; font-size: .85rem; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  .menus { display: flex; flex-wrap: wrap; gap: 14px; }
+  .menus label { font-size: .85rem; color: var(--muted); }
+  .menus select { font: inherit; margin-left: 6px; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .kpi .label { font-size: .8rem; color: var(--muted); }
+  .kpi .value { font-size: 1.7rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .kpi .total { font-size: .78rem; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; color: var(--ink); }
+  .card h2 { margin: 0 0 8px; font-size: 1rem; font-weight: 600; }
+  .card .note { margin: -2px 0 8px; max-width: 70ch; }
+  .card .hint { font-size: .75rem; color: var(--muted); margin: -4px 0 6px; }
+  .card svg { max-width: 100%; height: auto; }
+  pre { background: var(--code); border: 1px solid var(--line); border-radius: 6px; padding: 10px; font: .75rem/1.5 var(--mono); overflow-x: auto; white-space: pre-wrap; }
+  .status { padding: 12px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+  .status.error { border-color: var(--alert); color: var(--alert); }
+  details.build-note { font-size: .85rem; color: var(--muted); }
+  details.build-note pre { color: var(--ink); }
+  table { font-size: .82rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="title"></h1>
+    <p class="takeaway" id="takeaway"></p>
+  </header>
+  <div class="status" id="status">Loading the data engine…</div>
+  <div class="bar" id="filterbar" hidden>
+    <span class="muted">Filters:</span><span id="chips" class="bar"><span class="muted">none</span></span>
+    <button id="reset" type="button">Reset</button>
+  </div>
+  <div class="menus" id="menus"></div>
+  <section class="kpis" id="kpis"></section>
+  <section class="grid" id="charts"></section>
+  <section id="table"></section>
+  <details class="build-note" id="build-note" hidden><summary>How this dashboard was built</summary><pre></pre></details>
+</main>
+
+<script type="module">
+import * as vg from "https://cdn.jsdelivr.net/npm/@uwdata/vgplot@0.31.0/+esm";
+
+// ============================ CONFIG: generated from plan.md ============================
+// scripts/build_page.py writes this block from a plan (plan format v1). Vocabulary matches the plan:
+// value expressions: count() sum(col) avg(col) median(col) min(col) max(col) rate(col)
+// chart forms: trend {x: "col:week", y}, bar {category, value}, histogram {value}, scatter {x, y}
+const CONFIG = {
+  title: "Dashboard title",
+  takeaway: "",
+  data: [{ table: "data", url: "data.parquet" }],
+  kpis: [{ label: "Rows", value: "count()", format: "number" }],
+  charts: [
+    { title: "Finding as a title", form: "bar", keys: { category: "dimension_column", value: "count()" }, interaction: "click", note: "" },
+  ],
+  menus: [],
+  detailTable: false,
+  sql: {},
+  style: {},
+  buildNote: "",
+};
+// =========================== END CONFIG (engine below) ==============================
+
+const $ = (id) => document.getElementById(id);
+const status = $("status");
+const T = CONFIG.data[0].table;
+const tableFor = (file) => (file ? (CONFIG.data.find((d) => d.url === file || d.table === file)?.table ?? T) : T);
+
+// Each chart and menu writes to its own selection, so it can highlight its own choice.
+// The page filter includes all of them as a crossfilter: every chart and KPI is filtered
+// by everyone else's choices, but a chart is never filtered by its own.
+const own = [...CONFIG.charts, ...CONFIG.menus].map(() => vg.Selection.single());
+const $filter = vg.Selection.crossfilter({ include: own });
+
+if (CONFIG.style.accent) document.documentElement.style.setProperty("--accent", CONFIG.style.accent);
+if (CONFIG.style.alert) document.documentElement.style.setProperty("--alert", CONFIG.style.alert);
+const currency = CONFIG.style.currency || "USD";
+const FORMATS = {
+  number: new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }),
+  compact: new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }),
+  percent: new Intl.NumberFormat(undefined, { style: "percent", maximumFractionDigits: 1 }),
+  currency: new Intl.NumberFormat(undefined, { style: "currency", currency, notation: "compact", maximumFractionDigits: 1 }),
+};
+const fmt = (v, f = "number") => (v == null ? "–" : (FORMATS[f] ?? FORMATS.number).format(Number(v)));
+
+// "sum(revenue)" -> a Mosaic aggregate expression.
+function valueExpr(text) {
+  const m = /^(\w+)\((.*)\)$/.exec(String(text).trim());
+  if (!m) throw new Error(`"${text}" is not a value expression like sum(col)`);
+  const [, agg, col] = m;
+  if (agg === "count") return col ? vg.count(col) : vg.count();
+  if (agg === "rate") return vg.avg(vg.sql`CAST(${vg.column(col)} AS DOUBLE)`);
+  if (!["sum", "avg", "median", "min", "max"].includes(agg)) throw new Error(`Unknown function ${agg}()`);
+  return vg[agg](col);
+}
+
+// KPI tile: a custom Mosaic client that re-queries DuckDB whenever the filter changes.
+class KpiTile extends vg.MosaicClient {
+  constructor(kpi, el, filtered) {
+    super(filtered ? $filter : undefined);
+    this.kpi = kpi;
+    this.el = el;
+  }
+  query(filter = []) {
+    return vg.Query.from(T).select({ value: valueExpr(this.kpi.value) }).where(filter);
+  }
+  queryResult(data) {
+    const row = typeof data?.toArray === "function" ? data.toArray()[0] : data?.[0];
+    this.el.textContent = fmt(row?.value, this.kpi.format);
+    return this;
+  }
+}
+
+function buildChart(chart, card, $own) {
+  const w = Math.max(280, Math.floor(card.clientWidth - 32));
+  const k = chart.keys;
+  const table = tableFor(k.from);
+  // Charts on another data file can't share the page filter (different columns), so they stay unfiltered.
+  const from = vg.from(table, table === T ? { filterBy: $filter } : {});
+  const active = chart.interaction !== "none";
+  const accent = "var(--accent)";
+  if (chart.form === "trend") {
+    const [col, bucket = "week"] = k.x.split(":");
+    const x = vg.sql`date_trunc(${vg.literal(bucket)}, ${vg.column(col)})`;
+    return vg.plot(
+      vg.areaY(from, { x, y: valueExpr(k.y), fill: accent, fillOpacity: 0.15, curve: "monotone-x" }),
+      vg.lineY(from, { x, y: valueExpr(k.y), stroke: accent, curve: "monotone-x" }),
+      ...(active ? [vg.intervalX({ as: $own })] : []),
+      vg.xLabel(null), vg.yLabel(k.y), vg.yGrid(true),
+      vg.width(w), vg.height(240), vg.marginLeft(56),
+    );
+  }
+  if (chart.form === "bar") {
+    return vg.plot(
+      vg.barX(from, { x: valueExpr(k.value), y: k.category, fill: accent, sort: { y: "-x" } }),
+      ...(active ? [vg.toggleY({ as: $own }), vg.highlight({ by: $own })] : []),
+      vg.xLabel(k.value), vg.yLabel(null), vg.xGrid(true),
+      vg.width(w), vg.height(260), vg.marginLeft(110),
+    );
+  }
+  if (chart.form === "histogram") {
+    return vg.plot(
+      vg.rectY(from, { x: vg.bin(k.value), y: vg.count(), fill: accent, inset: 0.5 }),
+      ...(active ? [vg.intervalX({ as: $own })] : []),
+      vg.xLabel(k.value), vg.yLabel("count"), vg.yGrid(true),
+      vg.width(w), vg.height(240), vg.marginLeft(56),
+    );
+  }
+  if (chart.form === "scatter") {
+    return vg.plot(
+      vg.dot(from, { x: k.x, y: k.y, fill: accent, fillOpacity: 0.4, r: 2 }),
+      ...(active ? [vg.intervalXY({ as: $own })] : []),
+      vg.xLabel(k.x), vg.yLabel(k.y), vg.grid(true),
+      vg.width(w), vg.height(280), vg.marginLeft(56),
+    );
+  }
+  throw new Error(`Unknown chart form "${chart.form}"`);
+}
+
+// Chips describe each active selection in words: "<chart or menu>: <value>".
+const sources = [
+  ...CONFIG.charts.map((c) => ({ name: c.title, dates: c.form === "trend" })),
+  ...CONFIG.menus.map((m) => ({ name: m, dates: false })),
+];
+const dateFmt = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
+
+function valueText(v, dates) {
+  if (v == null) return null;
+  if (Array.isArray(v) && v.length === 2 && !Array.isArray(v[0])) {
+    return v.map((x) => (dates || x instanceof Date ? dateFmt.format(new Date(x)) : fmt(x))).join(" – ");
+  }
+  if (Array.isArray(v) && v.length === 2 && Array.isArray(v[0]) && v[0].length === 2) {
+    return v.map((r) => r.map((x) => fmt(x)).join(" – ")).join(" × ");
+  }
+  return Array.isArray(v) ? v.flat().join(", ") : String(v);
+}
+
+function renderChips() {
+  const chips = own
+    .map((sel, i) => [sources[i], valueText(sel.value, sources[i].dates)])
+    .filter(([, text]) => text)
+    .map(([src, text]) => Object.assign(document.createElement("span"), { className: "chip", textContent: `${src.name}: ${text}` }));
+  $("chips").replaceChildren(
+    ...(chips.length ? chips : [Object.assign(document.createElement("span"), { className: "muted", textContent: "none" })]),
+  );
+}
+
+const el = (tag, props = {}) => Object.assign(document.createElement(tag), props);
+
+async function main() {
+  document.title = CONFIG.title;
+  $("title").textContent = CONFIG.title;
+  $("takeaway").textContent = CONFIG.takeaway || "";
+
+  if (location.protocol === "file:") {
+    throw new Error("This page must be served over http to load its data. In this folder run:  python -m http.server 8000  then open http://localhost:8000/");
+  }
+
+  // 1. Start DuckDB inside the browser (WebAssembly) and give it to Mosaic.
+  vg.coordinator().databaseConnector(new vg.DuckDBWASMConnector());
+
+  // 2. Load each data file into a DuckDB table. DuckDB-WASM needs absolute URLs.
+  status.textContent = "Loading data…";
+  const loaders = { parquet: vg.loadParquet, csv: vg.loadCSV, json: vg.loadJSON };
+  await vg.coordinator().exec(
+    CONFIG.data.map(({ table, url }) => {
+      const ext = url.split(".").pop().toLowerCase();
+      if (!loaders[ext]) throw new Error(`Can't load ${url}: use .parquet, .csv or .json`);
+      return loaders[ext](table, new URL(url, location.href).href);
+    }),
+  );
+
+  // 3. KPI tiles: filtered value, plus the unfiltered total underneath.
+  for (const kpi of CONFIG.kpis) {
+    const tile = el("div", { className: "kpi" });
+    const value = el("div", { className: "value", textContent: "…" });
+    const total = el("span");
+    const totalLine = el("div", { className: "total" });
+    totalLine.append("of ", total, " total");
+    tile.append(el("div", { className: "label", textContent: kpi.label }), value, totalLine);
+    $("kpis").append(tile);
+    vg.coordinator().connect(new KpiTile(kpi, value, true));
+    vg.coordinator().connect(new KpiTile(kpi, total, false));
+  }
+
+  // 4. Dropdown filters.
+  CONFIG.menus.forEach((column, i) => {
+    $("menus").append(vg.menu({ from: T, column, label: column, as: own[CONFIG.charts.length + i] }));
+  });
+
+  // 5. Charts in story order, each writing to its own selection.
+  const hints = { brush: "Drag to filter", click: "Click to filter, shift-click to add" };
+  CONFIG.charts.forEach((chart, i) => {
+    const card = el("article", { className: "card" });
+    card.append(el("h2", { textContent: chart.title }));
+    if (chart.note) card.append(el("p", { className: "note", textContent: chart.note }));
+    if (hints[chart.interaction]) card.append(el("p", { className: "hint", textContent: hints[chart.interaction] }));
+    $("charts").append(card);
+    card.append(buildChart(chart, card, own[i]));
+    if (CONFIG.sql[chart.title]) card.append(el("pre", { textContent: CONFIG.sql[chart.title] }));
+  });
+
+  // 6. Detail table that follows the filters.
+  if (CONFIG.detailTable) {
+    const card = el("article", { className: "card" });
+    card.append(el("h2", { textContent: "Rows matching the filters" }), vg.table({ from: T, filterBy: $filter, height: 320 }));
+    $("table").append(card);
+  }
+
+  // 7. Filter chips and Reset.
+  $("filterbar").hidden = false;
+  // Listen on each own selection: it updates after relaying to $filter, so $filter events would read stale values.
+  own.forEach((sel) => sel.addEventListener("value", renderChips));
+  $("reset").addEventListener("click", () => {
+    own.forEach((sel) => sel.reset());
+    renderChips();
+  });
+
+  if (CONFIG.buildNote) {
+    $("build-note").hidden = false;
+    $("build-note").querySelector("pre").textContent = CONFIG.buildNote;
+  }
+  status.remove();
+}
+
+main().catch((err) => {
+  console.error(err);
+  status.classList.add("error");
+  status.textContent = `Could not build the dashboard: ${err.message}`;
+});
+</script>
+</body>
+</html>

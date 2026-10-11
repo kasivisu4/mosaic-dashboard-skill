@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+*.skill
+skills/*-workspace/
+skills/*/evals/files/
+examples/*/*.parquet
+examples/*/index.html
+.claude/
+out/

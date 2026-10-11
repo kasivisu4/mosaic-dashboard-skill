@@ -1,0 +1,64 @@
+{
+  "skill_name": "planning-dashboard",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "make me a dashboard of this",
+      "expected_output": "Almost nothing is inferable, so the 'Dashboard details' form appears with goal, cadence, request, success criteria, audience and review depth (no data question, since the file is attached). Nothing preselected; no persona names.",
+      "files": ["evals/files/orders.parquet"],
+      "expectations": [
+        "An intake form (or the structured-question fallback) was shown before any profiling or plan",
+        "The form did not ask where the data is, because a file was attached",
+        "No option was preselected and no persona names (Executive, Analyst, etc.) appear",
+        "Every prompt is phrased as a question"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "every morning I want to check whether any support team is falling behind on resolution time, just for me, just build it",
+      "expected_output": "Goal monitor, cadence daily, audience me, review depth quick are all inferred, so no form. Plan has KPI targets, an exceptions line, Last updated, at most 4 charts; the 'here's what I assumed' card comes after building.",
+      "files": ["evals/files/tickets.csv"],
+      "expectations": [
+        "No intake form was shown (everything was inferable)",
+        "plan.md has goals including monitor, cadence: daily, audience: me, review_depth: quick",
+        "plan.md has a KPI target and an exceptions line",
+        "plan.md passes scripts/validate_plan.py",
+        "The assumptions card or list was shown after building, not before"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "my VP forwarded this: 'Why did returns go up last quarter? I need something for the monthly leadership review, and the numbers have to match the finance report.' Data attached.",
+      "expected_output": "From the forwarded request: goal answer (+ present), cadence monthly, audience leadership, reconcile on, so review depth deep. A short form asks only for what's missing (e.g. success criteria). A confirmation card is shown before the plan is written; the plan has reconcile: true and a 'Reconcile with' line.",
+      "files": ["evals/files/orders.parquet"],
+      "expectations": [
+        "Goal, audience and cadence were taken from the forwarded request, not asked",
+        "Review depth is deep because reconciliation was requested",
+        "A confirmation card with 'My read', assumptions with Change buttons, and 'Looks right, build it' was shown before the plan was written",
+        "plan.md has reconcile: true and a 'Reconcile with:' line, and no SQL on page"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "build a bar chart of satisfaction by department and a histogram of satisfaction, with a department filter. nothing else.",
+      "expected_output": "Goal spec: no form, no story, exactly the two charts and the menu; assumptions listed after building.",
+      "files": ["evals/files/survey.json"],
+      "expectations": [
+        "No intake form and no confirmation card before building",
+        "plan.md has goals: spec and exactly two charts (one bar by department, one histogram of satisfaction) and Menus: department",
+        "satisfaction is averaged in the bar chart, not summed"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Change assumption: comparison period",
+      "expected_output": "Asked as a follow-up after a confirmation card: one focused question about the comparison period only (3–5 options plus the current value); nothing else re-asked; the card is shown again with the change marked.",
+      "files": [],
+      "expectations": [
+        "Exactly one question was asked, about the comparison period only",
+        "The intake form was not shown again",
+        "The updated card marks what changed"
+      ]
+    }
+  ]
+}
