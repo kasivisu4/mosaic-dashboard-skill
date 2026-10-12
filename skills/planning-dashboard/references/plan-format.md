@@ -26,7 +26,7 @@ Every path in the plan (`source`, `data` files, paths inside SQL) is relative to
 ---
 plan_version: 2
 goals: monitor, answer         # 1–2 of answer | spec | explore | monitor | present, in page order
-audience: team                 # one or more of me | team | leadership | clients (clients or regulators)
+audience: team                 # one or more of me | team | leadership | clients | regulators
 cadence: weekly                # one-time | daily | weekly | monthly
 review_depth: guided           # quick | guided | deep
 success_criteria: "store return rates readable at a glance"   # or "none stated"
@@ -54,7 +54,7 @@ In this order, after the header:
 | `## Data` | Bullets: `1 row = …`, `Excluded: …` (or `none`), one line per metric or glossary definition, marked `(confirmed)` or `(assumed)`, and, when `reconcile: true`, `Reconcile with: <source> (matched | not yet checked)`. |
 | `## Story` | Numbered story lines (below), in page order. |
 | `## Interaction` | `- Menus: col, col` (or `none`), `- Detail table: yes/no`, `- SQL on page: yes/no`, optional `- Last updated: <date column>` (the page shows the latest date in it). |
-| `## Style` | `- accent: #hex`, `- alert: #hex`, `- currency: ISO code`. All optional. |
+| `## Style` | The Style Profile, one `- field: value` per line (fields and values in `style-system.md`; all of them or none), plus the tokens `- accent: #hex`, `- alert: #hex`, `- currency: ISO code` (optional). |
 | `## Data for the executor` | One ```` ```sql ```` block per data file: the exact statement that produced it. |
 
 ## Story lines
@@ -135,6 +135,21 @@ Revenue was steady all year; returns run at about 9% of orders in every store.
 - Last updated: order_date
 
 ## Style
+- register: operational
+- density: balanced
+- surface: status
+- focus: stores above the return-rate target
+- color_mode: status
+- direction: down-good
+- type_scale: standard
+- interaction: light
+- motion: transitions
+- chart_set: KPIs, exceptions, trend, bar
+- anomalies: spotlight
+- narrative: captions
+- provenance: footnote
+- numbers: precise
+- data_character: time-heavy, categorical, flag-driven
 - currency: USD
 
 ## Data for the executor

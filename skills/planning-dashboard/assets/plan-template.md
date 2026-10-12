@@ -40,6 +40,21 @@ data:
 - Last updated: {date column, or none}
 
 ## Style
+- register: {analytic | operational | editorial | formal | evidentiary}
+- density: {sparse | balanced | dense}
+- surface: {headline | status | grid | narrative | ledger | exact}
+- focus: {what the focus color marks, one phrase}
+- color_mode: {focus | status | categorical | sequential | diverging}
+- direction: {up-good | down-good | none}
+- type_scale: {compact | standard | display}
+- interaction: {none | light | full}
+- motion: {none | transitions | reveal}
+- chart_set: {forms the page may use, e.g. KPIs, bar, trend}
+- anomalies: {ignore | flag | spotlight | explain | footnote}
+- narrative: {none | captions | annotated | story}
+- provenance: {hidden | footnote | inline | per-number}
+- numbers: {rounded | precise | exact}
+- data_character: {traits from style-system.md, comma-separated}
 - accent: {#hex from guidelines/style.md}
 - alert: {#hex}
 - currency: {ISO code}

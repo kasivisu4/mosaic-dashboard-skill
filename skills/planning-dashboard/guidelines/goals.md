@@ -32,8 +32,9 @@ Used for the layout preview on the confirmation card and for the plan's Story. S
 |---|---|---|---|
 | `me` | Just me | for me, my own, quick look | SQL on page allowed |
 | `team` | My team | for the team, my squad, ops | SQL on page allowed |
-| `leadership` | Leadership | VP, exec, leadership, board | at most 4 KPIs, no SQL on page, plain-word labels |
-| `clients` | Clients or regulators | client, customer-facing, regulator, auditor | at most 4 KPIs, no SQL on page, every number reconciled (turns `reconcile` on) |
+| `leadership` | Leadership | VP, exec, leadership, board | at most 5 KPIs, no SQL on page, plain-word labels |
+| `clients` | Clients or external | client, customer-facing, partner, external | at most 4 KPIs, no SQL on page, polished labels |
+| `regulators` | Regulators or auditors | regulator, auditor, compliance, audit, filing | at most 4 KPIs, no SQL on page, every number reconciled (turns `reconcile` on), definitions on the page |
 
 ## Cadence
 

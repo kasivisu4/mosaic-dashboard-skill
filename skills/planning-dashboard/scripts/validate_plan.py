@@ -15,15 +15,33 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from plan_format import columns_used, parse  # noqa: E402
+from plan_format import as_list, columns_used, parse  # noqa: E402
 
 try:
     import duckdb
 except ImportError:
     sys.exit("duckdb is not installed. Run: pip install duckdb")
 
-# Leadership and client pages are read in under a minute; more tiles than this stops being a summary.
-MAX_SUMMARY_KPIS = 4
+# Audience hard limits, from references/style-system.md (Audience overrides). With several
+# audiences, the strictest one wins. Orders: low -> high.
+AUDIENCE_LIMITS = {
+    "me":         {"kpis": 8, "sql": True,  "density": "dense",    "interaction": "full",  "motion": "transitions", "provenance": "hidden",     "type_scale": "compact"},
+    "team":       {"kpis": 6, "sql": True,  "density": "dense",    "interaction": "full",  "motion": "transitions", "provenance": "hidden",     "type_scale": "compact"},
+    "leadership": {"kpis": 5, "sql": False, "density": "balanced", "interaction": "light", "motion": "transitions", "provenance": "footnote",   "type_scale": "standard"},
+    "clients":    {"kpis": 4, "sql": False, "density": "balanced", "interaction": "light", "motion": "reveal",      "provenance": "footnote",   "type_scale": "standard"},
+    "regulators": {"kpis": 4, "sql": False, "density": "balanced", "interaction": "light", "motion": "none",        "provenance": "per-number", "type_scale": "standard"},
+}
+ORDER = {
+    "density": ["sparse", "balanced", "dense"],
+    "interaction": ["none", "light", "full"],
+    "motion": ["none", "transitions", "reveal"],
+    "provenance": ["hidden", "footnote", "inline", "per-number"],
+    "type_scale": ["compact", "standard", "display"],
+}
+# Chart forms each audience may not use (style-system.md, Audience overrides).
+AUDIENCE_BANNED_FORMS = {"leadership": {"scatter"}, "clients": {"scatter", "histogram"}, "regulators": {"scatter"}}
+# First-screen caps per density (style-system.md, Density caps): (KPI tiles, charts).
+DENSITY_CAPS = {"sparse": (4, 3), "balanced": (5, 6), "dense": (8, 12)}
 # Daily pages are glanceable: past this many charts they stop being a quick check.
 MAX_DAILY_CHARTS = 4
 
@@ -35,11 +53,16 @@ def sql_str(path):
 def goal_rules(plan, errors, warnings):
     """Rules that follow from the intake fields (see guidelines/goals.md)."""
     goals, audience, cadence = plan["goals"], plan["audience"], plan["cadence"]
-    summary = [a for a in audience if a in ("leadership", "clients")]
-    if summary and plan["sql_on_page"]:
-        errors.append(f"Interaction: pages for {', '.join(summary)} use 'SQL on page: no'")
-    if summary and len(plan["kpis"]) > MAX_SUMMARY_KPIS:
-        errors.append(f"Story: pages for {', '.join(summary)} have at most {MAX_SUMMARY_KPIS} KPIs, found {len(plan['kpis'])}")
+    limits = [(a, AUDIENCE_LIMITS[a]) for a in audience if a in AUDIENCE_LIMITS]
+    no_sql = [a for a, lim in limits if not lim["sql"]]
+    if no_sql and plan["sql_on_page"]:
+        errors.append(f"Interaction: pages for {', '.join(no_sql)} use 'SQL on page: no'")
+    if limits:
+        who, cap = min(((a, lim["kpis"]) for a, lim in limits), key=lambda x: x[1])
+        if len(plan["kpis"]) > cap:
+            errors.append(f"Story: pages for {who} have at most {cap} KPIs, found {len(plan['kpis'])}")
+    if "regulators" in audience and not plan["reconcile"]:
+        errors.append("reconcile: pages for regulators always reconcile, so use 'reconcile: true'")
     if ("explore" in goals or plan["review_depth"] == "deep") and not plan["detail_table"]:
         errors.append("Interaction: explore goals and deep review use 'Detail table: yes'")
     if plan["reconcile"] and plan["review_depth"] != "deep":
@@ -57,6 +80,46 @@ def goal_rules(plan, errors, warnings):
         warnings.append(f"comparison_period: {cadence} pages usually compare with the previous period, e.g. comparison_period: <date column>:{ {'daily': 'day', 'weekly': 'week', 'monthly': 'month'}[cadence]}")
     if cadence == "daily" and len(plan["charts"]) > MAX_DAILY_CHARTS:
         warnings.append(f"Story: daily pages are glanceable; {len(plan['charts'])} charts is more than {MAX_DAILY_CHARTS}")
+
+
+def style_rules(plan, errors, warnings):
+    """Check the Style Profile against the audience limits and the plan's own content."""
+    if not plan.get("has_profile"):
+        warnings.append("Style: no Style Profile; derive one with references/style-system.md and add it to ## Style")
+        return
+    style, audience = {k: v.lower() for k, v in plan["style"].items()}, plan["audience"]
+    for a in audience:
+        lim = AUDIENCE_LIMITS.get(a)
+        if not lim:
+            continue
+        for field in ("density", "interaction", "motion"):
+            if style.get(field) in ORDER[field] and ORDER[field].index(style[field]) > ORDER[field].index(lim[field]):
+                errors.append(f"Style: {field} '{style[field]}' is above what {a} allows ('{lim[field]}' at most)")
+        for field in ("provenance", "type_scale"):
+            if style.get(field) in ORDER[field] and ORDER[field].index(style[field]) < ORDER[field].index(lim[field]):
+                errors.append(f"Style: {field} '{style[field]}' is below what {a} needs ('{lim[field]}' at least)")
+        banned = AUDIENCE_BANNED_FORMS.get(a, set())
+        used_banned = sorted({c["form"] for c in plan["charts"]} & banned)
+        if used_banned:
+            errors.append(f"Story: {a} pages don't use {', '.join(used_banned)} (style-system.md, Audience overrides)")
+    if "regulators" in audience:
+        if style.get("numbers") != "exact":
+            errors.append("Style: regulators need 'numbers: exact'")
+        if style.get("register") != "evidentiary":
+            errors.append("Style: regulators need 'register: evidentiary'")
+    allowed = set(as_list(style.get("chart_set", "")))
+    used = {c["form"] for c in plan["charts"]} | ({"kpis"} if plan["kpis"] else set())
+    outside = sorted(used - allowed)
+    if allowed and outside:
+        errors.append(f"Style: the plan uses {', '.join(outside)}, which isn't in chart_set ({style.get('chart_set')})")
+    if style.get("color_mode") in ("status", "diverging") and style.get("direction") == "none":
+        errors.append(f"Style: color_mode '{style['color_mode']}' needs a direction (up-good or down-good)")
+    cap = DENSITY_CAPS.get(style.get("density"))
+    if cap and (len(plan["kpis"]) > cap[0] or len(plan["charts"]) > cap[1]):
+        errors.append(f"Style: density '{style['density']}' allows {cap[0]} KPIs and {cap[1]} charts; the plan has "
+                      f"{len(plan['kpis'])} and {len(plan['charts'])}")
+    if style.get("interaction") == "none" and (plan["menus"] or any(c["interaction"] != "none" for c in plan["charts"])):
+        errors.append("Style: interaction 'none' but the plan has menus or brush/click charts")
 
 
 def annotation_checks(con, plan, default, errors, warnings):
@@ -106,6 +169,7 @@ def main():
 
     sections = plan["sections"]
     goal_rules(plan, errors, warnings)
+    style_rules(plan, errors, warnings)
 
     assumptions = sections.get("Assumptions", "").strip()
     if plan["review_depth"] == "quick" and re.fullmatch(r"(-\s*)?(none)?\.?", assumptions, re.IGNORECASE):

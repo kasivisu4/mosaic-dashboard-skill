@@ -22,8 +22,8 @@ Read the first message and any attachments. Fill in every field you can WITHOUT 
 | success_criteria | free text | casual statements count: "I just need to see the top drivers fast" → "top drivers visible at a glance". Capture it in every depth; ask for it only in guided/deep |
 | data | file or location | attachments, connectors, named tables, paths |
 | glossary | term = definition | business terms that don't match column names |
-| reconcile | on/off | "reconcile", "match finance / the X report", "official", "audit", "board pack", audience = clients |
-| audience | me, team, leadership, clients | "for my VP", "for the board", "for the auditors" |
+| reconcile | on/off | "reconcile", "match finance / the X report", "official", "audit", "board pack", audience = regulators |
+| audience | me, team, leadership, clients, regulators | "for my VP", "for the board", "for the auditors" |
 | review_depth | quick, guided, deep | section 4 |
 
 If the person pasted or forwarded an original request (Slack, email, ticket), extract from it first: goal, audience, cadence, metrics, terms, deadlines. It outranks your own guesses, and every field it answers is dropped from the form.
@@ -45,7 +45,7 @@ Show only the groups whose field is still unknown, in this order, under the head
 | 4 | This dashboard is useful if… | textarea: "e.g. I can see the top 3 drivers of the drop in under 10 seconds" | `success_criteria` |
 | 5 | Where's the data? | file dropzone + textarea: "or describe where it lives" | `data`, `data_text` |
 | 6 | Any terms with a specific meaning here? (only when `goals.md` says so) | textarea: "e.g. NPA = 90+ days past due; active = 1+ transaction in 30 days" | `glossary` |
-| 7 | Who will look at it? | pills, multi-select | `audience` → `me`, `team`, `leadership`, `clients` |
+| 7 | Who will look at it? | pills, multi-select | `audience` → `me`, `team`, `leadership`, `clients`, `regulators` |
 | 8 | How much should I check with you before building? | pills, single, nothing preselected | `review_depth` → `quick`, `guided`, `deep` |
 
 Pill and card labels come from `goals.md`; `data-value` is always the id, so answers parse the same whatever the wording. Use no sliders.
@@ -70,7 +70,7 @@ The form's answers arrive as one line, e.g. `Dashboard details — Goal: answer,
 - Merge the answers with what you inferred; answers win.
 - Two goals → a layered page: the first goal's block on top, the second underneath (`goals.md` placement rules apply).
 - Glossary terms given → confirm each definition against the data before computing with it, and write them into the plan's `## Data` lines.
-- Audience `clients` → reconcile on.
+- Audience `regulators` → reconcile on.
 
 ## 4. Decide review depth
 

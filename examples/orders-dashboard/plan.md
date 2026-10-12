@@ -43,6 +43,21 @@ Revenue was steady all year; returns run at about 9% of orders in every store, a
 - Last updated: order_date
 
 ## Style
+- register: operational
+- density: balanced
+- surface: status
+- focus: stores above the return-rate target
+- color_mode: status
+- direction: down-good
+- type_scale: standard
+- interaction: light
+- motion: transitions
+- chart_set: KPIs, exceptions, trend, bar, histogram
+- anomalies: spotlight
+- narrative: captions
+- provenance: footnote
+- numbers: precise
+- data_character: time-heavy, categorical, flag-driven
 - accent: #2f6fde
 - alert: #c2410c
 - currency: USD

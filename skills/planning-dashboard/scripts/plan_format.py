@@ -7,7 +7,29 @@ import re
 
 PLAN_VERSION = 2
 GOALS = {"answer", "spec", "explore", "monitor", "present"}
-AUDIENCES = {"me", "team", "leadership", "clients"}
+AUDIENCES = {"me", "team", "leadership", "clients", "regulators"}
+# Style Profile fields and their allowed values (references/style-system.md). Free-text fields map to None;
+# list fields are checked item by item.
+STYLE_ENUMS = {
+    "register": {"analytic", "operational", "editorial", "formal", "evidentiary"},
+    "density": {"sparse", "balanced", "dense"},
+    "surface": {"headline", "status", "grid", "narrative", "ledger", "exact"},
+    "focus": None,
+    "color_mode": {"focus", "status", "categorical", "sequential", "diverging"},
+    "direction": {"up-good", "down-good", "none"},
+    "type_scale": {"compact", "standard", "display"},
+    "interaction": {"none", "light", "full"},
+    "motion": {"none", "transitions", "reveal"},
+    "anomalies": {"ignore", "flag", "spotlight", "explain", "footnote"},
+    "narrative": {"none", "captions", "annotated", "story"},
+    "provenance": {"hidden", "footnote", "inline", "per-number"},
+    "numbers": {"rounded", "precise", "exact"},
+}
+STYLE_LISTS = {
+    "chart_set": {"kpis", "trend", "bar", "histogram", "scatter", "exceptions"},
+    "data_character": {"time-heavy", "categorical", "high-cardinality", "anomaly-rich", "sparse",
+                       "small-n", "ordinal", "wide", "flag-driven"},
+}
 ENUMS = {
     "cadence": {"one-time", "daily", "weekly", "monthly"},
     "review_depth": {"quick", "guided", "deep"},
@@ -154,11 +176,12 @@ def parse(text):
     updated = re.search(r"Last updated:\s*(\S+)", inter)
     plan["last_updated"] = updated.group(1) if updated and updated.group(1).lower() != "none" else None
 
-    for m in re.finditer(r"^\s*-\s*(\w+):\s*(\S+)", sections.get("Style", ""), re.MULTILINE):
+    for m in re.finditer(r"^\s*-\s*(\w+):\s*(.+?)\s*$", sections.get("Style", ""), re.MULTILINE):
         plan["style"][m.group(1).lower()] = m.group(2)
     for key in ("accent", "alert"):
         if key in plan["style"] and not re.fullmatch(r"#[0-9a-fA-F]{6}", plan["style"][key]):
             errors.append(f"Style: {key} must be a #rrggbb color, got {plan['style'][key]}")
+    _style_profile(plan, errors)
 
     plan["sql"] = [s.strip() for s in re.findall(r"```sql\s*(.*?)```", sections.get("Data for the executor", ""), re.DOTALL)]
     if not plan["sql"]:
@@ -219,6 +242,27 @@ def _kpis(text, plan, errors):
             except ValueError as e:
                 errors.append(f"Story: KPI {label}: target {e}")
         plan["kpis"].append(kpi)
+
+
+def _style_profile(plan, errors):
+    """Check the Style Profile in ## Style. A plan without one is allowed (older plans); a partial one isn't."""
+    style = plan["style"]
+    fields = list(STYLE_ENUMS) + list(STYLE_LISTS)
+    present = [f for f in fields if f in style]
+    plan["has_profile"] = bool(present)
+    if not present:
+        return
+    missing = [f for f in fields if f not in style]
+    if missing:
+        errors.append(f"Style: the Style Profile is missing {', '.join(missing)} (see references/style-system.md)")
+    for key, allowed in STYLE_ENUMS.items():
+        if allowed and key in style and style[key].lower() not in allowed:
+            errors.append(f"Style: {key} must be one of {sorted(allowed)}, got {style[key]!r}")
+    for key, allowed in STYLE_LISTS.items():
+        if key in style:
+            bad = [v for v in as_list(style[key]) if v not in allowed]
+            if bad:
+                errors.append(f"Style: {key} has unknown value(s) {bad}; allowed: {sorted(allowed)}")
 
 
 def _story(story, plan, errors):

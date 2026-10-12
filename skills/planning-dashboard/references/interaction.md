@@ -13,4 +13,4 @@ Per goal and audience (see `guidelines/goals.md`):
 - **answer:** the driver bar filters by click; the trend by brush.
 - **explore:** menus on every useful dimension, detail table on, every chart interactive.
 - **present:** one interaction per section at most.
-- **leadership or clients** in the audience: no SQL on the page.
+- **leadership, clients or regulators** in the audience: no SQL on the page. The Style Profile's `interaction` level (references/style-system.md) sets how many controls the page gets.

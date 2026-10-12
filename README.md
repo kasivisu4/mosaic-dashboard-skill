@@ -43,10 +43,10 @@ mosaic-dashboard-skill/
     │   ├── guidelines/                 # ← organizations edit these
     │   │   ├── goals.md                # form wording, goal signals, page blocks, audiences, cadence
     │   │   ├── metrics.md              # approved metric definitions
-    │   │   ├── style.md                # colors and chart rules
+    │   │   ├── style.md                # brand colors per style role, fonts, stricter audience limits
     │   │   └── timing.md               # latency budget per step
     │   ├── references/                 # method: intake, understand-data, data-story, interaction,
-    │   │                               #   destinations, plan-format (the contract)
+    │   │                               #   style-system, destinations, plan-format (the contract)
     │   ├── assets/                     # intake-form.html, confirmation-card.html, plan-template.md
     │   ├── scripts/
     │   │   ├── start_run.py            # first turn in one command: quick look, background profile, form
