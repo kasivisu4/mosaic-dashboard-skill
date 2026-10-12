@@ -55,8 +55,8 @@ data:
 - provenance: {hidden | footnote | inline | per-number}
 - numbers: {rounded | precise | exact}
 - data_character: {traits from style-system.md, comma-separated}
-- accent: {#hex from guidelines/style.md}
-- alert: {#hex}
+- accent: {#hex: the suggested focus color, or the brand color pinned in guidelines/dashboard.md}
+- alert: {#hex: the suggested breach color}
 - currency: {ISO code}
 
 ## Data for the executor

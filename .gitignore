@@ -5,6 +5,5 @@ __pycache__/
 skills/*-workspace/
 skills/*/evals/files/
 examples/*/*.parquet
-examples/*/index.html
 .claude/
 out/

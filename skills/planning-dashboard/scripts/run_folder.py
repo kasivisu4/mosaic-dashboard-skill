@@ -29,7 +29,7 @@ STEPS = [
     ("2-intake", "Intake", "the form built from the data, what was inferred, the answers"),
     ("3-layout", "Layout and card", "page blocks, finding-titles with the query behind each number, the card and any changes"),
     ("4-dashboard", "Plan and dashboard", "plan.md, its data files, validation result, and the built page"),
-    ("5-handoff", "Hand-off", "which executor built it, the command, how to open it"),
+    ("5-handoff", "Hand-off", "how the page was built, how to open it, anything not built"),
 ]
 
 

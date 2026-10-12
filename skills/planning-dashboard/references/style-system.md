@@ -1,6 +1,6 @@
 # Style system
 
-Style isn't a palette. For every dashboard the planner derives a **Style Profile** from three signals (goal, audience, data character) and writes it into the plan's `## Style` section. The executor renders the profile; it never picks its own look. The organization's colors, fonts and audience limits live in [../guidelines/style.md](../guidelines/style.md); this file is how to decide.
+Style isn't a palette. For every dashboard the planner derives a **Style Profile** from three signals (goal, audience, data character) and writes it into the plan's `## Style` section. The executor renders the profile; it never picks its own look. How pages are built, the color policy and any stricter audience limits are the organization's, in [../guidelines/dashboard.md](../guidelines/dashboard.md); this file is how to decide.
 
 ## Contents
 - Principles
@@ -49,7 +49,7 @@ Written as bullets in the plan's `## Style` section (`- field: value`). Every fi
 | `provenance` | `hidden`, `footnote`, `inline`, `per-number` | how visible sources and definitions are |
 | `numbers` | `rounded`, `precise`, `exact` | precision of displayed values |
 | `data_character` | comma list (see modifiers) | the traits detected in the data; recorded for traceability |
-| `accent`, `alert`, `currency` | `#hex`, `#hex`, ISO code (optional) | organization tokens from `guidelines/style.md` |
+| `accent`, `alert`, `currency` | `#hex`, `#hex`, ISO code (optional) | the suggested `focus` and `breach` colors for this page (see Color system), or the brand colors pinned in `guidelines/dashboard.md` |
 
 ### Density caps (first screen)
 
@@ -77,7 +77,7 @@ Apply in this order; a later layer overrides an earlier one only where stated:
 4. **Two goals:** take the base of the first goal; from the second goal take only `narrative` (if heavier) and its blocks. Monitor always contributes its status row on top; present always contributes its story at the bottom.
 5. **Spec goal:** the person's request wins over the base for layout and chart forms; audience overrides still apply to provenance, numbers and SQL.
 
-Record the result in the plan, then check it against the audience table in `guidelines/style.md`. `scripts/validate_plan.py` enforces the hard constraints.
+Record the result in the plan, then check it against any stricter limits in `guidelines/dashboard.md`. `scripts/validate_plan.py` enforces the hard constraints.
 
 ## Goal bases
 
@@ -105,7 +105,7 @@ What each base means in practice:
 
 ## Audience overrides
 
-Hard constraints. The organization can tighten these in `guidelines/style.md`, never loosen them.
+Hard constraints. The organization can tighten these in `guidelines/dashboard.md`, never loosen them.
 
 | Field | me | team | leadership | clients | regulators |
 |---|---|---|---|---|---|
@@ -147,7 +147,7 @@ Detect these from the profile (`1-profile/profile.txt` and `quick-look.json`). R
 
 ## Color system
 
-Colors are **roles**, not hex values. `guidelines/style.md` maps each role to the organization's tokens for light and dark modes.
+Colors are **roles**, not fixed hex values. For each dashboard, suggest a value for every role the page's `color_mode` allows, in light and dark mode, following the rules below and in `guidelines/dashboard.md` (which may pin brand colors instead). Put the suggestion on the confirmation card as an assumption ("Colors: blue focus, orange-red for off target") so the person can change it, then write `focus` as `accent` and `breach` as `alert` in the plan.
 
 | Role | Meaning | Rule |
 |---|---|---|

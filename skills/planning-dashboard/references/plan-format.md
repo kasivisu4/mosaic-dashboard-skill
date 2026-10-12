@@ -54,7 +54,7 @@ In this order, after the header:
 | `## Data` | Bullets: `1 row = …`, `Excluded: …` (or `none`), one line per metric or glossary definition, marked `(confirmed)` or `(assumed)`, and, when `reconcile: true`, `Reconcile with: <source> (matched | not yet checked)`. |
 | `## Story` | Numbered story lines (below), in page order. |
 | `## Interaction` | `- Menus: col, col` (or `none`), `- Detail table: yes/no`, `- SQL on page: yes/no`, optional `- Last updated: <date column>` (the page shows the latest date in it). |
-| `## Style` | The Style Profile, one `- field: value` per line (fields and values in `style-system.md`; all of them or none), plus the tokens `- accent: #hex`, `- alert: #hex`, `- currency: ISO code` (optional). |
+| `## Style` | The Style Profile, one `- field: value` per line (fields and values in `style-system.md`; all of them or none), plus the tokens `- accent: #hex` (the page's focus color), `- alert: #hex` (its breach color), `- currency: ISO code` (optional). Colors are suggested per dashboard and confirmed on the card. |
 | `## Data for the executor` | One ```` ```sql ```` block per data file: the exact statement that produced it. |
 
 ## Story lines

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Store sales, 2025</title>
+<style>
+  /* Suggested palette for this page (color_mode: status, direction: down-good): grey ink, one blue focus, orange-red breach. */
+  :root {
+    --bg: #f7f8fa; --card: #ffffff; --ink: #1f2933; --ink-muted: #a0aab4; --grid: #e6e9ed;
+    --focus: #2f6fde; --selected: #7c5cd6; --breach: #c2410c;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111418; --card: #1a1f25; --ink: #e4e7eb; --ink-muted: #5f6b77; --grid: #2a3139; --focus: #6ea2ff; --selected: #a78bfa; --breach: #fb923c; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font); font-variant-numeric: tabular-nums; }
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  .lede { margin: 0 0 4px; } .muted { color: var(--ink-muted); }
+  .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 16px 0; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { background: var(--card); border: 1px solid var(--grid); border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+  button, select { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--grid); border-radius: 6px; padding: 4px 10px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .kpi, .card { background: var(--card); border: 1px solid var(--grid); border-radius: 10px; padding: 14px 16px; }
+  .kpi-label { font-size: 13px; color: var(--ink-muted); } .kpi-value { font-size: 30px; font-weight: 600; } .kpi-total { font-size: 12px; color: var(--ink-muted); }
+  .breach { color: var(--breach); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 12px; margin-top: 12px; }
+  .card h2 { font-size: 15px; font-weight: 600; margin: 0 0 2px; } .hint, .note { font-size: 12px; color: var(--ink-muted); margin: 0 0 6px; }
+  table { border-collapse: collapse; width: 100%; } th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--grid); } .num { text-align: right; }
+  footer { margin-top: 24px; font-size: 12px; color: var(--ink-muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Store sales, 2025</h1>
+  <p class="lede">Revenue was steady all year; returns run at about 9% of orders in every store, and only East is above target.</p>
+  <p class="muted" id="updated"></p>
+  <div class="bar" id="filters"></div>
+  <section class="kpis">
+    <div id="k-revenue"></div><div id="k-orders"></div><div id="k-returns"></div><div id="k-aov"></div>
+  </section>
+  <section class="grid">
+    <article class="card"><h2>East is the only store above a 9% return rate</h2><p class="hint">Stores past the 9% target, worst first</p><div id="c-exceptions"></div></article>
+    <article class="card"><h2>Weekly revenue held steady through the year</h2><p class="hint">Drag to filter</p><div id="c-trend"></div><p class="note">The last week of the year has only three days of data, so it dips.</p></article>
+    <article class="card"><h2>All five categories bring in about the same revenue</h2><p class="hint">Click to filter, shift-click to add</p><div id="c-bar"></div></article>
+    <article class="card"><h2>Order values spread evenly from $10 to $200</h2><p class="hint">Drag to filter</p><div id="c-hist"></div></article>
+  </section>
+  <footer>Source: orders_clean.parquet (8,000 orders). Return rate = returned orders / all orders. Revenue = sum of revenue per order.</footer>
+</main>
+<script type="module">
+  import * as kit from "./dashboard-kit.js";
+  const $ = (id) => document.getElementById(id);
+  const T = "orders";
+  await kit.start({ orders: "orders_clean.parquet" });
+
+  const [{ last }] = await kit.rows(`SELECT max(order_date) AS last FROM ${T}`);
+  $("updated").textContent = `Last updated ${new Date(last).toLocaleDateString(undefined, { dateStyle: "medium" })}`;
+
+  kit.menu($("filters"), { table: T, column: "store", label: "Store" });
+  kit.filterBar($("filters"));
+
+  kit.kpi($("k-revenue"), { table: T, label: "Revenue", value: "sum(revenue)", format: "currency" });
+  kit.kpi($("k-orders"), { table: T, label: "Orders", value: "count(*)", format: "compact" });
+  kit.kpi($("k-returns"), { table: T, label: "Return rate", value: "avg(CAST(returned AS DOUBLE))", format: "percent", target: 0.09, direction: "down-good" });
+  kit.kpi($("k-aov"), { table: T, label: "Avg order", value: "avg(revenue)", format: "currency" });
+
+  kit.exceptions($("c-exceptions"), { table: T, category: "store", value: "avg(CAST(returned AS DOUBLE))", above: 0.09, format: "percent" });
+  kit.trend($("c-trend"), { table: T, date: "order_date", bucket: "week", value: "sum(revenue)", format: "currency", name: "Week", annotations: [{ x: "2025-12-29", text: "Partial week" }] });
+  kit.bar($("c-bar"), { table: T, category: "category", value: "sum(revenue)", format: "currency", name: "Category" });
+  kit.histogram($("c-hist"), { table: T, value: "revenue", name: "Order value" });
+</script>
+</body>
+</html>
