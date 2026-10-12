@@ -5,72 +5,197 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Store sales, 2025</title>
 <style>
-  /* Suggested palette for this page (color_mode: status, direction: down-good): grey ink, one blue focus, orange-red breach. */
+  /* Suggested palette (color_mode: status, direction: down-good): grey ink, blue focus, orange-red breach. */
   :root {
-    --bg: #f7f8fa; --card: #ffffff; --ink: #1f2933; --ink-muted: #a0aab4; --grid: #e6e9ed;
+    --bg: #f6f7f9; --card: #ffffff; --ink: #1f2933; --ink-muted: #8a96a3; --grid: #e4e7eb;
     --focus: #2f6fde; --selected: #7c5cd6; --breach: #c2410c;
-    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #111418; --card: #1a1f25; --ink: #e4e7eb; --ink-muted: #5f6b77; --grid: #2a3139; --focus: #6ea2ff; --selected: #a78bfa; --breach: #fb923c; }
+    :root { --bg: #101317; --card: #181d23; --ink: #e4e7eb; --ink-muted: #6b7785; --grid: #29303a; --focus: #6ea2ff; --selected: #a78bfa; --breach: #fb923c; }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font); font-variant-numeric: tabular-nums; }
-  main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px; }
-  h1 { font-size: 24px; margin: 0 0 4px; }
-  .lede { margin: 0 0 4px; } .muted { color: var(--ink-muted); }
-  .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 16px 0; }
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; font-variant-numeric: tabular-nums; }
+  main { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+  h1 { font-size: 24px; margin: 0; }
+  .muted { color: var(--ink-muted); }
+  .status { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 2fr); gap: 16px; margin-top: 18px; }
+  @media (max-width: 760px) { .status { grid-template-columns: 1fr; } }
+  .panel { background: var(--card); border: 1px solid var(--grid); border-radius: 12px; padding: 16px 18px; }
+  .hero { font-size: 46px; font-weight: 650; line-height: 1.1; }
+  .hero.breach, .breach { color: var(--breach); }
+  .sentence { margin: 6px 0 14px; }
+  .facts { display: flex; flex-wrap: wrap; gap: 18px; border-top: 1px solid var(--grid); padding-top: 12px; }
+  .facts b { display: block; font-size: 20px; font-weight: 600; }
+  .facts span { font-size: 12px; color: var(--ink-muted); }
+  h2 { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  .hint { font-size: 12px; color: var(--ink-muted); margin: 0 0 6px; }
+  .note { font-size: 12px; color: var(--ink-muted); margin: 6px 0 0; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 18px 0 0; }
+  #chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { background: var(--card); border: 1px solid var(--grid); border-radius: 999px; padding: 2px 10px; font-size: 12px; }
   button, select { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--grid); border-radius: 6px; padding: 4px 10px; }
-  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-  .kpi, .card { background: var(--card); border: 1px solid var(--grid); border-radius: 10px; padding: 14px 16px; }
-  .kpi-label { font-size: 13px; color: var(--ink-muted); } .kpi-value { font-size: 30px; font-weight: 600; } .kpi-total { font-size: 12px; color: var(--ink-muted); }
-  .breach { color: var(--breach); }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 12px; margin-top: 12px; }
-  .card h2 { font-size: 15px; font-weight: 600; margin: 0 0 2px; } .hint, .note { font-size: 12px; color: var(--ink-muted); margin: 0 0 6px; }
-  table { border-collapse: collapse; width: 100%; } th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--grid); } .num { text-align: right; }
+  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 16px; margin-top: 16px; }
   footer { margin-top: 24px; font-size: 12px; color: var(--ink-muted); }
 </style>
 </head>
 <body>
 <main>
   <h1>Store sales, 2025</h1>
-  <p class="lede">Revenue was steady all year; returns run at about 9% of orders in every store, and only East is above target.</p>
-  <p class="muted" id="updated"></p>
-  <div class="bar" id="filters"></div>
-  <section class="kpis">
-    <div id="k-revenue"></div><div id="k-orders"></div><div id="k-returns"></div><div id="k-aov"></div>
+  <p class="muted" id="updated">Loading…</p>
+
+  <div class="bar"><span id="menu"></span><span id="chips"></span><button id="reset" type="button">Reset</button></div>
+
+  <section class="status">
+    <div class="panel">
+      <div class="muted">Return rate, target ≤ 9%</div>
+      <div class="hero" id="rate">…</div>
+      <p class="sentence" id="sentence"></p>
+      <div class="facts">
+        <div><b id="revenue">…</b><span id="revenue-total"></span></div>
+        <div><b id="orders">…</b><span id="orders-total"></span></div>
+        <div><b id="aov">…</b><span id="aov-total"></span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>East is the only store above a 9% return rate</h2>
+      <p class="hint">Each store's return rate against the 9% target · click a store to filter</p>
+      <div id="stores"></div>
+    </div>
   </section>
-  <section class="grid">
-    <article class="card"><h2>East is the only store above a 9% return rate</h2><p class="hint">Stores past the 9% target, worst first</p><div id="c-exceptions"></div></article>
-    <article class="card"><h2>Weekly revenue held steady through the year</h2><p class="hint">Drag to filter</p><div id="c-trend"></div><p class="note">The last week of the year has only three days of data, so it dips.</p></article>
-    <article class="card"><h2>All five categories bring in about the same revenue</h2><p class="hint">Click to filter, shift-click to add</p><div id="c-bar"></div></article>
-    <article class="card"><h2>Order values spread evenly from $10 to $200</h2><p class="hint">Drag to filter</p><div id="c-hist"></div></article>
+
+  <section class="row">
+    <div class="panel">
+      <h2>Weekly revenue held steady through the year</h2>
+      <p class="hint">Drag to filter</p>
+      <div id="trend"></div>
+      <p class="note">The last week of the year has only three days of data, so it dips.</p>
+    </div>
+    <div class="panel">
+      <h2>All five categories bring in about the same revenue</h2>
+      <p class="hint">Click to filter, shift-click to add</p>
+      <div id="cats"></div>
+    </div>
   </section>
-  <footer>Source: orders_clean.parquet (8,000 orders). Return rate = returned orders / all orders. Revenue = sum of revenue per order.</footer>
+  <section class="row">
+    <div class="panel">
+      <h2>Order values spread evenly from $10 to $200</h2>
+      <p class="hint">Drag to filter</p>
+      <div id="hist"></div>
+    </div>
+  </section>
+
+  <footer>Source: orders_clean.parquet, 8,000 orders. Return rate = returned orders / all orders. Revenue = sum of revenue per order.</footer>
 </main>
 <script type="module">
-  import * as kit from "./dashboard-kit.js";
+  import * as vg from "https://cdn.jsdelivr.net/npm/@uwdata/vgplot@0.31.0/+esm";
+
   const $ = (id) => document.getElementById(id);
-  const T = "orders";
-  await kit.start({ orders: "orders_clean.parquet" });
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const TARGET = 0.09;
+  const money = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
+  const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });
+  const pct = new Intl.NumberFormat(undefined, { style: "percent", maximumFractionDigits: 1 });
+  const day = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
 
-  const [{ last }] = await kit.rows(`SELECT max(order_date) AS last FROM ${T}`);
-  $("updated").textContent = `Last updated ${new Date(last).toLocaleDateString(undefined, { dateStyle: "medium" })}`;
+  if (location.protocol === "file:") throw new Error("Serve this folder over http: python -m http.server");
+  vg.coordinator().databaseConnector(vg.wasmConnector());
+  await vg.coordinator().exec([vg.loadParquet("orders", new URL("orders_clean.parquet", location.href).href)]);
+  const [{ last }] = (await vg.coordinator().query("SELECT max(order_date) AS last FROM orders")).toArray();
+  $("updated").textContent = `Last updated ${day.format(new Date(last))}`;
 
-  kit.menu($("filters"), { table: T, column: "store", label: "Store" });
-  kit.filterBar($("filters"));
+  // Cross-filtering: each chart or input owns a selection, all relayed into one page filter.
+  const $page = vg.Selection.crossfilter();
+  const owned = [];
+  const own = (name, dates = false) => { const s = vg.Selection.single(); s._relay.add($page); owned.push({ s, name, dates }); return s; };
+  const $store = own("Store"), $week = own("Weeks", true), $cat = own("Category"), $value = own("Order value"), $menu = own("Store menu");
 
-  kit.kpi($("k-revenue"), { table: T, label: "Revenue", value: "sum(revenue)", format: "currency" });
-  kit.kpi($("k-orders"), { table: T, label: "Orders", value: "count(*)", format: "compact" });
-  kit.kpi($("k-returns"), { table: T, label: "Return rate", value: "avg(CAST(returned AS DOUBLE))", format: "percent", target: 0.09, direction: "down-good" });
-  kit.kpi($("k-aov"), { table: T, label: "Avg order", value: "avg(revenue)", format: "currency" });
+  // Live numbers: filtered value plus the unfiltered total.
+  class Live extends vg.MosaicClient {
+    constructor(filterBy, query, render) { super(filterBy); this.q = query; this.r = render; }
+    query(where = []) { return this.q(where); }
+    queryResult(data) { this.r(data.toArray().map((d) => ({ ...d }))); return this; }
+    queryError(e) { console.error(e); return this; }
+  }
+  const summary = (where) => vg.Query.from("orders").select({
+    rev: vg.sum("revenue"), n: vg.count(), rate: vg.sql`avg(CAST(returned AS DOUBLE))`, aov: vg.avg("revenue"),
+  }).where(where);
+  vg.coordinator().connect(new Live($page, summary, ([r]) => {
+    $("rate").textContent = pct.format(r.rate);
+    $("rate").classList.toggle("breach", r.rate > TARGET);
+    const gap = (r.rate - TARGET) * 100;
+    $("sentence").textContent = `${compact.format(r.n)} orders in view, ${Math.abs(gap).toFixed(1)} points ${gap > 0 ? "above" : "below"} target.`;
+    $("revenue").textContent = money.format(r.rev);
+    $("orders").textContent = compact.format(r.n);
+    $("aov").textContent = money.format(r.aov);
+  }));
+  vg.coordinator().connect(new Live(undefined, summary, ([r]) => {
+    $("revenue-total").textContent = `revenue · of ${money.format(r.rev)}`;
+    $("orders-total").textContent = `orders · of ${compact.format(r.n)}`;
+    $("aov-total").textContent = `avg order · of ${money.format(r.aov)}`;
+  }));
 
-  kit.exceptions($("c-exceptions"), { table: T, category: "store", value: "avg(CAST(returned AS DOUBLE))", above: 0.09, format: "percent" });
-  kit.trend($("c-trend"), { table: T, date: "order_date", bucket: "week", value: "sum(revenue)", format: "currency", name: "Week", annotations: [{ x: "2025-12-29", text: "Partial week" }] });
-  kit.bar($("c-bar"), { table: T, category: "category", value: "sum(revenue)", format: "currency", name: "Category" });
-  kit.histogram($("c-hist"), { table: T, value: "revenue", name: "Order value" });
+  const w = (id) => Math.max(280, $(id).clientWidth);
+  const look = () => [vg.style({ color: css("--ink"), background: "transparent", fontSize: "12px" })];
+
+  // Return rate per store as dots against the target rule; past-target stores in the breach color.
+  $("stores").append(vg.plot(
+    vg.ruleX([TARGET], { stroke: css("--ink-muted"), strokeDasharray: "4,3" }),
+    vg.text([{ x: TARGET, t: "target 9%" }], { x: "x", text: "t", frameAnchor: "top", dy: -6, fill: css("--ink-muted") }),
+    vg.dot(vg.from("orders", { filterBy: $page }), {
+      y: "store", x: vg.sql`avg(CAST(returned AS DOUBLE))`, r: 7,
+      fill: vg.sql`CASE WHEN avg(CAST(returned AS DOUBLE)) > ${TARGET} THEN 'over' ELSE 'ok' END`,
+      sort: { y: "-x" }, tip: true,
+    }),
+    vg.toggleY({ as: $store }), vg.highlight({ by: $store }),
+    vg.colorDomain(["over", "ok"]), vg.colorRange([css("--breach"), css("--focus")]),
+    vg.xDomain([0, 0.14]), vg.xTickFormat(".0%"), vg.xGrid(true), vg.xLabel(null), vg.yLabel(null), vg.marginLeft(60), vg.marginTop(22),
+    vg.width(w("stores")), vg.height(190), ...look(),
+  ));
+
+  // Weekly revenue; brush the real date column (the x axis is a computed bucket).
+  $("trend").append(vg.plot(
+    vg.areaY(vg.from("orders", { filterBy: $page }), { x: vg.sql`date_trunc('week', order_date)`, y: vg.sum("revenue"), fill: css("--focus"), fillOpacity: 0.12 }),
+    vg.lineY(vg.from("orders", { filterBy: $page }), { x: vg.sql`date_trunc('week', order_date)`, y: vg.sum("revenue"), stroke: css("--focus"), strokeWidth: 2 }),
+    vg.text([{ x: new Date("2025-12-29"), t: "Partial week" }], { x: "x", text: "t", frameAnchor: "top", dy: -8, textAnchor: "end", fill: css("--ink-muted") }),
+    vg.intervalX({ as: $week, field: "order_date", brush: { fill: css("--selected"), fillOpacity: 0.18, stroke: css("--selected") } }),
+    vg.yTickFormat("$~s"), vg.yGrid(true), vg.xLabel(null), vg.yLabel(null), vg.marginTop(22), vg.marginLeft(48),
+    vg.width(w("trend")), vg.height(230), ...look(),
+  ));
+
+  // Category revenue, ranked; click filters, the rest dim.
+  $("cats").append(vg.plot(
+    vg.barX(vg.from("orders", { filterBy: $page }), { x: vg.sum("revenue"), y: "category", fill: css("--focus"), sort: { y: "-x" } }),
+    vg.toggleY({ as: $cat }), vg.highlight({ by: $cat }),
+    vg.xTickFormat("$~s"), vg.xGrid(true), vg.xLabel(null), vg.yLabel(null), vg.marginLeft(60),
+    vg.width(w("cats")), vg.height(230), ...look(),
+  ));
+
+  // Order value distribution with a brush.
+  $("hist").append(vg.plot(
+    vg.rectY(vg.from("orders", { filterBy: $page }), { x: vg.bin("revenue"), y: vg.count(), fill: css("--focus"), inset: 0.5 }),
+    vg.intervalX({ as: $value, field: "revenue", brush: { fill: css("--selected"), fillOpacity: 0.18, stroke: css("--selected") } }),
+    vg.xTickFormat("$~s"), vg.yGrid(true), vg.xLabel(null), vg.yLabel("orders"), vg.marginLeft(44),
+    vg.width(w("hist")), vg.height(200), ...look(),
+  ));
+
+  // The plan's store menu; its options follow the other filters.
+  $("menu").append(vg.menu({ from: "orders", column: "store", label: "Store", as: $menu, filterBy: $page }));
+
+  // Chips in words, and Reset.
+  const words = (v, dates) => {
+    if (v == null || v === "") return null;
+    if (Array.isArray(v) && v.length === 2 && !Array.isArray(v[0])) return v.map((x) => (dates ? day.format(new Date(x)) : money.format(x))).join(" – ");
+    return Array.isArray(v) ? v.flat().join(", ") : String(v);
+  };
+  const chips = () => {
+    const on = owned.map((o) => [o.name, words(o.s.value, o.dates)]).filter(([, t]) => t);
+    $("chips").replaceChildren(...(on.length ? on.map(([n, t]) => Object.assign(document.createElement("span"), { className: "chip", textContent: `${n}: ${t}` }))
+      : [Object.assign(document.createElement("span"), { className: "muted", textContent: "No filters" })]));
+    $("reset").disabled = !on.length;
+  };
+  owned.forEach((o) => o.s.addEventListener("value", chips));
+  $("reset").addEventListener("click", () => owned.forEach((o) => o.s.reset()));
+  chips();
 </script>
 </body>
 </html>

@@ -10,7 +10,7 @@ New here? Start with [docs/how-it-works.md](docs/how-it-works.md). Customizing i
 
 | Part | State |
 |---|---|
-| `planning-dashboard` (planner) | Active. Five steps: profile, intake form fitted to the data, layout + confirmation card, validated plan (format v2), build; run folders with timing. Pages are built with its dashboard kit: Mosaic + DuckDB-WASM + Observable Plot, live cross-filtering |
+| `planning-dashboard` (planner) | Active. Five steps: profile, intake form fitted to the data, layout + confirmation card, validated plan (format v2), build; run folders with timing. Pages are designed fresh each time (no template) with Mosaic + DuckDB-WASM + Observable Plot, live cross-filtering |
 | `building-dashboard-mosaic` (executor) | Parked and not used for now (the planner builds the page itself). Builds pages from plans, but doesn't yet draw v2's KPI targets, exceptions lists, annotations or "last updated", and axis labels ignore the plan's number formats |
 
 ## How a run goes
@@ -23,7 +23,7 @@ Every run is recorded in `out/<name>/`, one numbered folder per step:
 | 2. Intake | The "Dashboard details" form, built from that look: it asks only what the request didn't answer, and "What's the ask?" offers 2–3 questions this data can answer | `2-intake/` |
 | 3. Layout and card | Page blocks for the chosen goals, with every number in a title computed by DuckDB, confirmed on one card: "My read", a layout preview, and the data definitions as assumptions with Change buttons (quick review: shown after building) | `3-layout/` |
 | 4. Plan | Data exported, `plan.md` written and validated | `4-dashboard/` |
-| 5. Build | Claude copies the dashboard kit and writes a short page straight from `plan.md`, applying its Style Profile and suggested colors; the link is shared right away | `5-handoff/` |
+| 5. Build | Claude designs and builds the page from `plan.md` with Mosaic + DuckDB + Observable Plot, applying its Style Profile and suggested colors; the link is shared right away | `5-handoff/` |
 
 `run_folder.py summary` writes the run's `README.md`: each step's files and its time against the budget in `guidelines/timing.md`. Time spent waiting for the person doesn't count against any step.
 
@@ -35,7 +35,7 @@ Follows the [Agent Skills spec](https://agentskills.io/specification) and the la
 mosaic-dashboard-skill/
 ├── .claude-plugin/marketplace.json     # two installable plugins: planner + Mosaic executor
 ├── docs/                               # how-it-works, customizing, plan-spec, intake-spec, brief
-├── examples/orders-dashboard/          # plan.md → index.html built with the kit, end to end
+├── examples/orders-dashboard/          # plan.md → one hand-built index.html (an example, not a template)
 ├── tools/sync_plan_format.py           # keeps the shared plan parser identical in every skill
 └── skills/
     ├── planning-dashboard/             # THE PLANNER: ends at a validated plan + data
@@ -46,9 +46,8 @@ mosaic-dashboard-skill/
     │   │   ├── dashboard.md            # build stack, cross-filtering, filters, KPIs, color policy
     │   │   └── timing.md               # latency budget per step
     │   ├── references/                 # method: intake, understand-data, data-story, interaction,
-    │   │                               #   style-system, build-page, destinations, plan-format (the contract)
-    │   ├── assets/                     # intake-form.html, confirmation-card.html, plan-template.md,
-    │   │                               #   dashboard-kit.js (Mosaic + DuckDB + Plot engine for pages)
+    │   │                               #   style-system, mosaic-tech, destinations, plan-format (the contract)
+    │   ├── assets/                     # intake-form.html, confirmation-card.html, plan-template.md
     │   ├── scripts/
     │   │   ├── start_run.py            # first turn in one command: quick look, background profile, form
     │   │   ├── quick_look.py           # column types on a sample, for the form
@@ -122,7 +121,7 @@ python skills/planning-dashboard/scripts/validate_plan.py examples/orders-dashbo
 python -m http.server 8000
 ```
 
-Then open http://localhost:8000/examples/orders-dashboard/: drag on the trend, click a bar, pick a store, and Reset.
+Then open http://localhost:8000/examples/orders-dashboard/: drag on the trend, click a store or a category, pick a store in the menu, and Reset.
 
 ## Developing
 

@@ -10,7 +10,7 @@ The planner (`skills/planning-dashboard/`) is meant to be forked and adapted. Ev
 | `guidelines/metrics.md` | add approved definitions (e.g. "Active user = …") | the planner uses them without asking whenever the data has the columns |
 | `assets/intake-form.html`, `assets/confirmation-card.html` | the questions' wording and the card's layout (option labels come from `goals.md`) | what the person sees during intake |
 | `guidelines/timing.md` | your latency targets per step | every run's `README.md` compares its timing against them |
-| `guidelines/dashboard.md` | the build stack (Mosaic + DuckDB + Observable Plot, D3 when needed), cross-filtering, filter and KPI rules, the color policy (suggested per dashboard, or your pinned brand colors), fonts, and stricter audience limits | how every page is built and how it looks |
+| `guidelines/dashboard.md` | the technology (Mosaic + DuckDB + Observable Plot, D3 when needed), the interaction every page must have, the color policy (suggested per dashboard, or your pinned brand colors), fonts, and stricter audience limits | how every page is built and how it looks |
 
 ## What not to edit (unless you know why)
 

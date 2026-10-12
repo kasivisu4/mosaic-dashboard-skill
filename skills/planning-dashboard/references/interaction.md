@@ -1,6 +1,6 @@
 # Interaction
 
-The plan states interaction as rules; every executor implements them the same way. `assets/dashboard-kit.js` implements all of them with Mosaic's own selections and interactors:
+The plan states interaction as rules; every executor implements them the same way. `references/mosaic-tech.md` shows how to do each with Mosaic's own selections and interactors:
 
 - One shared filter for the whole page. Every chart and KPI responds to it.
 - A chart is never filtered by its own selection (crossfilter), but it highlights what's selected in it.
