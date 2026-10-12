@@ -10,7 +10,7 @@ New here? Start with [docs/how-it-works.md](docs/how-it-works.md). Customizing i
 
 | Part | State |
 |---|---|
-| `planning-dashboard` (planner) | Active. Goal-based intake form fitted to the data, DuckDB profiling, confirmation card, plan format v2 with validator, run folders with timing |
+| `planning-dashboard` (planner) | Active. Five steps: profile, intake form fitted to the data, layout + confirmation card, validated plan (format v2), hand-off; run folders with timing |
 | `building-dashboard-mosaic` (executor) | Parked. Builds pages from plans, but doesn't yet draw v2's KPI targets, exceptions lists, annotations or "last updated", and axis labels ignore the plan's number formats |
 
 ## How a run goes
@@ -21,12 +21,9 @@ Every run is recorded in `out/<name>/`, one numbered folder per step:
 |---|---|---|
 | 1. Profile | `start_run.py` takes a quick look at the data (well under a second, even for millions of rows) and starts the full profile in the background | `1-profile/` |
 | 2. Intake | The "Dashboard details" form, built from that look: it asks only what the request didn't answer, and "What's the ask?" offers 2–3 questions this data can answer | `2-intake/` |
-| 3. Data check | Definitions, grain and exclusions confirmed (guided and deep review) | `3-data-check/` |
-| 4. Layout and story | Page blocks for the chosen goals, with every number in a title computed by DuckDB | `4-layout/` |
-| 5. Confirmation card | "My read", a layout preview, assumptions with Change buttons (quick review: shown after building) | `5-confirm/` |
-| 6. Plan | Data exported, `plan.md` written and validated | `6-dashboard/` |
-| 7. Hand-off | An executor builds the page; the link is shared right away | `7-handoff/` |
-| 8. Review | Checks, success-criteria verdict, next steps | `8-review/` |
+| 3. Layout and card | Page blocks for the chosen goals, with every number in a title computed by DuckDB, confirmed on one card: "My read", a layout preview, and the data definitions as assumptions with Change buttons (quick review: shown after building) | `3-layout/` |
+| 4. Plan | Data exported, `plan.md` written and validated | `4-dashboard/` |
+| 5. Hand-off | An executor builds the page; the link is shared right away | `5-handoff/` |
 
 `run_folder.py summary` writes the run's `README.md`: each step's files and its time against the budget in `guidelines/timing.md`. Time spent waiting for the person doesn't count against any step.
 

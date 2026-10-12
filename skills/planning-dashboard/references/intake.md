@@ -9,7 +9,6 @@ Capture intent with the fewest questions, then show the person your read before 
 - 4. Decide review depth
 - 5. The confirmation card
 - 6. Follow-ups
-- 7. After building
 
 ## 1. Infer first
 
@@ -80,16 +79,15 @@ If the person chose it, use it. Otherwise:
 - **quick:** goal = spec, casual phrasing, audience = just me.
 - **guided:** anything else that is ambiguous.
 
-| Checkpoint | quick | guided | deep |
+| | quick | guided | deep |
 |---|---|---|---|
-| Data check | assumed, listed | asked | asked + full profile |
-| SQL review | — | — | asked |
-| Confirmation card | after building, as "here's what I assumed" | before building | before building |
-| Refine | offered | offered | offered |
+| Confirmation card | after building, as "here's what I assumed" | before building | before building, with the SQL behind each metric |
+
+There is no separate round of data questions: the definitions and exclusions the profile raises are rows on the card.
 
 ## 5. The confirmation card
 
-After profiling and the data check, show the card (guided/deep: before writing the plan; quick: after building). Don't write the card's HTML yourself. Write a small `card.json` (fields below; the format is in `scripts/confirmation_card.py`'s help) and generate it:
+Once the profile is read and the layout drafted, show the card (guided/deep: before writing the plan; quick: after building). It's the one place the person confirms both the data definitions and the layout. Don't write the card's HTML yourself. Write a small `card.json` (fields below; the format is in `scripts/confirmation_card.py`'s help) and generate it:
 
 ```bash
 python scripts/confirmation_card.py card.json
@@ -106,7 +104,7 @@ Pass the printed HTML unchanged to the inline widget (load the visualizer's `moc
 1. **My read:** one plain sentence, e.g. "A monthly answer-first dashboard for leadership: the headline cause of the Q3 rise up top, with the supporting story underneath." Below it, chips for goals, cadence, audience, depth (in the form's words, never ids or persona names).
 2. **Still unsure about:** one line naming what's clear and what's fuzzy. No numeric confidence. Omit it if nothing is fuzzy.
 3. **Layout preview:** a small wireframe SVG stacking one block per goal from `goals.md`, at the cadence's density.
-4. **Assumptions:** 3–5 rows (metric definitions, comparison period, breakdowns, exclusions), fuzzy items first, each with a **Change** button that sends `Change assumption: <name>`.
+4. **Assumptions:** 3–5 rows, fuzzy items first, each with a **Change** button that sends `Change assumption: <name>`. These include the data questions the profile raised: grain, metric definitions (with denominators), glossary terms, exclusions (e.g. "Exclusions: 3 negative amounts dropped as refunds"), plus the comparison period and breakdowns.
 5. **Built for:** the success criteria in one line, if any.
 6. **I'd also like to know:** 1–3 optional question chips (fuzzy items first, then targets, reconciliation source, refresh needs); a click sends the question.
 7. **Actions:** "Looks right, build it" (filled, primary) sends `Looks right, build it`; "Adjust" (outlined) sends `Adjust the plan`.
@@ -119,7 +117,3 @@ The generated card's buttons send exactly those texts. After a change, regenerat
 - `Adjust the plan` → ONE open question: "What should change?" Apply the answer as a diff to goals, layout and assumptions, then show the card again with the changes marked. Don't reopen the form.
 - Layout edits in words ("swap these sections", "make the drivers bigger") → update the preview and the plan the same way.
 - Requests about what's on screen ("make it last year", "why doesn't this match finance?") → change the existing plan or dashboard; never start over.
-
-## 7. After building
-
-Check the result against success_criteria, if given, and say in one line whether it's met, e.g. "Top 3 drivers are in the first row, visible without scrolling."

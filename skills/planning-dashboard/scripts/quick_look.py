@@ -4,7 +4,7 @@ Usage: python quick_look.py <file> [--sheet NAME]
 
 Reads the column list and summarizes a sample of rows (SAMPLE_ROWS), then picks the columns
 the form's example text can mention: a date, a measure, a yes/no flag, and the dimensions
-worth slicing. The full profile (profile.py) still runs separately for the data check.
+worth slicing. The full profile (profile.py) still runs separately, for the card's data definitions.
 """
 import json
 import sys

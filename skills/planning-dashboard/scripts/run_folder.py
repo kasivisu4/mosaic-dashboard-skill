@@ -10,7 +10,7 @@ file's first heading or first line, so give every Markdown file a heading.
 Timing comes from when files were saved, so measuring adds no tool calls. Two waits for the
 person are measured separately and never count against a step:
   form shown (2-intake/form.html saved)  ->  answers in (2-intake/intake.md saved)
-  card shown (5-confirm/card.html saved) ->  card answered (5-confirm/changes.md saved)
+  card shown (3-layout/card.html saved)   ->  card answered (3-layout/changes.md saved)
 So save form.html and card.html right before showing them, and write intake.md and
 changes.md first thing when the answer arrives. Budgets come from guidelines/timing.md.
 """
@@ -22,17 +22,14 @@ from pathlib import Path
 TIMING_MD = Path(__file__).resolve().parent.parent / "guidelines" / "timing.md"
 START = ".run-started"
 WAITS = [("2-intake/form.html", "2-intake/intake.md", "filling in the form"),
-         ("5-confirm/card.html", "5-confirm/changes.md", "reading the confirmation card")]
+         ("3-layout/card.html", "3-layout/changes.md", "reading the confirmation card")]
 
 STEPS = [
     ("1-profile", "Profile", "quick look at the data, the full profile, and the observations drawn from it"),
     ("2-intake", "Intake", "the form built from the data, what was inferred, the answers"),
-    ("3-data-check", "Data check", "questions asked about the data, answers, decisions"),
-    ("4-layout", "Layout and story", "page blocks, finding-titles, and the query behind every number"),
-    ("5-confirm", "Confirmation card", "card.json, the rendered card, and any changes made"),
-    ("6-dashboard", "Plan and dashboard", "plan.md, its data files, validation result, and the built page"),
-    ("7-handoff", "Hand-off", "which executor built it, the command, how to open it"),
-    ("8-review", "Review", "checks run on the page, success criteria, next steps"),
+    ("3-layout", "Layout and card", "page blocks, finding-titles with the query behind each number, the card and any changes"),
+    ("4-dashboard", "Plan and dashboard", "plan.md, its data files, validation result, and the built page"),
+    ("5-handoff", "Hand-off", "which executor built it, the command, how to open it"),
 ]
 
 
@@ -80,7 +77,7 @@ def timing(root):
         return ["", "## Timing", "", "No timing: the run folder wasn't created with `init` at the start."]
     t0 = float(start_file.read_text(encoding="utf-8").strip())
     # The built page lives next to the plan, but building it is the hand-off's work.
-    saves = sorted((p.stat().st_mtime, "7-handoff" if p.name == "index.html" else p.relative_to(root).parts[0], p)
+    saves = sorted((p.stat().st_mtime, "5-handoff" if p.name == "index.html" else p.relative_to(root).parts[0], p)
                    for folder, _, _ in STEPS for p in (root / folder).glob("**/*") if p.is_file())
     if not saves:
         return []
@@ -106,7 +103,7 @@ def timing(root):
         mark = "" if tgt is None else ("within target" if sec <= tgt else "over target" if sec <= mx else "**over max**")
         rows.append(f"| {folder} {title} | {fmt(sec)} | {'' if tgt is None else f'≤ {tgt:g} s'} | "
                     f"{'' if mx is None else f'{mx:g} s'} | {mark} |")
-    page = root / "6-dashboard" / "index.html"
+    page = root / "4-dashboard" / "index.html"
     waited = sum(w1 - w0 for w0, w1, _ in waits)
     if page.exists():
         first = page.stat().st_mtime - t0 - sum(max(0.0, min(page.stat().st_mtime, w1) - w0) for w0, w1, _ in waits)
@@ -134,7 +131,7 @@ def main():
     if not root.exists():
         sys.exit(f"{root} doesn't exist; run init first")
     lines = [f"# Dashboard run: {root.name}", "",
-             "One folder per planning step. Open `6-dashboard/` for the result.", "",
+             "One folder per planning step. Open `4-dashboard/` for the result.", "",
              "| Step | Status | What's in it |", "|---|---|---|"]
     details = []
     for folder, title, purpose in STEPS:
