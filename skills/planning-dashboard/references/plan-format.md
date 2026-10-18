@@ -25,14 +25,14 @@ Every path in the plan (`source`, `data` files, paths inside SQL) is relative to
 ```yaml
 ---
 plan_version: 2
-goals: monitor, answer         # 1–2 of answer | spec | explore | monitor | present, in page order
+goals: monitor, answer         # 1–2 of answer | spec | explore | monitor | present | impact, in page order
 audience: team                 # one or more of me | team | leadership | clients | regulators
 cadence: weekly                # one-time | daily | weekly | monthly
 review_depth: guided           # quick | guided | deep
 success_criteria: "store return rates readable at a glance"   # or "none stated"
 reconcile: false               # true when numbers must match an official source
 comparison_period: order_date:week   # optional: <date column>:<day | week | month | quarter | year>
-destination: local             # local | artifact | dashboard-type | self-hosted
+destination: file              # file | local | artifact | dashboard-type | self-hosted
 source: ../data/orders.csv     # the original data, relative to the plan's folder
 data:                          # files the executor reads; first one is the default
   - file: orders_clean.parquet
@@ -63,6 +63,7 @@ In this order, after the header:
 1. KPIs: <Label> = <value> [<format>]; <Label> = <value> [<format>] target<=<number>
 2. "<finding-title>" | <form> | <key=value ...> | <interaction>
    > optional narrative shown under the chart
+   ~ draw: <visual> instead of <conventional form>, <why>
    @ <where>: <annotation label>
 ```
 
@@ -77,13 +78,17 @@ KPIs: `target>=N` or `target<=N` (optional) sets the on/off-track status. N is i
 | `exceptions` | `category=<column>` `value=<value>` and `above=<number>` or `below=<number>` | `none` |
 
 - `exceptions` lists the categories whose value breaks the limit, worst first, under the page filter (e.g. stores whose return rate is above 10%).
+- `trend` may add `color=<dimension>` to draw one series per value of that column.
 - Any line may add `from=<file>` to read a data file other than the first, and `format=<format>` for how values are shown.
 - `format`: `number`, `compact`, `percent`, `currency`.
-- Annotations (`@ …`, any number) mark a moment on the chart: a date for `trend` (`@ 2025-03-01: Price change`), a category value for `bar` (`@ East: Highest returns`), a number for `histogram` and `scatter` (an x position).
+- `~ draw:` (optional, at most one per chart) says how the form is drawn, from `visual-language.md`: the visual, the conventional form it replaces, and why (`~ draw: bump chart of monthly rank instead of multi-line, the crossover is the story`). The form says what question the line answers; `~ draw:` says what the reader sees. Without it, the executor draws the form as it sees fit.
+- Annotations (`@ …`, any number) mark a moment on the chart: a date for `trend` (`@ 2025-03-01: Price change`, or a number when x is a numeric time index such as a day number), a category value for `bar` (`@ East: Highest returns`), a number for `histogram` and `scatter` (an x position).
 
 ## Value expressions
 
-`count()`, `sum(col)`, `avg(col)`, `median(col)`, `min(col)`, `max(col)`, `rate(col)` (share of rows where a boolean or 0/1 column is true). Every column must exist in the data file the line reads.
+`count()`, `sum(col)`, `avg(col)`, `median(col)`, `min(col)`, `max(col)`, `rate(col)` (share of rows where a boolean or 0/1 column is true), `ratio(num,den)` (`sum(num) / sum(den)`; no space after the comma, since chart keys are separated by spaces). Every column must exist in the data file the line reads.
+
+Use `ratio` whenever the rows are already aggregated (a pre-aggregated export, or a source that is itself a rollup): an average is `ratio(sum_x,n_x)` and a weighted rate is `ratio(hits,total)`. `avg()` over such rows weights every row equally, whatever it summarizes, and gives the wrong number.
 
 ## Changes from version 1
 

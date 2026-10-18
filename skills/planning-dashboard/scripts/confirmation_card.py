@@ -1,4 +1,4 @@
-"""Print the confirmation card ("My read", layout preview, assumptions, actions) from a small JSON file.
+"""Print the confirmation card ("My read", assumptions, actions) from a small JSON file.
 
 Usage: python confirmation_card.py card.json
 
@@ -13,8 +13,7 @@ card.json:
   "assumptions": [{"name": "Comparison period", "value": "Q3 vs Q2"}],   (3-5, fuzzy first)
   "changed": ["Comparison period"],        (optional: assumption names to mark as just changed)
   "success_criteria": "top 3 drivers visible at a glance",               (optional)
-  "questions": ["Is there a target for the return rate?"],               (optional, at most 3)
-  "after_build": false                     (true for quick depth: "Here's what I assumed")
+  "questions": ["Is there a target for the return rate?"]                (optional, at most 3)
 }
 
 Pass the printed HTML unchanged to the inline widget. Labels come from guidelines/goals.md,
@@ -32,7 +31,6 @@ from goal_tables import goal_cards, labels, read_tables  # noqa: E402
 
 TEMPLATE = Path(__file__).resolve().parent.parent / "assets" / "confirmation-card.html"
 e = html.escape
-W = 600  # wireframe viewBox width; it scales to the card
 CHIP = ('      <span style="font-size: 12px; padding: 3px 10px; border-radius: var(--radius); '
         'background: var(--bg-accent); color: var(--text-accent);">{}</span>')
 
@@ -46,54 +44,6 @@ def order_goals(goals):
     """monitor always on top, present always at the bottom, the rest in the person's order."""
     middle = [g for g in goals if g not in ("monitor", "present")]
     return (["monitor"] if "monitor" in goals else []) + middle + (["present"] if "present" in goals else [])
-
-
-def wireframe(goals, cadence):
-    """A small SVG stacking one block per goal. Density follows cadence (daily sparse, one-time rich)."""
-    tiles = {"daily": 2, "weekly": 3, "monthly": 4, "one-time": 6}.get(cadence, 4)
-    parts, y = [], 8
-
-    def label(text):
-        nonlocal y
-        parts.append(f'<text class="ts" x="8" y="{y + 12}">{e(text)}</text>')
-        y += 20
-
-    def row(n, h, gap=8):
-        nonlocal y
-        w = (W - 16 - gap * (n - 1)) / n
-        for i in range(n):
-            parts.append(f'<rect class="c-gray" x="{8 + i * (w + gap):.0f}" y="{y}" width="{w:.0f}" height="{h}" rx="4"/>')
-        y += h + 8
-
-    for g in order_goals(goals):
-        if g == "monitor":
-            label("Status vs target")
-            row(3, 26)
-            row(1, 18)
-        elif g == "answer":
-            label("Headline answer")
-            row(1, 22)
-            row(3, 36)
-            row(2, 70)
-        elif g == "explore":
-            label("Explore")
-            row(1, 16)
-            row(min(tiles, 3), 52)
-            if tiles > 3:
-                row(tiles - 3, 52)
-            if cadence != "daily":
-                row(1, 40)
-        elif g == "present":
-            label("Story")
-            parts.append(f'<rect class="c-gray" x="8" y="{y}" width="{W * 0.35:.0f}" height="70" rx="4"/>')
-            parts.append(f'<rect class="c-gray" x="{W * 0.35 + 16:.0f}" y="{y}" width="{W - W * 0.35 - 24:.0f}" height="70" rx="4"/>')
-            parts.append(f'<circle class="c-coral" cx="{W * 0.7:.0f}" cy="{y + 24}" r="5"/>')
-            y += 78
-        elif g == "spec":
-            label("Charts as you asked")
-            row(2, 70)
-    return (f'    <svg width="100%" viewBox="0 0 {W} {y}" role="img"><title>Layout preview</title>'
-            f'<desc>Page blocks in order: {e(", ".join(order_goals(goals)))}</desc>{"".join(parts)}</svg>')
 
 
 def main():
@@ -147,23 +97,20 @@ def main():
             f'<br><span style="color: var(--text-secondary);">{e(a["value"])}</span></div>'
             f'<button type="button" data-send="{e("Change assumption: " + a["name"], quote=True)}" style="font-size: 12px;">Change ↗</button></div>')
 
-    after = bool(card.get("after_build"))
-    actions = ([button("Adjust", "Adjust the plan"), button("Looks right", "Looks right", primary=True)] if after
-               else [button("Adjust", "Adjust the plan"), button("Looks right, build it", "Looks right, build it", primary=True)])
+    actions = [button("Adjust", "Adjust the plan"), button("Looks right, build it", "Looks right, build it", primary=True)]
     questions = [f'      <button type="button" data-send="{e(q, quote=True)}" style="font-size: 12px;">{e(q)} ↗</button>'
                  for q in card.get("questions", [])[:3]]
 
     page = TEMPLATE.read_text(encoding="utf-8")
     fills = {
         "sr_summary": "Confirmation of the planned dashboard: " + str(card["read"]),
-        "heading": "Here's what I assumed" if after else "My read",
+        "heading": "My read",
         "read": card["read"],
         "unsure": card.get("unsure") or "",
         "success": card.get("success_criteria") or "",
     }
     raw = {
         "chips": "\n".join(CHIP.format(e(c)) for c in chips),
-        "wireframe": wireframe(goals, card.get("cadence")),
         "assumptions": "\n".join(rows),
         "questions": "\n".join(questions),
         "actions": "\n".join(actions),

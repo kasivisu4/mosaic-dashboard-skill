@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Traffic Reel</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.35.0/dist/tabler-icons.min.css">
+<style>
+  /* Theme "studio" and palette "tableau" from 3-layout/design-seed.json */
+  :root {
+    --bg: #ffffff; --panel: #f4f6f8; --ink: #111418; --muted: #5f6b78; --rule: #e3e7ec;
+    --c1: #4e79a7; --c2: #f28e2b; --c3: #59a14f; --c4: #e15759; --c5: #76b7b2; --c6: #b07aa1; --other: #a7adb5;
+    --seq0: #f1f4f8; --seq1: #9c2a1f; --sel: #f28e2b; --lower: rgba(255,255,255,.9);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1216; --panel: #171b21; --ink: #eceff3; --muted: #9aa4b0; --rule: #262c35;
+      --c1: #7aa6d6; --c2: #ffa857; --c3: #7fc46f; --c4: #ff7d7f; --c5: #8fd3cc; --c6: #d1a2c6; --other: #6e757e;
+      --seq0: #1d232b; --seq1: #ff8c6b; --sel: #ffa857; --lower: rgba(15,18,22,.88);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1216; --panel: #171b21; --ink: #eceff3; --muted: #9aa4b0; --rule: #262c35;
+    --c1: #7aa6d6; --c2: #ffa857; --c3: #7fc46f; --c4: #ff7d7f; --c5: #8fd3cc; --c6: #d1a2c6; --other: #6e757e;
+    --seq0: #1d232b; --seq1: #ff8c6b; --sel: #ffa857; --lower: rgba(15,18,22,.88);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; font-variant-numeric: tabular-nums; overflow: hidden; }
+  .shell { display: grid; grid-template-rows: auto 1fr auto; height: 100dvh; }
+  .top { display: flex; align-items: center; gap: 18px; padding: 10px 18px; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 650; white-space: nowrap; }
+  .brand i { font-size: 22px; color: var(--c1); }
+  .brand small { display: block; font-weight: 400; color: var(--muted); font-size: 11.5px; }
+  .kpis { display: flex; gap: 18px; flex-wrap: wrap; }
+  .kpi { display: flex; align-items: center; gap: 8px; }
+  .kpi i { font-size: 20px; color: var(--muted); }
+  .kpi b { font-size: 19px; font-weight: 700; display: block; line-height: 1.1; }
+  .kpi span { color: var(--muted); font-size: 11px; display: block; }
+  .filters { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 3px 10px 3px 7px; font: inherit; font-size: 12px; cursor: pointer; }
+  .chip .dot { width: 10px; height: 10px; border-radius: 3px; }
+  .chip[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .chip.dim { opacity: .4; }
+  .iconbtn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); border-radius: 8px; padding: 4px 9px; font: inherit; font-size: 12.5px; cursor: pointer; }
+  .iconbtn i { font-size: 17px; }
+  .iconbtn:disabled { opacity: .4; cursor: default; }
+  select { font: inherit; font-size: 12.5px; color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; padding: 4px 6px; }
+  .stage { position: relative; min-height: 0; overflow: hidden; }
+  #svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  #svg text { fill: var(--muted); font-size: 11px; }
+  #svg .axis path, #svg .axis line { stroke: var(--rule); }
+  #svg .em { fill: var(--ink); font-weight: 650; font-size: 12px; }
+  .lower { position: absolute; left: 18px; bottom: 14px; max-width: min(760px, calc(100% - 36px)); background: var(--lower); border: 1px solid var(--rule); border-left: 4px solid var(--c1); border-radius: 0 12px 12px 0; padding: 12px 16px; backdrop-filter: blur(6px); transition: opacity .35s ease, transform .35s ease; }
+  .lower.out { opacity: 0; transform: translateY(8px); }
+  .lower .kicker { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 3px; }
+  .lower .kicker i { font-size: 16px; color: var(--c1); }
+  #title { margin: 0 0 4px; font-size: clamp(18px, 2.3vw, 28px); line-height: 1.15; font-weight: 750; letter-spacing: -0.015em; }
+  #caption { margin: 0; color: var(--muted); font-size: 13.5px; }
+  #scope { margin: 4px 0 0; color: var(--muted); font-size: 12px; display: flex; gap: 6px; align-items: center; }
+  #scope[hidden], .hint[hidden] { display: none; }
+  .transport { display: grid; grid-template-columns: auto auto auto 1fr 300px; gap: 12px; align-items: center; padding: 8px 18px 12px; border-top: 1px solid var(--rule); }
+  .round { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); display: grid; place-items: center; cursor: pointer; font-size: 19px; }
+  .round.big { width: 46px; height: 46px; background: var(--ink); color: var(--bg); border: 0; font-size: 22px; }
+  .chapters { position: relative; display: flex; gap: 4px; align-items: flex-end; min-width: 0; }
+  .reel { display: flex; flex-direction: column; gap: 4px; flex: var(--n) 1 0; min-width: 0; }
+  .reel .rl { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; }
+  .reel .rl i { font-size: 15px; }
+  .ticks { display: flex; gap: 3px; }
+  .ticks button { flex: 1; height: 8px; border: 0; border-radius: 4px; background: var(--rule); cursor: pointer; position: relative; overflow: hidden; padding: 0; }
+  .ticks button[aria-current="true"] { background: color-mix(in srgb, var(--c1) 30%, var(--rule)); }
+  .ticks button .fill { position: absolute; inset: 0; width: 0; background: var(--c1); }
+  .ticks button.done .fill { width: 100%; opacity: .45; }
+  .timebox { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; }
+  #strip svg { width: 100%; height: 42px; display: block; }
+  #tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12px; padding: 6px 9px; border-radius: 8px; opacity: 0; transition: opacity .12s; z-index: 30; max-width: 280px; }
+  .hint { color: var(--muted); font-size: 11.5px; }
+  dialog { max-width: 760px; width: calc(100% - 32px); border: 1px solid var(--rule); border-radius: 14px; background: var(--bg); color: var(--ink); padding: 8px 20px 18px; }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  dialog summary { display: none; }
+  dialog h3 { font-size: 14px; margin: 16px 0 4px; }
+  dialog p, dialog li { font-size: 13.5px; }
+  dialog pre { background: var(--panel); border-radius: 8px; padding: 10px 12px; overflow-x: auto; font-size: 12px; }
+  a { color: var(--c1); }
+  @media (max-width: 900px) {
+    body { overflow: auto; }
+    .shell { height: auto; min-height: 100dvh; grid-template-rows: auto 70dvh auto; }
+    .transport { grid-template-columns: auto auto auto 1fr; }
+    .timebox { grid-column: 1 / -1; }
+    .filters { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="brand"><i class="ti ti-movie" aria-hidden="true"></i><div>A year of LLM traffic<small id="span">loading…</small></div></div>
+    <div class="kpis" aria-label="Numbers in view">
+      <div class="kpi"><i class="ti ti-messages" aria-hidden="true"></i><div><b id="k-req">–</b><span id="t-req">requests</span></div></div>
+      <div class="kpi"><i class="ti ti-arrow-bar-to-right" aria-hidden="true"></i><div><b id="k-in">–</b><span id="t-in">input tokens / request</span></div></div>
+      <div class="kpi"><i class="ti ti-arrow-bar-to-left" aria-hidden="true"></i><div><b id="k-out">–</b><span id="t-out">output tokens / request</span></div></div>
+      <div class="kpi"><i class="ti ti-clock-bolt" aria-hidden="true"></i><div><b id="k-ttft">–</b><span id="t-ttft">s to first token</span></div></div>
+    </div>
+    <div class="filters" aria-label="Filters">
+      <span id="fams"></span>
+      <span id="menu"></span>
+      <button class="iconbtn" id="reset" type="button"><i class="ti ti-refresh" aria-hidden="true"></i>Reset</button>
+      <button class="iconbtn" id="motion" type="button" aria-pressed="false"><i class="ti ti-sparkles" aria-hidden="true"></i><span>Motion</span></button>
+      <button class="iconbtn" id="notes-btn" type="button"><i class="ti ti-info-circle" aria-hidden="true"></i>Notes</button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <svg id="svg" role="img" aria-label="The current scene's chart"></svg>
+    <section class="lower" id="lower" aria-live="polite">
+      <div class="kicker"><i id="kicon" class="ti ti-chart-area-line" aria-hidden="true"></i><span id="kicker"></span></div>
+      <h1 id="title"></h1>
+      <p id="caption"></p>
+      <p id="scope" hidden><i class="ti ti-filter" aria-hidden="true"></i>The title describes all the data; the chart and the numbers above follow your filters.</p>
+      <p class="hint" id="motion-hint" hidden>Animations are off because your system asks for reduced motion. Press Motion to turn them on.</p>
+    </section>
+  </main>
+
+  <footer class="transport" aria-label="Scenes">
+    <button class="round" id="prev" type="button" aria-label="Previous scene"><i class="ti ti-player-track-prev" aria-hidden="true"></i></button>
+    <button class="round big" id="auto" type="button" aria-label="Autoplay the scenes"><i class="ti ti-player-play-filled" aria-hidden="true"></i></button>
+    <button class="round" id="next" type="button" aria-label="Next scene"><i class="ti ti-player-track-next" aria-hidden="true"></i></button>
+    <div class="chapters" id="chapters"></div>
+    <div class="timebox"><button class="iconbtn" id="play" type="button"><i class="ti ti-calendar-time" aria-hidden="true"></i><span>Play the year</span></button><div id="strip"></div></div>
+  </footer>
+</div>
+<div id="tip" role="tooltip"></div>
+<dialog id="notes"><div style="display:flex;justify-content:space-between;align-items:center"><h2 style="font-size:16px">Technical notes</h2><button class="iconbtn" id="notes-close" type="button"><i class="ti ti-x" aria-hidden="true"></i>Close</button></div>
+  <details>
+    <summary>Technical notes: data source, aggregation and limitations</summary>
+
+    <h3>Data source</h3>
+    <p>A year of production traffic from Chutes, a public LLM inference platform, released by researchers from Harvard, the University of Chicago and Chutes with the paper <a href="https://arxiv.org/abs/2608.13573">A Year in LLM Serving: Workload Evolution, Caching and Load-Balancing</a> (data and code: <a href="https://github.com/HarvardMadSys/chutes_workload">github.com/HarvardMadSys/chutes_workload</a>). The original trace is one row per request: 6.12 billion requests across 9,174 models in a 91 GB Parquet file. All credit for the dataset goes to its authors.</p>
+
+    <h3>Aggregation</h3>
+    <p>The data passes through two exact rollups. Neither one samples, so the totals match the original trace.</p>
+    <ol>
+      <li><strong>Hour × model × function</strong> (1.34 million rows): for each hour, model and API function, the number of requests, plus the sum and the count of recorded values for input tokens, output tokens and time to first token. Models outside the 200 busiest are grouped together.</li>
+      <li><strong>Day × hour × family × model type × call type × streaming</strong> (396,205 rows, the file this page loads): the same sums and counts added up again. Individual models are left out (some are anonymized ids), and the families outside the top five are grouped as Other.</li>
+    </ol>
+    <p>Every average on this page is a ratio of sums: the sum of a measure divided by the number of requests that recorded it, for example average time to first token = <code>sum(ttft_seconds) / sum(ttft_n)</code>. That keeps averages correct under any filter. Averaging the rows themselves would give an hour with one request the same weight as an hour with two million.</p>
+    <pre>SELECT DATE '2025-04-11' + dnum AS date, hod AS hour, family, model_type, call_type, streaming,
+       sum(reqs) AS requests,
+       sum(sum_it) AS input_tokens,  sum(n_it) AS input_n,
+       sum(sum_ot) AS output_tokens, sum(n_ot) AS output_n,
+       sum(sum_ttft) AS ttft_seconds, sum(n_ttft) AS ttft_n
+FROM chutes.parquet GROUP BY ALL</pre>
+    <p>The charts query this file in your browser with DuckDB-WASM and are drawn with D3. Mosaic links them, so every filter you set re-runs each chart's SQL against the same data. The family-month and month-hour reels keep the whole period and dim months outside the chosen dates; the hour reel and the numbers in the top bar follow every filter. A family filter applies everywhere.</p>
+
+    <h3>Reading the charts</h3>
+    <ul>
+      <li><strong>Three reels of scenes.</strong> In each reel one set of marks (a family's month, a month's hour, an hour) moves from chart to chart, so you can follow every mark. Each chart is complete on its own: stacked areas and bars start at zero, the 3D boxes have three data axes (month, family, requests) with height from zero and values on hover, heat cells print their value, radial bars grow from the inner ring.</li>
+      <li><strong>Heat-cell colors</strong> run from zero to the slowest family-month in view; the legend gives the scale.</li>
+      
+      <li><strong>Months marked *</strong> are partial (the trace starts on 11 April 2025 and ends on 12 April 2026).</li>
+      
+    </ul>
+
+    <h3>Definitions</h3>
+    <ul>
+      <li><strong>Request</strong>: one API call, of any kind (chat, completion, embedding, health check…).</li>
+      <li><strong>Model family</strong>: the model's lineage, inferred from its name. Fine-tunes count with their base model. Other covers 9 smaller families, unnamed top models, and the long tail outside the 200 busiest models.</li>
+      <li><strong>Model type</strong>: chat / instruct, reasoning, coding or vision, inferred from the model name. Unclassified means the name gives no signal.</li>
+      <li><strong>Time to first token</strong>: seconds from the request until the first output token arrived.</li>
+    </ul>
+
+    <h3>Limitations</h3>
+    <ul>
+      <li><strong>Dates are reconstructed.</strong> The released file numbers days from 0 and has no calendar dates. Day 0 is placed on 11 April 2025, following the span the paper states (11 April 2025 to 12 April 2026). Model launches agree: 18 of 20 well-known models first appear on or after their release day.</li>
+      <li><strong>Hours are on the trace's own clock.</strong> They are not a known timezone, so the hour-of-day chart shows the shape of the day, not local business hours.</li>
+      <li><strong>Time to first token exists only for streaming calls</strong>, 49% of requests. A non-streaming call returns everything at once. The latency chart and KPI therefore describe streaming traffic only, and the streaming share itself changed over the year: about 65% in September 2025, 36% from November onward.</li>
+      <li><strong>Token counts are missing for 7.5% of requests.</strong> Averages divide only by requests that recorded a count, so the gaps don't pull them down.</li>
+      <li><strong>Latency is not adjusted for model mix.</strong> Families differ widely (Gemma averages 0.9 s, GLM 3.1 s), so a change over time can reflect which models were used as much as how fast the platform was.</li>
+      <li><strong>Outage.</strong> 13 January 2026 recorded 1.6 million requests against about 15 million on a typical day then, consistent with a service interruption of about 30 hours.</li>
+      <li>The first and last days are partial. Family and type labels come from model names, not from the trace itself.</li>
+    </ul>
+  </details>
+
+  <p class="muted">Source: Chutes LLM serving trace, 11 Apr 2025 – 12 Apr 2026 (arXiv:2608.13573). Averages are per request that recorded the value. Built with DuckDB-WASM, Mosaic, D3 and d3-3d; icons from Tabler.</p>
+
+</dialog>
+
+<script type="module">
+  import * as vg from "https://cdn.jsdelivr.net/npm/@uwdata/vgplot@0.31.0/+esm";
+  import { clausePoints, clauseInterval } from "https://cdn.jsdelivr.net/npm/@uwdata/mosaic-core@0.31.0/+esm";
+  import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
+  import { polygons3D } from "https://cdn.jsdelivr.net/npm/d3-3d@1.0.0/+esm";
+
+  const $ = (id) => document.getElementById(id);
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const DAY = 864e5;
+
+  // ---- Motion (seed: stagger by-rank, easing quadInOut, tempo slow-reveal) ----------------------
+  const SYSTEM_REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let saved = null; try { saved = localStorage.getItem("motion"); } catch {}
+  const REDUCED = saved ? saved === "off" : SYSTEM_REDUCED;
+  $("motion").querySelector("span").textContent = REDUCED ? "Motion off" : "Motion on";
+  $("motion").setAttribute("aria-pressed", String(!REDUCED));
+  $("motion-hint").hidden = !(REDUCED && SYSTEM_REDUCED);
+  $("motion").addEventListener("click", () => { try { localStorage.setItem("motion", REDUCED ? "on" : "off"); } catch {} location.reload(); });
+  const T = (ms) => (REDUCED ? 0 : ms);
+  const STEP = 1600;                     // slow-reveal: one morph step
+  const EASE = d3.easeQuadInOut;
+  let playing = false, busy = false;
+  const UPD = () => T(playing ? 260 : 650), UPD_EASE = () => (playing ? d3.easeLinear : EASE);
+
+  const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
+  const whole = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+  const pct = (v, d = 0) => `${(v * 100).toFixed(v < 0.1 && d === 0 ? 1 : d)}%`;
+  const monFmt = d3.utcFormat("%b %Y"), dayFmt = d3.utcFormat("%b %-d, %Y");
+  const monShort = (d) => d3.utcFormat(d.getUTCMonth() === 0 ? "%b '%y" : "%b")(d);
+  const N = (v) => (v == null ? null : Number(v));
+  const daysIn = (m) => d3.utcDay.count(m, d3.utcMonth.offset(m, 1));
+  const tipEl = $("tip");
+  const tip = (e, html) => { if (!html) { tipEl.style.opacity = 0; return; } tipEl.innerHTML = html; tipEl.style.opacity = 1;
+    tipEl.style.left = Math.min(innerWidth - 290, e.clientX + 14) + "px"; tipEl.style.top = Math.max(8, e.clientY - 46) + "px"; };
+
+  if (location.protocol === "file:") { $("span").textContent = "Open over http (python -m http.server)"; throw new Error("serve over http"); }
+  vg.coordinator().databaseConnector(vg.wasmConnector());
+  await vg.coordinator().exec([vg.loadParquet("t", new URL("traffic.parquet", location.href).href)]);
+  const q1 = async (sql) => (await vg.coordinator().query(sql)).toArray().map((d) => ({ ...d }));
+
+  // ---- What the data says about itself ------------------------------------------------------------
+  const [sp] = await q1("SELECT min(date) AS lo, max(date) AS hi, sum(requests)::DOUBLE AS req FROM t");
+  const START = +new Date(sp.lo), END = +new Date(sp.hi) + DAY;
+  const CATS = (await q1("SELECT family AS k FROM t GROUP BY 1 ORDER BY sum(requests) DESC")).map((d) => d.k);
+  const MONTHS = d3.utcMonth.range(d3.utcMonth.floor(new Date(START)), new Date(END)).map(Number);
+  const HOURS = (await q1("SELECT DISTINCT hour AS h FROM t ORDER BY 1")).map((d) => N(d.h));
+  const PAL = ["--c1", "--c2", "--c3", "--c4", "--c5", "--c6"].map(css);
+  const famColor = (k) => (CATS.indexOf(k) < PAL.length ? PAL[CATS.indexOf(k)] : css("--other"));
+  const partial = new Set(MONTHS.filter((m) => m < START || d3.utcMonth.offset(new Date(m), 1) > END));
+  $("span").textContent = `Chutes serving trace · ${dayFmt(new Date(START))} – ${dayFmt(new Date(END - DAY))} · ${compact.format(sp.req)} requests`;
+
+  // ---- Filters ------------------------------------------------------------------------------------
+  const $page = vg.Selection.crossfilter(), $ctx = vg.Selection.crossfilter();
+  const owned = [];
+  const own = (name, kind, ctx) => { const s = vg.Selection.single(); s._relay.add($page); if (ctx) s._relay.add($ctx); owned.push({ s, name, kind }); return s; };
+  const $dates = own("Dates", "dates", false), $fam = own("Family", "values", true), $type = own("Model type", "values", true);
+  class Client extends vg.MosaicClient {
+    constructor(filterBy, query, draw) { super(filterBy); this.q = query; this.draw = draw; }
+    query(where = []) { return this.q(where); }
+    queryResult(data) { this.draw(data.toArray().map((d) => ({ ...d }))); return this; }
+    queryError(e) { console.error(e); return this; }
+  }
+  const connect = (f, q, d) => { const c = new Client(f, q, d); vg.coordinator().connect(c); return c; };
+  const ratio = (a, b) => vg.sql`sum(${vg.column(a)}) / nullif(sum(${vg.column(b)}), 0)`;
+  let picked = [];
+  const famSrc = { source: { id: "family-chips" } };
+  function pick(f, add) {
+    picked = f == null ? [] : add ? (picked.includes(f) ? picked.filter((p) => p !== f) : [...picked, f]) : (picked.length === 1 && picked[0] === f ? [] : [f]);
+    $fam.update(clausePoints(["family"], picked.length ? picked.map((p) => [p]) : null, famSrc));
+    drawChips();
+  }
+  function drawChips() {
+    $("fams").replaceChildren(...CATS.map((f) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "chip" + (picked.length && !picked.includes(f) ? " dim" : "");
+      b.setAttribute("aria-pressed", String(picked.includes(f)));
+      b.innerHTML = `<span class="dot" style="background:${famColor(f)}"></span>${f}`;
+      b.addEventListener("click", (e) => pick(f, e.shiftKey)); return b;
+    }));
+  }
+  drawChips();
+  $("menu").append(vg.menu({ from: "t", column: "model_type", label: "Model type", as: $type, filterBy: $page }));
+  const inWindow = (lo, hi) => { const v = $dates.value; return !v || (hi > +v[0] && lo <= +v[1]); };
+
+  // ---- KPIs: count up --------------------------------------------------------------------------------
+  const tween = (el, to, fmt) => { const from = el.__v ?? 0; el.__v = to;
+    d3.select(el).transition().duration(T(playing ? 260 : 900)).ease(playing ? d3.easeLinear : d3.easeCubicOut)
+      .tween("text", () => { const i = d3.interpolateNumber(from, to); return (t) => { el.textContent = fmt(i(t)); }; }); };
+  const KP = { req: vg.sql`sum(requests)::DOUBLE`, in: ratio("input_tokens", "input_n"), out: ratio("output_tokens", "output_n"), ttft: ratio("ttft_seconds", "ttft_n") };
+  const FMT = { req: (v) => compact.format(v), in: (v) => whole.format(v), out: (v) => whole.format(v), ttft: (v) => v.toFixed(1) };
+  const kq = (w) => vg.Query.from("t").select(KP).where(w);
+  connect($page, kq, ([r]) => { busy = false; for (const k in KP) tween($(`k-${k}`), N(r[k]) ?? 0, FMT[k]); });
+  connect(undefined, kq, ([r]) => { $("t-req").textContent = `requests · of ${compact.format(N(r.req))}`; });
+
+  // ---- The polygon engine (references/show-reel.md §2) -------------------------------------------------
+  const K = 24, lerp = (a, b, t) => a + (b - a) * t;
+  // Keeps every corner exact (no chamfered corners, no gaps between neighbours) and spreads the
+  // remaining points along the edges by length, so every outline has exactly K points.
+  function resample(c) {
+    const n = c.length, lens = c.map((p, i) => Math.hypot(c[(i + 1) % n][0] - p[0], c[(i + 1) % n][1] - p[1])), tot = d3.sum(lens) || 1;
+    const per = lens.map((l) => 1 + Math.floor(((K - n) * l) / tot));
+    for (let left = K - d3.sum(per), i = 0; left > 0; i = (i + 1) % n, left--) per[d3.maxIndex(lens.map((l, j) => l / per[j]))]++;
+    const out = [];
+    c.forEach((a, i) => { const b = c[(i + 1) % n]; for (let j = 0; j < per[i]; j++) out.push([lerp(a[0], b[0], j / per[i]), lerp(a[1], b[1], j / per[i])]); });
+    return out;
+  }
+  const quad = (a, b, c, d) => resample([a, b, c, d]);
+  const rect = (x, y, w, h) => quad([x, y], [x + w, y], [x + w, y + h], [x, y + h]);
+  const circle = (cx, cy, r) => d3.range(K).map((i) => { const a = -Math.PI * 3 / 4 + (i / K) * 2 * Math.PI; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; });
+  const wedge = (cx, cy, r0, r1, a0, a1) => { const n = K / 2, arc = (r, f, t) => d3.range(n).map((j) => { const a = lerp(f, t, j / (n - 1)); return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; }); return [...arc(r1, a0, a1), ...arc(r0, a1, a0)]; };
+  const edgeTop = (p) => { const xs = d3.extent(p, (q) => q[0]), y = d3.min(p, (q) => q[1]); return quad([xs[0], y], [xs[1], y], [xs[1], y], [xs[0], y]); };
+  const flat2d = (front) => ({ front, top: edgeTop(front), side: edgeTop(front) });
+  const toPath = (p) => "M" + p.map((q) => q[0].toFixed(1) + "," + q[1].toFixed(1)).join("L") + "Z";
+  const shade = (c, face) => (face === "top" ? d3.color(c).brighter(0.7) : face === "side" ? d3.color(c).darker(0.7) : d3.color(c)) + "";
+
+  const svg = d3.select("#svg");
+  let W = 900, H = 520;
+  const measure = () => { const r = $("stage").getBoundingClientRect(); W = Math.max(340, r.width); H = Math.max(300, r.height); svg.attr("viewBox", [0, 0, W, H]); };
+  measure();
+  const lowerH = () => $("lower").getBoundingClientRect().height + 28;   // keep marks clear of the lower third
+  const frame = () => ({ left: 70, right: 150, top: 28, bottom: Math.max(150, lowerH()) + 26 });
+
+  // A reel: a keyed set of marks (three faces each), a map of forms, and guides per form.
+  function makeReel(name, keyOf) {
+    const root = svg.append("g").attr("data-reel", name).attr("opacity", 0).style("pointer-events", "none");
+    const guides = root.append("g"), marksG = root.append("g"), over = root.append("g");
+    return { name, root, guides, marksG, over, keyOf, form: null, data: [], forms: {} };
+  }
+  function drawMarks(reel, form, ms, opts = {}) {
+    if (!reel.data.length) return;
+    const L = form.layout(reel.data);                       // Map key → { front, top, side, fill, opacity, tip }
+    const sel = reel.marksG.selectAll("g.m").data(reel.data, reel.keyOf).join((e) => {
+      const g = e.append("g").attr("class", "m").style("cursor", "pointer");
+      for (const f of ["side", "top", "front"]) g.append("path").attr("class", f);
+      g.on("mousemove", (ev, d) => tip(ev, reel.tip?.(d))).on("mouseleave", (ev) => tip(ev)).on("click", (ev, d) => reel.click?.(d, ev));
+      return g;
+    });
+    if (form.order) sel.sort(form.order(L));                  // painter's order for 3D
+    sel.each(function (d) {
+      const g = d3.select(this), nx = L.get(reel.keyOf(d)); if (!nx) return;
+      for (const face of ["side", "top", "front"]) {
+        const el = this.querySelector("." + face), from = el.__pts || (opts.enterFrom ? opts.enterFrom(nx)[face] : nx[face]), to = nx[face];
+        el.__pts = to;
+        const p = d3.select(el), delay = opts.stagger ? opts.stagger(d) : 0;
+        const t = (ms ? p.transition().duration(ms).delay(delay).ease(opts.ease || EASE) : p);
+        if (ms) t.attrTween("d", () => { const i = d3.interpolateArray(from, to); return (u) => toPath(i(u)); }); else p.attr("d", toPath(to));
+        const fill = shade(nx.fill, face);
+        t.attr("fill", fill).attr("opacity", face === "front" || nx.threeD ? nx.opacity : 0).attr("stroke", nx.seam ? fill : css("--bg")).attr("stroke-width", nx.seam ? 0.8 : nx.stroke ?? 0.6);
+      }
+    });
+  }
+  const fade = (sel, on, ms = 400) => sel.transition().duration(T(ms)).attr("opacity", on ? 1 : 0).style("pointer-events", on ? null : "none");
+
+  // =====================================================================================================
+  // Reel 1: family × month (7 forms)
+  // =====================================================================================================
+  const cp = makeReel("cp", (d) => `${d.f}|${d.m}`);
+  let cpRows = new Map();
+  cp.tip = (d) => {
+    const r = cpRows.get(`${d.f}|${d.m}`) || {};
+    const v = cp.form?.measure === "ttft" ? (r.n ? `${(r.s / r.n).toFixed(2)} s to first token` : "no streaming calls") : `${compact.format(r.r || 0)} requests · ${pct((r.r || 0) / (monthTot.get(d.m) || 1))} of the month`;
+    return `<b>${d.f}</b>, ${monFmt(new Date(d.m))}${partial.has(d.m) ? " (partial month)" : ""}<br>${v}`;
+  };
+  cp.click = (d, ev) => pick(d.f, ev.shiftKey);
+  let monthTot = new Map();
+  const famIdx = (f) => CATS.indexOf(f);
+  const cpStagger = (d) => T(famIdx(d.f) * 90 + MONTHS.indexOf(d.m) * 10);       // by-rank: biggest family first
+  const dimOut = (d) => (inWindow(d.m, +d3.utcMonth.offset(new Date(d.m), 1)) ? 1 : 0.25);
+  const val = (d) => cpRows.get(`${d.f}|${d.m}`)?.r || 0;
+  const ttft = (d) => { const r = cpRows.get(`${d.f}|${d.m}`); return r && r.n ? r.s / r.n : null; };
+
+  function stackFor(norm) {
+    const fr = frame(), x = d3.scaleLinear().domain([0, MONTHS.length - 1]).range([fr.left, W - fr.right]);
+    const tot = (m) => d3.sum(CATS, (f) => val({ f, m }));
+    const maxTot = d3.max(MONTHS, tot) || 1;
+    const y = d3.scaleLinear().domain([0, norm ? 1 : maxTot]).nice().range([H - fr.bottom, fr.top]);
+    const cum = new Map();
+    for (const m of MONTHS) { let acc = 0; const t = tot(m) || 1; for (const f of CATS) { const v = val({ f, m }) / (norm ? t : 1); cum.set(`${f}|${m}`, [acc, acc + v]); acc += v; } }
+    return { fr, x, y, cum };
+  }
+  const areaLayout = (norm) => (data) => {
+    const { x, y, cum } = stackFor(norm), L = new Map();
+    for (const d of data) {
+      const i = MONTHS.indexOf(d.m), j = Math.min(i + 1, MONTHS.length - 1), a = cum.get(`${d.f}|${d.m}`), b = cum.get(`${d.f}|${MONTHS[j]}`);
+      const front = quad([x(i), y(a[1])], [x(j), y(b[1])], [x(j), y(b[0])], [x(i), y(a[0])]);
+      L.set(cp.keyOf(d), { ...flat2d(front), fill: famColor(d.f), opacity: dimOut(d), seam: true });
+    }
+    return L;
+  };
+  const barsLayout = (norm) => (data) => {
+    const { fr, y, cum } = stackFor(norm), bx = d3.scaleBand().domain(MONTHS).range([fr.left, W - fr.right]).padding(0.18), L = new Map();
+    for (const d of data) { const a = cum.get(`${d.f}|${d.m}`);
+      L.set(cp.keyOf(d), { ...flat2d(rect(bx(d.m), y(a[1]), bx.bandwidth(), Math.max(0, y(a[0]) - y(a[1])))), fill: famColor(d.f), opacity: dimOut(d) }); }
+    return L;
+  };
+  // 3D boxes with d3-3d: x = month, z = family, height = requests (three data axes).
+  let yaw = -0.55, pitch = 0.42;
+  function box3d(data) {
+    const fr = frame(), nM = MONTHS.length, nF = CATS.length, gap = 1.25;
+    const maxV = d3.max(data, val) || 1, HM = 5.2;
+    const s = Math.min((W - fr.left - 40) / (nM * 1.25), (H - fr.top - fr.bottom) / (HM + nF * gap * 0.6) * 0.9);
+    const proj = polygons3D().origin({ x: (W + fr.left - 60) / 2, y: fr.top + (H - fr.top - fr.bottom) * 0.62 }).scale(s).rotateY(yaw).rotateX(pitch);
+    const P = (x, y, z) => ({ x: x - nM / 2, y: -y, z: z - (nF * gap) / 2 });
+    const L = new Map(), depth = new Map();
+    for (const d of data) {
+      const x0 = MONTHS.indexOf(d.m) + 0.1, z0 = famIdx(d.f) * gap, w = 0.8, dd = 0.8, h = Math.max(0.0001, (val(d) / maxV) * HM);
+      const faces = {
+        front: [P(x0, 0, z0), P(x0 + w, 0, z0), P(x0 + w, h, z0), P(x0, h, z0)],
+        top: [P(x0, h, z0), P(x0 + w, h, z0), P(x0 + w, h, z0 + dd), P(x0, h, z0 + dd)],
+        side: [P(x0 + w, 0, z0), P(x0 + w, 0, z0 + dd), P(x0 + w, h, z0 + dd), P(x0 + w, h, z0)],
+      };
+      const out = {}; let zsum = 0;
+      for (const [k, qd] of Object.entries(faces)) { const pr = proj([qd])[0]; out[k] = resample(pr.map((v) => [v.projected.x, v.projected.y])); zsum += d3.mean(pr, (v) => v.rotated.z); }
+      L.set(cp.keyOf(d), { ...out, fill: famColor(d.f), opacity: dimOut(d), stroke: 0.4, threeD: true }); depth.set(cp.keyOf(d), zsum);
+    }
+    L.depth = depth;
+    L.axes = { proj, P, nM, nF, gap, HM, maxV };
+    return L;
+  }
+  const heatLayout = (data) => {
+    const fr = frame(), x = d3.scaleBand().domain(MONTHS).range([fr.left + 40, W - fr.right]).padding(0.06), y = d3.scaleBand().domain(CATS).range([fr.top + 14, H - fr.bottom]).padding(0.1);
+    const max = d3.max(data, (d) => ttft(d) ?? 0) || 1, col = d3.scaleSequential(d3.interpolateLab(css("--seq0"), css("--seq1"))).domain([0, max]), L = new Map();
+    for (const d of data) { const v = ttft(d);
+      L.set(cp.keyOf(d), { ...flat2d(rect(x(d.m), y(d.f), x.bandwidth(), y.bandwidth())), fill: v == null ? css("--rule") : col(v), opacity: v == null ? 0.35 : dimOut(d) }); }
+    L.scales = { x, y, col, max };
+    return L;
+  };
+  const dotsLayout = (data) => {
+    const fr = frame(), x = d3.scaleBand().domain(MONTHS).range([fr.left, W - fr.right]).padding(0.2);
+    const max = d3.max(data, (d) => ttft(d) ?? 0) || 1, y = d3.scaleLinear().domain([0, max]).nice().range([H - fr.bottom, fr.top]), L = new Map();
+    for (const d of data) { const v = ttft(d), cx = x(d.m) + x.bandwidth() * ((famIdx(d.f) + 0.5) / CATS.length);
+      L.set(cp.keyOf(d), { ...flat2d(circle(cx, v == null ? y(0) : y(v), v == null ? 0.01 : 5.5)), fill: famColor(d.f), opacity: v == null ? 0 : dimOut(d) }); }
+    L.scales = { x, y };
+    return L;
+  };
+
+  // Guides for each cp form.
+  function cpGuides(key, L) {
+    const g = cp.guides; g.selectAll("*").remove(); cp.over.selectAll("*").remove();
+    const fr = frame();
+    const monthAxis = (scale, band) => {
+      const ax = g.append("g").attr("class", "axis").attr("transform", `translate(0,${H - fr.bottom + 6})`);
+      MONTHS.forEach((m, i) => { if (W < 760 && i % 2) return; ax.append("text").attr("text-anchor", "middle").attr("y", 12).attr("x", band ? scale(m) + scale.bandwidth() / 2 : scale(i)).text(monShort(new Date(m)) + (partial.has(m) ? "*" : "")); });
+    };
+    const famLabels = (pos) => {
+      const items = CATS.map((f) => ({ f, p: pos(f) })).filter((d) => d.p).sort((a, b) => a.p[1] - b.p[1]);
+      for (let i = 1; i < items.length; i++) if (items[i].p[1] - items[i - 1].p[1] < 15) items[i].p = [items[i].p[0], items[i - 1].p[1] + 15];
+      items.forEach(({ f, p }) => g.append("text").attr("class", "em").attr("x", p[0]).attr("y", p[1]).attr("dy", 4).style("fill", famColor(f)).text(f));
+    };
+    if (key === "stacked-area" || key === "stacked-100") {
+      const { x, y, cum } = stackFor(key === "stacked-100");
+      g.append("g").attr("class", "axis").attr("transform", `translate(${fr.left - 8},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(key === "stacked-100" ? d3.format(".0%") : (v) => compact.format(v))).call((a) => a.select(".domain").remove());
+      monthAxis(x, false);
+      const last = MONTHS[MONTHS.length - 1];
+      famLabels((f) => { const c = cum.get(`${f}|${last}`); return c && c[1] - c[0] > (key === "stacked-100" ? 0.02 : 0) ? [W - fr.right + 10, y((c[0] + c[1]) / 2)] : null; });
+      if (key === "stacked-area") { const peak = d3.greatest(MONTHS, (m) => d3.sum(CATS, (f) => val({ f, m })));
+        g.append("text").attr("class", "em").attr("x", x(MONTHS.indexOf(peak))).attr("y", y(d3.sum(CATS, (f) => val({ f, m: peak }))) - 10).attr("text-anchor", "middle").text(`Peak: ${compact.format(d3.sum(CATS, (f) => val({ f, m: peak })))} in ${monFmt(new Date(peak))}`); }
+      if (key === "stacked-100") { const lead = (m) => d3.greatest(CATS, (f) => val({ f, m })), flip = MONTHS.find((m) => lead(m) !== lead(MONTHS[0]));
+        if (flip) { const fx = x(MONTHS.indexOf(flip)); g.append("line").attr("x1", fx).attr("x2", fx).attr("y1", fr.top - 6).attr("y2", H - fr.bottom).attr("stroke", css("--ink")).attr("stroke-dasharray", "3 3");
+          g.append("text").attr("class", "em").attr("x", fx - 6).attr("y", fr.top + 4).attr("text-anchor", "end").text(`${lead(flip)} leads from ${monFmt(new Date(flip))}`); } }
+    } else if (key === "stacked-bars" || key === "stacked-bars-100") {
+      const { y } = stackFor(key === "stacked-bars-100"), bx = d3.scaleBand().domain(MONTHS).range([fr.left, W - fr.right]).padding(0.18);
+      g.append("g").attr("class", "axis").attr("transform", `translate(${fr.left - 8},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(key === "stacked-bars-100" ? d3.format(".0%") : (v) => compact.format(v))).call((a) => a.select(".domain").remove());
+      monthAxis(bx, true);
+      const tot = d3.sum(MONTHS, (m) => d3.sum(CATS, (f) => val({ f, m }))) || 1;
+      famLabels((f) => [W - fr.right + 10, fr.top + 14 + famIdx(f) * 20]);
+      g.selectAll("text.em").each(function () { const f = this.textContent; d3.select(this).text(`${f} ${pct(d3.sum(MONTHS, (m) => val({ f, m })) / tot)}`); });
+    } else if (key === "3d-bars") {
+      const { proj, P, nM, nF, gap, HM, maxV } = L.axes;
+      const pt = (x, y, z) => { const v = proj([[P(x, y, z), P(x, y, z), P(x, y, z)]])[0][0]; return [v.projected.x, v.projected.y]; };
+      // Floor grid lines and labels: months along the front edge, families along the side.
+      for (let i = 0; i <= nM; i++) { const a = pt(i, 0, 0), b = pt(i, 0, nF * gap); g.append("line").attr("x1", a[0]).attr("y1", a[1]).attr("x2", b[0]).attr("y2", b[1]).attr("stroke", css("--rule")); }
+      MONTHS.forEach((m, i) => { if (W < 760 && i % 2) return; const p = pt(i + 0.5, 0, -0.6); g.append("text").attr("x", p[0]).attr("y", p[1]).attr("text-anchor", "middle").text(monShort(new Date(m))); });
+      CATS.forEach((f, j) => { const p = pt(nM + 0.4, 0, j * gap + 0.4); g.append("text").attr("class", "em").attr("x", p[0]).attr("y", p[1]).style("fill", famColor(f)).text(f); });
+      const v0 = pt(0, 0, 0), v1 = pt(0, HM, 0); g.append("line").attr("x1", v0[0]).attr("y1", v0[1]).attr("x2", v1[0]).attr("y2", v1[1]).attr("stroke", css("--muted"));
+      g.append("text").attr("x", v1[0] - 6).attr("y", v1[1]).attr("text-anchor", "end").text(compact.format(maxV));
+      g.append("text").attr("x", v0[0] - 6).attr("y", v0[1]).attr("text-anchor", "end").text("0");
+      g.append("text").attr("x", 16).attr("y", 22).text("Drag to turn · hover a box for its value");
+    } else if (key === "heat-cells") {
+      const { x, y, col, max } = L.scales;
+      CATS.forEach((f) => g.append("text").attr("class", "em").attr("x", x.range()[0] - 8).attr("y", y(f) + y.bandwidth() / 2).attr("dy", 4).attr("text-anchor", "end").style("fill", famColor(f)).text(f));
+      MONTHS.forEach((m, i) => { if (W < 760 && i % 2) return; g.append("text").attr("x", x(m) + x.bandwidth() / 2).attr("y", y.range()[0] - 6).attr("text-anchor", "middle").text(monShort(new Date(m)) + (partial.has(m) ? "*" : "")); });
+      // value in each cell (color never carries the number alone)
+      for (const d of cp.data) { const v = ttft(d); if (v == null) continue; const c = col(v);
+        cp.over.append("text").attr("x", x(d.m) + x.bandwidth() / 2).attr("y", y(d.f) + y.bandwidth() / 2).attr("dy", 4).attr("text-anchor", "middle").style("font-size", x.bandwidth() < 40 ? "9.5px" : "11px")
+          .style("fill", d3.hsl(c).l > 0.55 ? "#111418" : "#f4f6f8").attr("opacity", 0).text(v.toFixed(1)).transition().delay(T(STEP)).duration(T(400)).attr("opacity", 1); }
+      const id = "hg"; const gr = g.append("defs").append("linearGradient").attr("id", id);
+      gr.selectAll("stop").data(d3.range(0, 1.01, 0.25)).join("stop").attr("offset", (d) => d).attr("stop-color", (d) => col(d * max));
+      const lx = W - fr.right - 180, ly = 12; g.append("rect").attr("x", lx).attr("y", ly).attr("width", 150).attr("height", 8).attr("rx", 2).attr("fill", `url(#${id})`);
+      g.append("text").attr("x", lx).attr("y", ly + 20).text("0 s"); g.append("text").attr("x", lx + 150).attr("y", ly + 20).attr("text-anchor", "end").text(`${max.toFixed(1)} s`);
+      g.append("text").attr("x", lx - 8).attr("y", ly + 8).attr("text-anchor", "end").text("seconds to first token · * partial month");
+    } else if (key === "dots") {
+      const { x, y } = L.scales;
+      g.append("g").attr("class", "axis").attr("transform", `translate(${fr.left - 8},0)`).call(d3.axisLeft(y).ticks(5).tickFormat((v) => `${v} s`)).call((a) => a.select(".domain").remove());
+      monthAxis(x, true);
+      famLabels((f) => [W - fr.right + 10, fr.top + 14 + famIdx(f) * 20]);
+      const worst = d3.greatest(cp.data.filter((d) => ttft(d) != null && !partial.has(d.m)), ttft);
+      if (worst) { const cx = x(worst.m) + x.bandwidth() * ((famIdx(worst.f) + 0.5) / CATS.length);
+        g.append("text").attr("class", "em").attr("x", cx + 10).attr("y", y(ttft(worst)) + 4).text(`${worst.f}, ${monFmt(new Date(worst.m))}: ${ttft(worst).toFixed(1)} s`); }
+    }
+    g.attr("opacity", 0).transition().delay(T(STEP * 0.6)).duration(T(500)).attr("opacity", 1);
+  }
+  cp.forms = {
+    "stacked-area": { layout: areaLayout(false) },
+    "stacked-100": { layout: areaLayout(true) },
+    "stacked-bars-100": { layout: barsLayout(true) },
+    "stacked-bars": { layout: barsLayout(false) },
+    "3d-bars": { layout: box3d, order: (L) => (a, b) => L.depth.get(cp.keyOf(b)) - L.depth.get(cp.keyOf(a)), threeD: true },
+    "heat-cells": { layout: heatLayout, measure: "ttft" },
+    "dots": { layout: dotsLayout, measure: "ttft" },
+  };
+  cp.data = CATS.flatMap((f) => MONTHS.map((m) => ({ f, m })));
+  connect($ctx, (w) => vg.Query.from("t").select({ m: vg.sql`date_trunc('month', date)`, f: "family", r: vg.sql`sum(requests)::DOUBLE`, s: vg.sql`sum(ttft_seconds)`, n: vg.sql`sum(ttft_n)::DOUBLE` }).where(w).groupby("m", "f"), (rows) => {
+    cpRows = new Map(rows.map((r) => [`${r.f}|${+new Date(r.m)}`, { r: N(r.r), s: N(r.s), n: N(r.n) }]));
+    monthTot = d3.rollup(rows, (v) => d3.sum(v, (r) => N(r.r)), (r) => +new Date(r.m));
+    if (current()?.reel === cp && cp.form) { drawMarks(cp, cp.forms[cp.form], UPD(), { ease: UPD_EASE() }); cpGuides(cp.form, cp.forms[cp.form].layout(cp.data)); }
+  });
+
+  // =====================================================================================================
+  // Reel 2: month × hour profile (2 forms)
+  // =====================================================================================================
+  const gr = makeReel("g", (d) => `${d.m}|${d.h}`);
+  let gRows = new Map(), gTot = new Map();
+  const share = (d) => (gRows.get(`${d.m}|${d.h}`) || 0) / (gTot.get(d.m) || 1);
+  gr.tip = (d) => `<b>${monFmt(new Date(d.m))}, trace hour ${d.h}</b><br>${pct(share(d), 2)} of the month's requests`;
+  gr.data = MONTHS.flatMap((m) => HOURS.map((h) => ({ m, h })));
+  const gStagger = (d) => T(MONTHS.indexOf(d.m) * 45 + HOURS.indexOf(d.h) * 4);
+  const maxShare = () => d3.max(gr.data, share) || 0.05;
+  gr.forms = {
+    ridgeline: { layout: (data) => {
+      const fr = frame(), rows = d3.scaleBand().domain(MONTHS).range([fr.top + 30, H - fr.bottom]).paddingInner(0), x = d3.scaleLinear().domain([0, HOURS.length]).range([fr.left + 40, W - fr.right]);
+      const amp = rows.bandwidth() * 0.95, L = new Map(), mx = maxShare(), tint = (m) => d3.interpolateLab(css("--c1"), css("--bg"))(MONTHS.indexOf(m) % 2 ? 0.05 : 0.4);
+      for (const d of data) { const i = HOURS.indexOf(d.h), base = rows(d.m) + rows.bandwidth(), v = share(d) / mx * amp, nxt = HOURS[Math.min(i + 1, HOURS.length - 1)], v2 = share({ m: d.m, h: nxt }) / mx * amp;
+        L.set(gr.keyOf(d), { ...flat2d(quad([x(i), base - v], [x(i + 1), base - (i + 1 < HOURS.length ? v2 : v)], [x(i + 1), base], [x(i), base])), fill: tint(d.m), opacity: inWindow(d.m, +d3.utcMonth.offset(new Date(d.m), 1)) ? 0.85 : 0.2, seam: true }); }
+      L.g = { rows, x, amp }; return L; } },
+    "small-multiple-lines": { layout: (data) => {
+      const fr = frame(), cols = Math.min(5, Math.ceil(Math.sqrt(MONTHS.length * (W / H) / 1.6))), rowsN = Math.ceil(MONTHS.length / cols);
+      const pw = (W - fr.left - fr.right + 60) / cols, ph = (H - fr.top - fr.bottom - 10) / rowsN, L = new Map(), mx = maxShare();
+      const y = (v, r) => fr.top + r * ph + ph - 18 - (v / mx) * (ph - 34);
+      for (const d of data) { const k = MONTHS.indexOf(d.m), c = k % cols, r = Math.floor(k / cols), x0 = fr.left - 20 + c * pw + 8, x = (i) => x0 + (i / HOURS.length) * (pw - 22), i = HOURS.indexOf(d.h);
+        const v = share(d), v2 = share({ m: d.m, h: HOURS[Math.min(i + 1, HOURS.length - 1)] }), base = fr.top + r * ph + ph - 18;
+        L.set(gr.keyOf(d), { ...flat2d(quad([x(i), y(v, r)], [x(i + 1), y(i + 1 < HOURS.length ? v2 : v, r)], [x(i + 1), base], [x(i), base])), fill: css("--c1"), opacity: inWindow(d.m, +d3.utcMonth.offset(new Date(d.m), 1)) ? 0.85 : 0.2, seam: true }); }
+      L.g = { cols, pw, ph, y, mx }; return L; } },
+  };
+  function gGuides(key, L) {
+    const g = gr.guides; g.selectAll("*").remove(); const fr = frame();
+    if (key === "ridgeline") { const { rows, x } = L.g;
+      MONTHS.forEach((m) => g.append("text").attr("x", x.range()[0] - 8).attr("y", rows(m) + rows.bandwidth()).attr("text-anchor", "end").text(monShort(new Date(m)) + (partial.has(m) ? "*" : "")));
+      [0, 6, 12, 18].forEach((h) => g.append("text").attr("x", x(HOURS.indexOf(h))).attr("y", H - fr.bottom + 16).attr("text-anchor", "middle").text(`${h}:00`));
+      g.append("text").attr("x", x.range()[1]).attr("y", fr.top + 6).attr("text-anchor", "end").text("each ridge: share of that month's requests by trace hour, from its own baseline");
+    } else { const { cols, pw, ph, y, mx } = L.g;
+      MONTHS.forEach((m, k) => { const c = k % cols, r = Math.floor(k / cols), x0 = fr.left - 20 + c * pw + 8;
+        g.append("text").attr("class", "em").attr("x", x0).attr("y", fr.top + r * ph + 10).text(monFmt(new Date(m)) + (partial.has(m) ? "*" : ""));
+        g.append("line").attr("x1", x0).attr("x2", x0 + pw - 22).attr("y1", y(0, r)).attr("y2", y(0, r)).attr("stroke", css("--rule"));
+        g.append("text").attr("x", x0 + pw - 22).attr("y", y(mx, r)).attr("text-anchor", "end").text(pct(mx, 1)); });
+      g.append("text").attr("x", W - fr.right + 40).attr("y", H - fr.bottom + 16).attr("text-anchor", "end").text("shared scale: share of the month's requests by trace hour, from 0");
+    }
+    g.attr("opacity", 0).transition().delay(T(STEP * 0.6)).duration(T(500)).attr("opacity", 1);
+  }
+  connect($ctx, (w) => vg.Query.from("t").select({ m: vg.sql`date_trunc('month', date)`, h: "hour", r: vg.sql`sum(requests)::DOUBLE` }).where(w).groupby("m", "h"), (rows) => {
+    gRows = new Map(rows.map((r) => [`${+new Date(r.m)}|${N(r.h)}`, N(r.r)])); gTot = d3.rollup(rows, (v) => d3.sum(v, (r) => N(r.r)), (r) => +new Date(r.m));
+    if (current()?.reel === gr && gr.form) { drawMarks(gr, gr.forms[gr.form], UPD(), { ease: UPD_EASE() }); gGuides(gr.form, gr.forms[gr.form].layout(gr.data)); }
+  });
+
+  // =====================================================================================================
+  // Reel 3: hour of the cycle (3 forms)
+  // =====================================================================================================
+  const hr = makeReel("c", (d) => d.h);
+  let hRows = new Map();
+  const hv = (d) => hRows.get(d.h) || 0, hTot = () => d3.sum(HOURS, (h) => hRows.get(h) || 0) || 1;
+  hr.tip = (d) => `<b>Trace hour ${d.h}</b><br>${pct(hv(d) / hTot(), 2)} of requests · ${compact.format(hv(d))}`;
+  hr.data = HOURS.map((h) => ({ h }));
+  const hRank = () => { const sorted = [...hr.data].sort((a, b) => hv(b) - hv(a)); return (d) => sorted.indexOf(d); };
+  const hScale = () => { const fr = frame(); return { fr, x: d3.scaleBand().domain(HOURS).range([fr.left, W - fr.right]).padding(0.2), y: d3.scaleLinear().domain([0, d3.max(hr.data, hv) || 1]).nice().range([H - fr.bottom, fr.top + 20]) }; };
+  const hiFill = (d) => (d === d3.greatest(hr.data, hv) ? css("--c2") : css("--c1"));
+  hr.forms = {
+    "dot-plot": { layout: (data) => { const { x, y } = hScale(), L = new Map(); for (const d of data) L.set(d.h, { ...flat2d(circle(x(d.h) + x.bandwidth() / 2, y(hv(d)), 7)), fill: hiFill(d), opacity: 1 }); return L; } },
+    bars: { layout: (data) => { const { x, y } = hScale(), L = new Map(); for (const d of data) L.set(d.h, { ...flat2d(rect(x(d.h), y(hv(d)), x.bandwidth(), y(0) - y(hv(d)))), fill: hiFill(d), opacity: 1 }); return L; } },
+    "radial-bars": { layout: (data) => {
+      const fr = frame(), cx = W / 2, cy = fr.top + (H - fr.top - fr.bottom) / 2, R = Math.min(W * 0.42, (H - fr.top - fr.bottom) / 2), r0 = R * 0.34;
+      const a = d3.scaleBand().domain(HOURS).range([0, 2 * Math.PI]).padding(0.12), len = d3.scaleLinear().domain([0, d3.max(data, hv) || 1]).range([0, R - r0]), L = new Map();
+      for (const d of data) L.set(d.h, { ...flat2d(wedge(cx, cy, r0, r0 + len(hv(d)), a(d.h), a(d.h) + a.bandwidth())), fill: hiFill(d), opacity: 1 });
+      L.g = { cx, cy, R, r0, a }; return L; } },
+  };
+  function hGuides(key, L) {
+    const g = hr.guides; g.selectAll("*").remove(); const tot = hTot(), hi = d3.greatest(hr.data, hv), lo = d3.least(hr.data, hv);
+    if (key === "radial-bars") { const { cx, cy, R, r0, a } = L.g;
+      g.append("circle").attr("cx", cx).attr("cy", cy).attr("r", r0).attr("fill", "none").attr("stroke", css("--rule"));
+      [0, 6, 12, 18].forEach((h) => { const t = a(h) + a.bandwidth() / 2; g.append("text").attr("x", cx + Math.sin(t) * (R + 16)).attr("y", cy - Math.cos(t) * (R + 16)).attr("dy", 4).attr("text-anchor", "middle").text(`${h}:00`); });
+      g.append("text").attr("class", "em").attr("x", cx).attr("y", cy - 4).attr("text-anchor", "middle").text(`busiest ${pct(hv(hi) / tot)} · hour ${hi.h}`);
+      g.append("text").attr("x", cx).attr("y", cy + 13).attr("text-anchor", "middle").text(`quietest ${pct(hv(lo) / tot)} · hour ${lo.h}`);
+    } else { const { fr, x, y } = hScale();
+      g.append("g").attr("class", "axis").attr("transform", `translate(${fr.left - 8},0)`).call(d3.axisLeft(y).ticks(5).tickFormat((v) => compact.format(v))).call((s) => s.select(".domain").remove());
+      g.append("g").attr("class", "axis").attr("transform", `translate(0,${H - fr.bottom + 4})`).call(d3.axisBottom(x).tickValues(HOURS.filter((h) => h % 3 === 0)).tickFormat((h) => `${h}:00`)).call((s) => s.select(".domain").remove());
+      g.append("text").attr("class", "em").attr("x", x(hi.h) + x.bandwidth() / 2).attr("y", y(hv(hi)) - 14).attr("text-anchor", "middle").text(`${pct(hv(hi) / tot)} at hour ${hi.h}`);
+      g.append("text").attr("x", x(lo.h) + x.bandwidth() / 2).attr("y", y(hv(lo)) - 14).attr("text-anchor", "middle").text(`${pct(hv(lo) / tot)} at hour ${lo.h}`);
+      g.append("text").attr("x", W - fr.right).attr("y", fr.top + 6).attr("text-anchor", "end").text("requests by trace hour, axis from zero");
+    }
+    g.attr("opacity", 0).transition().delay(T(STEP * 0.6)).duration(T(500)).attr("opacity", 1);
+  }
+  connect($page, (w) => vg.Query.from("t").select({ h: "hour", r: vg.sql`sum(requests)::DOUBLE` }).where(w).groupby("h"), (rows) => {
+    busy = false; hRows = new Map(rows.map((r) => [N(r.h), N(r.r)]));
+    if (current()?.reel === hr && hr.form) { drawMarks(hr, hr.forms[hr.form], UPD(), { ease: UPD_EASE() }); hGuides(hr.form, hr.forms[hr.form].layout(hr.data)); }
+  });
+
+  // ---- 3D drag: turn the boxes ----------------------------------------------------------------------
+  let drag = null;
+  svg.on("pointerdown", (e) => { if (current()?.form === "3d-bars") { drag = { x: e.clientX, y: e.clientY, yaw, pitch }; svg.node().setPointerCapture(e.pointerId); stopAuto(); } });
+  svg.on("pointermove", (e) => { if (!drag) return; yaw = drag.yaw + (e.clientX - drag.x) * 0.008; pitch = Math.max(0.12, Math.min(1.2, drag.pitch + (e.clientY - drag.y) * 0.006));
+    drawMarks(cp, cp.forms["3d-bars"], 0); cpGuides("3d-bars", cp.forms["3d-bars"].layout(cp.data)); cp.guides.interrupt().attr("opacity", 1); });
+  svg.on("pointerup pointercancel", () => (drag = null));
+
+  // ---- Scenes (titles and captions from the plan) -----------------------------------------------------
+  const REELS = [
+    { reel: cp, name: "Volume and model mix", icon: "ti-chart-area-line", guides: cpGuides, stagger: cpStagger },
+    { reel: gr, name: "The 24-hour day", icon: "ti-wave-sine", guides: gGuides, stagger: gStagger },
+    { reel: hr, name: "Around the clock", icon: "ti-clock-hour-4", guides: hGuides, stagger: (d) => T(hRank()(d) * 35) },
+  ];
+  const S = (r, form, title, caption, icon) => ({ ...REELS[r], form, title, caption, icon: icon || REELS[r].icon });
+  const SCENES = [
+    S(0, "stacked-area", "Requests peaked at 822M in September 2025, 2.4× May's 346M, then fell back", "Monthly requests stacked by model family. The time strip in the transport bar brushes and plays every scene.", "ti-chart-area-line"),
+    S(0, "stacked-100", "Model choice flipped: Qwen overtook DeepSeek in March 2026, 47% to 25%", "The same slices as shares of each month's requests.", "ti-percentage"),
+    S(0, "stacked-bars-100", "In September 2025 Gemma carried 26% of requests, up from under 1% in June", "Each month as one 100% column.", "ti-chart-bar"),
+    S(0, "stacked-bars", "Over the year, DeepSeek carried 55% of all 6.1B requests", "Each month's column back on a request scale, stacked by family. Click a family anywhere to filter every scene; shift-click to add another.", "ti-stack-2"),
+    S(0, "3d-bars", "DeepSeek's biggest month was June 2025 at 456M requests; Qwen's was January 2026 at 174M", "Each family on its own row, each month a box whose height is its requests. Drag to turn it; hover for values.", "ti-cube"),
+    S(0, "heat-cells", "Speed dipped and recovered; only GLM kept slowing, from 1.5 s to 6.7 s", "The same family-months, now colored by average seconds to the first token (streaming calls only). Overall 2.9 s in May 2025 and 2.8 s in March 2026.", "ti-flame"),
+    S(0, "dots", "GLM's first token reached 9.0 s in February 2026; no other family averaged above 4.2 s in any full month", "Each family-month as a dot at its average seconds to the first token.", "ti-chart-dots"),
+    S(1, "ridgeline", "Every month's 24-hour profile is nearly flat: the day has no night", "One ridge per month: requests by trace hour, each month on its own baseline.", "ti-wave-sine"),
+    S(1, "small-multiple-lines", "In every month, the busiest trace hour carried at most 5.0% of that month's requests", "The same profiles as small multiples on a shared scale of share of the month.", "ti-layout-grid"),
+    S(2, "dot-plot", "Traffic is nearly flat around the clock", "Requests by trace hour over the whole period, as dots on a requests axis from zero.", "ti-grain"),
+    S(2, "bars", "The busiest hour carries 4.7% of traffic and the quietest 3.9%", "The same hours as bars from zero.", "ti-chart-bar"),
+    S(2, "radial-bars", "Drawn as a clock, every hour is within 18% of every other", "The bars wrapped around a 24-hour dial; length from the inner ring is proportional and starts at zero.", "ti-clock-hour-4"),
+  ];
+  let cur = -1;
+  const current = () => SCENES[cur];
+
+  // Chapters: one group per reel, one tick per scene, with the reel's icon.
+  $("chapters").replaceChildren(...REELS.map((R, ri) => {
+    const box = document.createElement("div"); box.className = "reel"; const idx = SCENES.map((s, i) => [s, i]).filter(([s]) => s.reel === R.reel);
+    box.style.setProperty("--n", idx.length);
+    box.innerHTML = `<div class="rl"><i class="ti ${R.icon}" aria-hidden="true"></i>${R.name}</div>`;
+    const ticks = document.createElement("div"); ticks.className = "ticks";
+    for (const [s, i] of idx) { const b = document.createElement("button"); b.type = "button"; b.dataset.i = i; b.setAttribute("aria-label", `${i + 1}. ${s.title}`); b.innerHTML = '<span class="fill"></span>';
+      b.addEventListener("click", () => { stopAuto(); go(i); }); ticks.append(b); }
+    box.append(ticks); return box;
+  }));
+  const tickEls = () => [...$("chapters").querySelectorAll(".ticks button")].sort((a, b) => a.dataset.i - b.dataset.i);
+
+  function setLower(s, i) {
+    const lw = $("lower");
+    $("kicon").className = `ti ${s.icon}`; $("kicker").textContent = `${s.name} · scene ${i + 1} of ${SCENES.length}`;
+    $("title").textContent = s.title; $("caption").textContent = s.caption;
+    if (REDUCED) return;
+    lw.getAnimations().forEach((a) => a.cancel());
+    lw.animate([{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], { duration: 450, easing: "ease-out" });
+  }
+  function go(i) {
+    i = (i + SCENES.length) % SCENES.length;
+    const prev = SCENES[cur], s = SCENES[i]; cur = i;
+    setLower(s, i);
+    tickEls().forEach((b, j) => { b.setAttribute("aria-current", String(j === i)); b.classList.toggle("done", j < i); b.querySelector(".fill").style.transition = "none"; b.querySelector(".fill").style.width = j < i ? "100%" : "0"; });
+    history.replaceState(null, "", `#${i + 1}`);
+    const R = s.reel, form = R.forms[s.form];
+    if (!prev || prev.reel !== R) {
+      // Between reels: outgoing marks sink to their baseline and fade; incoming marks grow out of theirs.
+      if (prev) { const out = prev.reel; out.marksG.selectAll("g.m path").transition().duration(T(500)).ease(EASE).attr("opacity", 0); fade(out.root, false, 600); }
+      fade(R.root, true, 500); R.form = s.form;
+      measure();
+      drawMarks(R, form, T(STEP), { stagger: s.stagger, enterFrom: (nx) => ({ front: edgeTop(nx.front), top: edgeTop(nx.front), side: edgeTop(nx.front) }) });
+      s.guides(s.form, form.layout(R.data));
+    } else {
+      R.form = s.form;
+      drawMarks(R, form, T(STEP), { stagger: s.stagger });
+      s.guides(s.form, form.layout(R.data));
+    }
+    svg.style("cursor", s.form === "3d-bars" ? "grab" : null);
+    if (auto) scheduleAuto();
+  }
+
+  // ---- Navigation and autoplay ----------------------------------------------------------------------
+  $("prev").addEventListener("click", () => { stopAuto(); go(cur - 1); });
+  $("next").addEventListener("click", () => { stopAuto(); go(cur + 1); });
+  addEventListener("keydown", (e) => {
+    if (e.target.closest("select, input, dialog")) return;
+    if (e.key === "ArrowRight") { stopAuto(); go(cur + 1); } else if (e.key === "ArrowLeft") { stopAuto(); go(cur - 1); }
+    else if (e.key === " ") { e.preventDefault(); auto ? stopAuto() : startAuto(); }
+  });
+  let auto = false, autoTimer = null;
+  const hold = (s) => STEP + 3500 + 280 * (s.title + " " + s.caption).split(/\s+/).length;
+  function scheduleAuto() {
+    clearTimeout(autoTimer); const ms = hold(SCENES[cur]), fill = tickEls()[cur].querySelector(".fill");
+    fill.style.transition = "none"; fill.style.width = "0"; requestAnimationFrame(() => { fill.style.transition = `width ${ms}ms linear`; fill.style.width = "100%"; });
+    autoTimer = setTimeout(() => go(cur + 1), ms);
+  }
+  function startAuto() { auto = true; $("auto").innerHTML = '<i class="ti ti-player-pause-filled" aria-hidden="true"></i>'; $("auto").setAttribute("aria-label", "Pause autoplay"); scheduleAuto(); }
+  function stopAuto() { auto = false; clearTimeout(autoTimer); $("auto").innerHTML = '<i class="ti ti-player-play-filled" aria-hidden="true"></i>'; $("auto").setAttribute("aria-label", "Autoplay the scenes");
+    const f = tickEls()[cur]?.querySelector(".fill"); if (f) { f.style.transition = "none"; f.style.width = "0"; } }
+  $("auto").addEventListener("click", () => (auto ? stopAuto() : startAuto()));
+
+  // ---- Time strip, brush, and the gliding Play --------------------------------------------------------
+  const strip = (() => {
+    const Wd = 230, Hd = 42, x = d3.scaleUtc().domain([START, END]).range([2, Wd - 2]), y = d3.scaleLinear().range([Hd - 12, 3]);
+    const s = d3.select("#strip").append("svg").attr("viewBox", [0, 0, Wd, Hd]).attr("preserveAspectRatio", "none");
+    const area = s.append("path").attr("fill", css("--c1")).attr("opacity", 0.35);
+    s.append("g").attr("transform", `translate(0,${Hd - 11})`).call(d3.axisBottom(x).ticks(d3.utcMonth.every(3)).tickSize(2).tickFormat(monShort)).call((a) => a.select(".domain").remove()).selectAll("text").style("font-size", "9px").style("fill", css("--muted"));
+    const client = connect($ctx, (w) => vg.Query.from("t").select({ d: "date", r: vg.sql`sum(requests)::DOUBLE` }).where(w).groupby("d").orderby("d"), (rows) => {
+      y.domain([0, d3.max(rows, (r) => N(r.r)) || 1]); area.transition().duration(UPD()).attr("d", d3.area().x((r) => x(+new Date(r.d))).y0(y(0)).y1((r) => y(N(r.r)))(rows)); });
+    const src = { source: client, clients: new Set([client]) };
+    let silent = false;
+    const brush = d3.brushX().extent([[2, 2], [Wd - 2, Hd - 12]]).on("brush end", (e) => { if (silent) return; if (e.sourceEvent) stopPlay();
+      $dates.update(clauseInterval("date", e.selection ? e.selection.map((p) => x.invert(p)) : null, src)); });
+    const gb = s.append("g").call(brush); gb.select(".selection").attr("fill", css("--sel")).attr("fill-opacity", 0.3).attr("stroke", css("--sel"));
+    return { src, quiet: (r) => { silent = true; gb.call(brush.move, r ? r.map(x) : null); silent = false; }, clear: () => gb.call(brush.move, null) };
+  })();
+  let playTimer = null;
+  function stopPlay() { if (playTimer) { playTimer.stop(); playTimer = null; } playing = false; $("play").querySelector("span").textContent = "Play the year"; $("play").querySelector("i").className = "ti ti-calendar-time"; }
+  $("play").addEventListener("click", () => {
+    if (playTimer) return stopPlay();
+    playing = true; stopAuto(); $("play").querySelector("span").textContent = "Pause"; $("play").querySelector("i").className = "ti ti-player-pause";
+    const width = 28 * DAY, speed = REDUCED ? 4 : 10, t0 = performance.now(); let sent = 0;
+    playTimer = d3.timer(() => {
+      const lo = START + ((performance.now() - t0) / 1000) * speed * DAY;
+      if (lo + width > END) return stopPlay();
+      strip.quiet([lo, lo + width]);
+      const now = performance.now();
+      if (!busy && now - sent > 120) { busy = true; sent = now; $dates.update(clauseInterval("date", [new Date(lo), new Date(lo + width)], strip.src)); }
+    });
+  });
+  // The time window dims what lies outside it in the context reels, without a re-query.
+  $dates.addEventListener("value", () => {
+    const s = current(); if (!s || s.reel === hr) return;
+    drawMarks(s.reel, s.reel.forms[s.form], UPD(), { ease: UPD_EASE() });
+  });
+
+  // ---- Chips, scope note, Reset, notes, resize ----------------------------------------------------------
+  const anyFilter = () => owned.some((o) => o.s.value != null && o.s.value !== "" && !(Array.isArray(o.s.value) && !o.s.value.length));
+  owned.forEach((o) => o.s.addEventListener("value", () => { $("scope").hidden = !anyFilter(); $("reset").disabled = !anyFilter(); }));
+  $("reset").disabled = true;
+  $("reset").addEventListener("click", () => { stopPlay(); strip.clear(); pick(null); owned.forEach((o) => o.s.reset()); });
+  $("notes-btn").addEventListener("click", () => $("notes").showModal());
+  $("notes-close").addEventListener("click", () => $("notes").close());
+  let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { measure(); const s = current(); if (s) { drawMarks(s.reel, s.reel.forms[s.form], 0); s.guides(s.form, s.reel.forms[s.form].layout(s.reel.data)); s.reel.guides.interrupt().attr("opacity", 1); } }, 150); });
+
+  const startAt = Math.min(SCENES.length - 1, Math.max(0, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+  // First scene waits for its data so the entrance is drawn from real values.
+  const waitData = () => new Promise((r) => { const t = d3.interval(() => { if (cpRows.size && gRows.size && hRows.size) { t.stop(); r(); } }, 50); });
+  await waitData();
+  go(startAt);
+</script>
+</body>
+</html>

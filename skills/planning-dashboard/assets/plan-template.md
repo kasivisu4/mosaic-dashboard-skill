@@ -1,13 +1,13 @@
 ---
 plan_version: 2
-goals: {one or two of answer, spec, explore, monitor, present, in page order}
+goals: {one or two of answer, spec, explore, monitor, present, impact, in page order}
 audience: {one or more of me, team, leadership, clients}
 cadence: {one-time | daily | weekly | monthly}
 review_depth: {quick | guided | deep}
 success_criteria: "{what makes it useful, in the person's words, or none stated}"
 reconcile: {true | false}
 comparison_period: {date column:day | week | month | quarter | year, or delete this line}
-destination: {local | artifact | dashboard-type | self-hosted}
+destination: {file | local | artifact | dashboard-type | self-hosted}
 source: {path to the original data, relative to this plan's folder}
 data:
   - file: {exported file}
@@ -31,6 +31,7 @@ data:
 1. KPIs: {Label} = {value} [{format}]; {Label} = {value} [{format}] {target>=N or target<=N, optional}
 2. "{finding stated as a title}" | {trend | bar | histogram | scatter | exceptions} | {key=value ...} | {brush | click | none}
    {> narrative under the chart, optional}
+   {~ draw: visual instead of conventional form, why (optional)}
    {@ date, category or number: annotation label, optional}
 
 ## Interaction

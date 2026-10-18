@@ -8,9 +8,20 @@
 |---|---|---|
 | Data and filtering | **Mosaic** (`@uwdata/mosaic-core` 0.31.0) with **DuckDB-WASM** in the browser | every chart, number and input queries DuckDB; one cross-filter links them |
 | Charts | **Observable Plot** through Mosaic's vgplot (`@uwdata/vgplot` 0.31.0) | Mosaic's own brushes and clicks: live updates while dragging, pre-aggregation for big data |
-| Anything Plot can't draw | **D3** (`d3` 7.9.0) as a Mosaic client | still joins the same cross-filter |
+| Anything Plot can't draw, and every animated chart | **D3** (`d3` 7.9.0) as a Mosaic client | still joins the same cross-filter; keyed transitions, staged reveals and a time player (`references/motion.md`) |
+| 3D that morphs with 2D (three data axes only) | **d3-3d** (`d3-3d` 1.0.0) projecting boxes to SVG polygons | 3D forms join the polygon morph engine (`references/show-reel.md` §5) |
+| 3D with thousands of marks | **three.js** (`three` 0.160.0) as a Mosaic client | GPU instancing; orbit camera; heights tweened with D3 (`references/stage.md` §5) |
+| Icons | **Tabler icons** webfont (`@tabler/icons-webfont` 3.35.0) | scene markers, controls, category chips, KPI labels; never a quantity (`references/show-reel.md` §6) |
 
-How to use them, with the pitfalls already found: `references/mosaic-tech.md`. There is **no page template**: each page is designed fresh for its data and story (layout, chart types, how numbers are shown). One HTML file next to the data, served over http. No other chart library (Plotly, Chart.js and similar can't brush live against DuckDB).
+How to use them, with the pitfalls already found: `references/mosaic-tech.md`. There is **no page template**: each page is designed fresh for its data and story (layout, chart types, how numbers are shown). One HTML file next to the data while building (served over http for testing), shared as a single self-contained `report.html` (`scripts/bundle_report.py`) that needs no server. No other chart library (Plotly, Chart.js and similar can't brush live against DuckDB).
+
+## Visual ambition
+
+- **Out of the box, not off the shelf.** Every chart is chosen with `references/visual-language.md`: know the conventional form for the question, then draw something that shows the finding better (bump chart, waffle, beeswarm, horizon, calendar heatmap, connected scatter…). A conventional form is used only when nothing beats it, and its `~ draw:` line says why.
+- **One hero, or one stage.** Each page opens on one large, animated primary surface (the brief's hook), with the supporting angles beneath it; with `impact`, prefer the one-screen stage (`surface: stage`, `references/stage.md`), whose marks morph through scenes.
+- **A show reel, not a slideshow.** One set of marks morphs through each chain of forms the design seed picks (`references/show-reel.md`); a fresh seed every run, so no two dashboards look alike.
+- **Motion on.** Default `motion: reveal` wherever the audience allows it: staged entrance in reading order, transitions on every filter, count-up numbers, a play button when the story is change over time.
+- **Honest, always.** The honesty rules in `visual-language.md` Part 3 are never traded for style.
 
 ## Interaction must-haves
 
@@ -21,6 +32,7 @@ Whatever the design, every page that has interaction:
 - Shows what is filtered, in words ("Store: East"), with a visible Reset.
 - Shows filtered numbers next to their unfiltered totals somewhere, so a filter's effect is visible.
 - Marks any value past its target with the `breach` color.
+- Gives every mark a tooltip with its exact values, and every title, KPI, control and legend help text (`references/interaction.md`, Tooltips and help).
 
 How many controls a page has comes from the Style Profile's `interaction` level (`references/style-system.md`).
 

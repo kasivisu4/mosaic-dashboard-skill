@@ -17,7 +17,8 @@ The output still lists the other columns by name and type, so a glossary term ca
 3. **Column classes.** date, measure (numeric, summable), dimension (low-cardinality category), flag (0/1 or boolean), id (high cardinality), text.
 4. **Time coverage** (only if a date column exists). Min/max and gaps at the bucket the profiler suggests.
 5. **Oddities.** Negative or zero measures, extreme values (p99 vs max), unexpected nulls, duplicate rows, mixed units, near-duplicate category spellings.
-6. **Observations.** Write 3–5 plain sentences: grain, size, time span, dimensions worth slicing, and anything that needs a decision on the card.
+6. **Explore.** The profile is a fixed summary; your questions about *this* data aren't. Write the questions it raises (what's odd, what's big, what changed, what would explain it, whether a pattern holds within groups) as SQL, one block per question headed by a `-- question` line, and run them: `python scripts/explore.py out/<name> <data file> <queries.sql>`. The SQL and results are saved to `1-profile/explore.sql` and `explore.md`. Run as many rounds as the answers raise new questions; stop when the brief's angles have the numbers they need. A typical first round: grain and keys, time coverage and gaps, the largest categories and their share over time, outliers (top and bottom periods), and each candidate metric within its main dimension.
+7. **Observations.** Write 3–5 plain sentences: grain, size, time span, dimensions worth slicing, and anything that needs a decision on the card.
 
 ## Choosing metrics
 - Measures → sum, average, or median; flags → a rate (`avg(flag)`); ids → distinct counts.

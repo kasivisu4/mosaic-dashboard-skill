@@ -21,7 +21,7 @@ Every run is recorded in `out/<name>/`, one numbered folder per step:
 |---|---|---|
 | 1. Profile | `start_run.py` takes a quick look at the data (well under a second, even for millions of rows) and starts the full profile in the background | `1-profile/` |
 | 2. Intake | The "Dashboard details" form, built from that look: it asks only what the request didn't answer, and "What's the ask?" offers 2–3 questions this data can answer | `2-intake/` |
-| 3. Layout and card | Page blocks for the chosen goals, with every number in a title computed by DuckDB, confirmed on one card: "My read", a layout preview, and the data definitions as assumptions with Change buttons (quick review: shown after building) | `3-layout/` |
+| 3. Layout and card | Page blocks for the chosen goals, with every number in a title computed by DuckDB, confirmed on one card: "My read" and the data definitions as assumptions with Change buttons (skipped for a quick review) | `3-layout/` |
 | 4. Plan | Data exported, `plan.md` written and validated | `4-dashboard/` |
 | 5. Build | Claude designs and builds the page from `plan.md` with Mosaic + DuckDB + Observable Plot, applying its Style Profile and suggested colors; the link is shared right away | `5-handoff/` |
 
@@ -45,8 +45,9 @@ mosaic-dashboard-skill/
     │   │   ├── metrics.md              # approved metric definitions
     │   │   ├── dashboard.md            # build stack, cross-filtering, filters, KPIs, color policy
     │   │   └── timing.md               # latency budget per step
-    │   ├── references/                 # method: intake, understand-data, data-story, interaction,
-    │   │                               #   style-system, mosaic-tech, destinations, plan-format (the contract)
+    │   ├── references/                 # method: intake, question-brief, understand-data, data-story, interaction,
+    │   │                               #   visual-language, d3-toolkit, motion, stage, show-reel, style-system, mosaic-tech, destinations,
+    │   │                               #   plan-format (the contract)
     │   ├── assets/                     # intake-form.html, confirmation-card.html, plan-template.md
     │   ├── scripts/
     │   │   ├── start_run.py            # first turn in one command: quick look, background profile, form
@@ -54,6 +55,9 @@ mosaic-dashboard-skill/
     │   │   ├── profile.py              # full DuckDB profile (CSV/TSV/Parquet/JSON/Excel, --columns)
     │   │   ├── intake_form.py          # the form, fitted to the data
     │   │   ├── confirmation_card.py    # the card, from a small card.json
+    │   │   ├── design_seed.py          # a fresh design per run: concept, chains of forms, palette, icons, motion
+    │   │   ├── explore.py              # your own exploratory SQL against the data, saved with results
+    │   │   ├── bundle_report.py        # one self-contained report.html to share, data embedded, no server
     │   │   ├── validate_plan.py        # checks a plan before handing it off
     │   │   ├── run_folder.py           # step folders and the run summary with timing
     │   │   ├── plan_format.py          # shared plan parser

@@ -3,6 +3,9 @@
 Usage: python profile.py <file> [--sheet NAME] [--columns col,col]
 
 --columns  profile only these columns (the ones the person named); the rest are listed by name and type only
+
+Large files (over LARGE_ROWS rows, or a non-Parquet file over LARGE_BYTES) are profiled on a sample
+and the output says so. For Parquet the row count, null% and min/max stay exact (file metadata).
 Formats: .csv .tsv .txt .parquet .json .ndjson .jsonl .xlsx (anything else is read as delimited text)
 """
 import sys
@@ -20,6 +23,15 @@ ID_SHARE = 0.95
 EXACT_DISTINCT_ROWS = 5_000_000
 # Above this many distinct values a text column is free text, not a useful filter dimension.
 MAX_DIMENSION = 200
+# Past this many rows a full scan takes minutes (a 91 GB, 6.1B-row Parquet file: ~100 s per pass,
+# and SELECT DISTINCT * runs out of memory), so large files are profiled on a sample instead.
+LARGE_ROWS = 20_000_000
+# Non-Parquet files can't be counted without reading them all; past this size, read only the start.
+LARGE_BYTES = 2_000_000_000
+# A large Parquet file is sampled at this many evenly spaced places, SAMPLE_RUN rows each.
+# Each place costs ~0.4 s (DuckDB skips the row groups in between), so 24 places take ~10 s.
+SAMPLE_PLACES = 24
+SAMPLE_RUN = 4096
 
 
 def source_sql(con, path, sheet=None):
@@ -33,6 +45,52 @@ def source_sql(con, path, sheet=None):
         con.execute("INSTALL excel; LOAD excel;")
         return f"read_xlsx('{p}'" + (f", sheet='{sheet}')" if sheet else ")")
     return f"read_csv_auto('{p}', sample_size=-1)"
+
+
+def total_rows(con, path, src):
+    """Exact row count when it's cheap: Parquet metadata, or a count of a file under LARGE_BYTES. Else None."""
+    if Path(path).suffix.lower() == ".parquet":
+        p = path.replace("'", "''")
+        return con.execute(f"SELECT num_rows FROM parquet_file_metadata('{p}')").fetchone()[0]
+    if Path(path).stat().st_size > LARGE_BYTES:
+        return None
+    return con.execute(f"SELECT count(*) FROM {src}").fetchone()[0]
+
+
+def sample_sql(path, src, rows, places=SAMPLE_PLACES, run=SAMPLE_RUN):
+    """Rows from across a large file without reading all of it.
+
+    Parquet: `places` runs of `run` rows at evenly spaced row numbers, one subquery each, so DuckDB
+    reads only the row groups holding them. (USING SAMPLE, even SYSTEM, still reads every row group.)
+    Other formats can't seek, so: the first places*run rows.
+    """
+    if Path(path).suffix.lower() == ".parquet" and rows:
+        p = path.replace("'", "''")
+        step = max(rows // places, run)
+        parts = [f"(SELECT * EXCLUDE (file_row_number) FROM read_parquet('{p}', file_row_number=true)"
+                 f" WHERE file_row_number BETWEEN {i * step} AND {i * step + run - 1})"
+                 for i in range(places) if i * step < rows]
+        return " UNION ALL ".join(parts)
+    return f"SELECT * FROM {src} LIMIT {places * run}"
+
+
+def parquet_stats(con, path, cols):
+    """Exact null counts and min/max per column from Parquet row-group statistics (no data read)."""
+    if Path(path).suffix.lower() != ".parquet":
+        return {}
+    p = path.replace("'", "''")
+    # Read the footer once (~0.5 s for 6,000 row groups); the per-column queries below hit this small table.
+    con.execute("CREATE TEMP TABLE IF NOT EXISTS pq_stats AS SELECT path_in_schema AS col, stats_null_count AS nulls,"
+                f" stats_min AS lo, stats_max AS hi FROM parquet_metadata('{p}')")
+    out = {}
+    for name, dtype in cols:
+        try:
+            out[name] = con.execute(
+                f"SELECT sum(nulls), min(TRY_CAST(lo AS {dtype})), max(TRY_CAST(hi AS {dtype}))"
+                " FROM pq_stats WHERE col = ?", [name]).fetchone()
+        except duckdb.Error:  # nested or unusual types have no usable statistics
+            continue
+    return out
 
 
 def classify(name, dtype, distinct, rows):
@@ -73,8 +131,14 @@ def main():
 
     con = duckdb.connect()
     try:
-        con.execute(f"CREATE VIEW t AS SELECT * FROM {source_sql(con, path, sheet)}")
-        rows = con.execute("SELECT count(*) FROM t").fetchone()[0]
+        src = source_sql(con, path, sheet)
+        total = total_rows(con, path, src)
+        sampled = total is None or total > LARGE_ROWS
+        if sampled:  # everything below reads this sample; `total` stays the file's real size
+            con.execute(f"CREATE TABLE t AS {sample_sql(path, src, total)}")
+        else:
+            con.execute(f"CREATE VIEW t AS SELECT * FROM {src}")
+        rows = con.execute("SELECT count(*) FROM t").fetchone()[0] if sampled else total
     except duckdb.Error as e:
         sys.exit(f"Could not read {path}: {e}")
     if rows == 0:
@@ -82,6 +146,7 @@ def main():
 
     dupes = rows - con.execute("SELECT count(*) FROM (SELECT DISTINCT * FROM t)").fetchone()[0]
     all_cols = con.execute("DESCRIBE t").fetchall()  # rows of (name, type, ...)
+    exact = parquet_stats(con, path, [(c[0], c[1]) for c in all_cols]) if sampled else {}
     others = []
     if wanted:
         by_lower = {c[0].lower(): c[0] for c in all_cols}
@@ -98,7 +163,14 @@ def main():
     idx = {d[0]: i for i, d in enumerate(con.description)}
 
     print(f"# Profile: {path}")
-    print(f"rows: {rows:,}   columns: {len(all_cols)}   duplicate rows: {dupes:,}")
+    if sampled:
+        size = f"{total:,}" if total else f"not counted ({Path(path).stat().st_size / 1e9:.0f} GB file)"
+        where = f"{SAMPLE_PLACES} places spread across the file" if total else "the start of the file"
+        print(f"rows: {size}   columns: {len(all_cols)}   duplicate rows in the sample: {dupes:,}")
+        print(f"sample: profiled {rows:,} rows from {where}; distinct counts, shares and percentiles are from the"
+              f" sample{', null% and range are exact (file metadata)' if exact else ''}")
+    else:
+        print(f"rows: {rows:,}   columns: {len(all_cols)}   duplicate rows: {dupes:,}")
     if others:
         print(f"profiled: {len(summary)} requested column(s); not profiled: {', '.join(others)}")
     print()
@@ -111,21 +183,31 @@ def main():
             q = '"' + name.replace('"', '""') + '"'
             distinct = con.execute(f"SELECT count(DISTINCT {q}) FROM t").fetchone()[0]
         null_pct = float(r[idx["null_percentage"]] or 0)
+        lo, hi = r[idx["min"]], r[idx["max"]]
+        if name in exact:
+            nulls, lo_x, hi_x = exact[name]
+            null_pct = 100 * (nulls or 0) / total
+            lo, hi = (lo_x, hi_x) if lo_x is not None else (lo, hi)
         cls = classes[name] = classify(name, dtype, distinct, rows)
-        rng = f"{r[idx['min']]} .. {r[idx['max']]}"
+        rng = f"{lo} .. {hi}"
         print(f"{name[:21]:<22}{dtype[:11]:<12}{cls:<11}{distinct:>9,}{null_pct:>6.1f}%  {rng[:48]}")
 
     notes = []
     for name, cls in classes.items():
         q = '"' + name.replace('"', '""') + '"'
-        nulls = con.execute(f"SELECT count(*) FILTER ({q} IS NULL) FROM t").fetchone()[0]
+        if name in exact:
+            nulls, of = exact[name][0] or 0, total
+        else:
+            nulls, of = con.execute(f"SELECT count(*) FILTER ({q} IS NULL) FROM t").fetchone()[0], rows
         if nulls:
-            notes.append(f"{name}: {nulls:,} nulls ({nulls / rows:.1%})")
+            notes.append(f"{name}: {nulls:,} nulls ({nulls / of:.1%}){' in the sample' if sampled and of == rows else ''}")
         if cls == "measure":
             neg, zero, p99, mx, distinct = con.execute(
                 f"SELECT count(*) FILTER ({q} < 0), count(*) FILTER ({q} = 0),"
                 f" quantile_cont({q}, 0.99), max({q}), count(DISTINCT {q}) FROM t"
             ).fetchone()
+            if name in exact and exact[name][2] is not None:
+                mx = exact[name][2]  # the file's true max, not the sample's
             if neg:
                 notes.append(f"{name}: {neg:,} negative values")
             if zero > rows * 0.2:
@@ -137,6 +219,11 @@ def main():
         elif cls == "flag":
             rate = con.execute(f"SELECT avg({q}::DOUBLE) FROM t").fetchone()[0]
             notes.append(f"{name}: rate {rate:.2%}")
+        elif cls == "date" and sampled:  # short runs of rows can't show gaps; report the span only
+            lo, hi = exact[name][1:] if name in exact else (None, None)
+            if lo is None:
+                lo, hi = con.execute(f"SELECT min({q}), max({q}) FROM t").fetchone()
+            notes.append(f"{name}: {lo} to {hi}; gaps not checked (sampled)")
         elif cls == "date":
             b = time_bucket(con, q)
             n, gaps = con.execute(

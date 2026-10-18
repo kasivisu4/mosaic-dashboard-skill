@@ -2,7 +2,7 @@
 
 Usage: python intake_form.py [--skip field,field] [--glossary] [--data FILE] [--hint "field=text"]...
 
-Fields: goal, cadence, request, success_criteria, data, glossary, audience, review_depth.
+Fields: goal, format, cadence, request, success_criteria, data, glossary, audience, review_depth.
 --skip      drop questions already answered by the request or attachments
 --glossary  include the glossary question (left out unless asked for; see guidelines/goals.md)
 --data      take a quick look at the data file: "What's the ask?" offers 2-3 asks this data can
@@ -21,8 +21,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from goal_tables import goal_cards, labels, read_tables  # noqa: E402
 
 TEMPLATE = Path(__file__).resolve().parent.parent / "assets" / "intake-form.html"
-FIELDS = ["goal", "cadence", "request", "success_criteria", "data", "glossary", "audience", "review_depth"]
-CHOICE_FIELDS = ("goal", "cadence", "audience", "review_depth")
+FIELDS = ["goal", "format", "cadence", "request", "success_criteria", "data", "glossary", "audience", "review_depth"]
+CHOICE_FIELDS = ("goal", "format", "cadence", "audience", "review_depth")
 TEXT_FIELDS = ("request", "success_criteria", "data_text", "glossary")
 DEFAULT_TEXT = {
     "request": "Your own words, or paste the Slack message or email you got",
@@ -134,6 +134,7 @@ def build(skip, hints=None, look=None):
     page = page.replace("{{goal_cards}}", "".join(
         card(gid, title, subtitles.get(gid, sub), icon)
         for gid, title, sub, icon in goal_cards(tables)))
+    page = page.replace("{{format_cards}}", "".join(card(fid, title, sub, icon) for fid, title, sub, icon in goal_cards(tables, "Page format")))
     page = page.replace("{{cadence_pills}}", pills(labels(tables, "Cadence")))
     page = page.replace("{{audience_pills}}", pills(labels(tables, "Audiences")))
     page = page.replace("{{review_depth_pills}}", pills(labels(tables, "Review depth")))

@@ -12,6 +12,7 @@ WITHOUT asking:
 | Field | Values | Inferred from |
 |---|---|---|
 | goal (1–2) | answer, spec, explore, monitor, present | "why / what changed / which" → answer; names charts, columns, filters → spec; data with no question, "what's interesting" → explore; "track / daily / keep an eye on" → monitor; "for leadership / board / client", "show X how…" → present |
+| format | story, grid, scroll | "one page", "story", "walk me through" → story; "at a glance" → grid; "report" → scroll |
 | cadence | one-time, weekly, monthly, daily | "every morning", "monthly review", "quick look" |
 | request | free text | the message itself |
 | success_criteria | free text | casual statements count: "I just need to see the top drivers fast" → "top drivers visible at a glance". Capture in every mode; ask for it only in Guided/Deep |
@@ -27,7 +28,7 @@ and every field it answers is dropped from the form.
 
 Short-circuit rules:
 - If goal = spec (request names specific charts/columns/filters): skip the form, skip the
-  story, build exactly what was asked. List any assumptions after building.
+  story, build exactly what was asked. Record any assumptions in the plan.
 - If everything needed is known: skip the form and go to step 3.
 - Never ask for something already answered or attached.
 
@@ -44,6 +45,7 @@ this order:
    - Explore my data — "Show me what's interesting"
    - Keep an eye on it — "Spot issues early"
    - Make a case — "Tell a clear story"
+1b. format — "How should the page tell the story?" Cards: One-page story (charts morph scene by scene), Dashboard grid (every chart at once), Scrolling report (sections read top to bottom). Sets the plan's Style surface: stage, the goal's base, narrative.
 2. cadence — "How often will it be used?"
    Pills (single): One-time deep dive · Weekly review · Monthly report · Daily check
 3. request — "What's the ask? Paste the original request if you have it."
@@ -115,8 +117,8 @@ goal's structure and apply the cadence's density.
 
 ## 5. Confirmation card
 
-Guided/Deep: show this card BEFORE building. Quick: build first, then show the same
-card as the "here's what I assumed" note.
+Guided/Deep: show this card BEFORE building. Quick: no card; build first and record
+the assumptions in the plan.
 
 Render an inline interactive card containing:
 1. My read — one sentence in plain words, e.g. "A monthly answer-first dashboard for
@@ -126,24 +128,15 @@ Render an inline interactive card containing:
    "Clear on the goal and audience. Still unsure: the comparison period, and whether
    delinquency includes charge-offs." No numeric confidence scores. Omit the line if
    nothing is fuzzy.
-3. Layout preview — a small wireframe SVG built by stacking one block per goal, in
-   goal order:
-   - monitor: status row (on/off track vs target) — always placed on top if present
-   - answer: headline banner, 3 KPI cards, driver chart + trend chart
-   - explore: filter bar, dense grid of distributions, detail table
-   - present: annotated story section — always placed at the bottom if present
-   - spec: the charts exactly as requested (no other blocks)
-   Apply the cadence density from 4b. Example: answer + monitor = status row, then
-   headline answer and drivers.
-4. Assumptions — 3–5 rows (metric definitions, comparison periods, breakdowns,
+3. Assumptions — 3–5 rows (metric definitions, comparison periods, breakdowns,
    exclusions), each with a "Change" button that sends
    `Change assumption: <name>`. Put the fuzzy items from item 2 first.
-5. Success criteria — if one was stated or captured, show it in one line
+4. Success criteria — if one was stated or captured, show it in one line
    ("Built for: top 3 drivers visible at a glance").
-6. "I'd also like to know" — 1–3 optional question chips, drawn from the fuzzy items
+5. "I'd also like to know" — 1–3 optional question chips, drawn from the fuzzy items
    first, then targets, reconciliation source, refresh needs. Clicking one sends that
    question.
-7. Actions — "Looks right, build it" as the strong primary button (filled), "Adjust" as
+6. Actions — "Looks right, build it" as the strong primary button (filled), "Adjust" as
    the secondary (outlined).
 
 ## 6. Handle follow-ups narrowly
@@ -155,7 +148,7 @@ Render an inline interactive card containing:
   form. Apply the answer as a diff to the current plan (goals, layout, assumptions),
   then re-render the confirmation card with the changes marked.
 - Layout edits in words ("swap these sections", "make the drivers bigger") → update the
-  preview and plan the same way.
+  plan the same way and show the card again.
 - Requests that reference what's on screen ("make it last year", "why doesn't this match
   finance?") → modify the existing plan or dashboard; never rebuild from scratch.
 

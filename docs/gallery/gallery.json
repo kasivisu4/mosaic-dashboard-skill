@@ -1,0 +1,142 @@
+[
+  {
+    "name": "chutes-reel-opus",
+    "label": "Built by Claude Opus 5.5 (agent)",
+    "title": "A year of LLM traffic on Chutes",
+    "takeaway": "Over 6.12 billion requests between April 2025 and April 2026, the platform's traffic changed hands: DeepSeek served 84.4% of requests in May 2025 and 24.8% in March 2026, while Qwen rose from 5.3% to 47.0%.",
+    "scenes": 10,
+    "goals": [
+      "impact",
+      "explore"
+    ],
+    "concept": "stage-rail",
+    "theme": "midnight",
+    "palette": "okabe-ito",
+    "colors": [
+      "#0072b2",
+      "#e69f00",
+      "#009e73",
+      "#cc79a7",
+      "#56b4e9",
+      "#d55e00"
+    ],
+    "provocations": [
+      "One mark is one unit (a day, a bucket of N, one percent); totals are counts you can see.",
+      "Marks regroup physically between scenes (force layout), never fading out and in."
+    ],
+    "has_report": true,
+    "has_brief": true,
+    "added": "2026-10-18",
+    "model": "claude-opus-5-5",
+    "skill_version": "0.2.0-dev",
+    "tokens": 306115,
+    "cost_usd": 0.37,
+    "cost_range_usd": [
+      0.21,
+      0.78
+    ],
+    "usage_note": "Agent run, whole workflow; skill 0.2.0 in development (before tooltips/explore/format were final)."
+  },
+  {
+    "name": "llm-traffic-explorer",
+    "label": "Built by Claude Opus 5.5",
+    "title": "A year of LLM traffic on Chutes",
+    "takeaway": "6.12 billion requests from 11 April 2025 to 12 April 2026: Qwen overtook DeepSeek in March 2026. September 2025 was the odd month (peak volume, fastest first token, shortest prompts, with a Gemma surge); by March speed and prompt size were back to spring levels, and only GLM kept slowing.",
+    "scenes": 12,
+    "goals": [
+      "impact",
+      "explore"
+    ],
+    "concept": "cinema",
+    "theme": "studio",
+    "palette": "tableau",
+    "colors": [
+      "#4e79a7",
+      "#f28e2b",
+      "#59a14f",
+      "#e15759",
+      "#76b7b2",
+      "#b07aa1"
+    ],
+    "provocations": [],
+    "has_report": false,
+    "has_brief": true,
+    "added": "2026-10-18",
+    "model": "claude-opus-5-5",
+    "skill_version": "0.2.0-dev",
+    "tokens": null,
+    "cost_usd": null,
+    "cost_range_usd": null,
+    "usage_note": "Built in the main conversation over many iterations while the skill itself was being written; tokens weren't measured per run."
+  },
+  {
+    "name": "chutes-reel-2",
+    "label": "Built by Claude Opus 5.5 (agent)",
+    "title": "A year of LLM traffic",
+    "takeaway": "Over one year of traffic, model choice flipped: DeepSeek fell from 84% of requests in May 2025 to 25% in March 2026 while Qwen rose from 5% to 47%.",
+    "scenes": 12,
+    "goals": [
+      "impact",
+      "explore"
+    ],
+    "concept": "poster-hub",
+    "theme": "paper",
+    "palette": "dark2",
+    "colors": [
+      "#1b9e77",
+      "#d95f02",
+      "#7570b3",
+      "#e7298a",
+      "#66a61e",
+      "#e6ab02"
+    ],
+    "provocations": [],
+    "has_report": false,
+    "has_brief": true,
+    "added": "2026-10-18",
+    "model": "claude-opus-5-5",
+    "skill_version": "0.2.0-dev",
+    "tokens": 271317,
+    "cost_usd": 0.33,
+    "cost_range_usd": [
+      0.18,
+      0.69
+    ],
+    "usage_note": "Build, test and hand-off only; the planning half ran in an earlier agent whose tokens weren't reported."
+  },
+  {
+    "name": "chutes-reel-haiku",
+    "label": "Built by Claude Haiku 5.5 (agent)",
+    "title": "One year of LLM traffic: 6.12 billion requests, April 2025 to April 2026",
+    "takeaway": "The traffic changed hands: DeepSeek carried most requests in May 2025 and Qwen passed it in March 2026, while the monthly total barely moved.",
+    "scenes": 8,
+    "goals": [
+      "impact",
+      "explore"
+    ],
+    "concept": "scrolly-split",
+    "theme": "slate",
+    "palette": "observable",
+    "colors": [
+      "#4269d0",
+      "#efb118",
+      "#ff725c",
+      "#6cc5b0",
+      "#3ca951",
+      "#ff8ab7"
+    ],
+    "provocations": [],
+    "has_report": false,
+    "has_brief": true,
+    "added": "2026-10-18",
+    "model": "claude-haiku-5-5",
+    "skill_version": "0.2.0-dev",
+    "tokens": 370764,
+    "cost_usd": 0.01,
+    "cost_range_usd": [
+      0.01,
+      0.02
+    ],
+    "usage_note": "Agent run, whole workflow; skill 0.2.0 in development."
+  }
+]

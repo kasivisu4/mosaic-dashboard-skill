@@ -78,7 +78,7 @@ import * as vg from "https://cdn.jsdelivr.net/npm/@uwdata/vgplot@0.31.0/+esm";
 
 // ============================ CONFIG: generated from plan.md ============================
 // scripts/build_page.py writes this block from a plan (plan format v1). Vocabulary matches the plan:
-// value expressions: count() sum(col) avg(col) median(col) min(col) max(col) rate(col)
+// value expressions: count() sum(col) avg(col) median(col) min(col) max(col) rate(col) ratio(num, den)
 // chart forms: trend {x: "col:week", y}, bar {category, value}, histogram {value}, scatter {x, y}
 const CONFIG = {
   title: "Dashboard title",
@@ -125,6 +125,10 @@ function valueExpr(text) {
   const [, agg, col] = m;
   if (agg === "count") return col ? vg.count(col) : vg.count();
   if (agg === "rate") return vg.avg(vg.sql`CAST(${vg.column(col)} AS DOUBLE)`);
+  if (agg === "ratio") {
+    const [num, den] = col.split(",").map((c) => vg.column(c.trim()));
+    return vg.sql`sum(${num}) / nullif(sum(${den}), 0)`;
+  }
   if (!["sum", "avg", "median", "min", "max"].includes(agg)) throw new Error(`Unknown function ${agg}()`);
   return vg[agg](col);
 }

@@ -16,14 +16,14 @@
     {
       "id": 2,
       "prompt": "every morning I want to check whether any support team is falling behind on resolution time, just for me, just build it",
-      "expected_output": "Goal monitor, cadence daily, audience me, review depth quick are all inferred, so no form. Plan has KPI targets, an exceptions line, Last updated, at most 4 charts; the 'here's what I assumed' card comes after building.",
+      "expected_output": "Goal monitor, cadence daily, audience me, review depth quick are all inferred, so no form. Plan has KPI targets, an exceptions line, Last updated, at most 4 charts; no confirmation card, assumptions recorded in plan.md.",
       "files": ["evals/files/tickets.csv"],
       "expectations": [
         "No intake form was shown (everything was inferable)",
         "plan.md has goals including monitor, cadence: daily, audience: me, review_depth: quick",
         "plan.md has a KPI target and an exceptions line",
         "plan.md passes scripts/validate_plan.py",
-        "The assumptions card or list was shown after building, not before"
+        "No confirmation card was shown; plan.md lists the assumptions"
       ]
     },
     {
@@ -41,7 +41,7 @@
     {
       "id": 4,
       "prompt": "build a bar chart of satisfaction by department and a histogram of satisfaction, with a department filter. nothing else.",
-      "expected_output": "Goal spec: no form, no story, exactly the two charts and the menu; assumptions listed after building.",
+      "expected_output": "Goal spec: no form, no story, exactly the two charts and the menu; assumptions recorded in plan.md.",
       "files": ["evals/files/survey.json"],
       "expectations": [
         "No intake form and no confirmation card before building",

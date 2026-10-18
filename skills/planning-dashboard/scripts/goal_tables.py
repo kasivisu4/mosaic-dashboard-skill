@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 
 GOALS_MD = Path(__file__).resolve().parent.parent / "guidelines" / "goals.md"
-SECTIONS = ("Goals", "Page blocks per goal", "Audiences", "Cadence", "Review depth")
+SECTIONS = ("Goals", "Page blocks per goal", "Page format", "Audiences", "Cadence", "Review depth")
 
 
 def read_tables(path=GOALS_MD):
@@ -29,10 +29,10 @@ def read_tables(path=GOALS_MD):
     return tables
 
 
-def goal_cards(tables):
-    """[(id, title, subtitle, icon)] from 'Title · "Subtitle" · `ti-icon`'."""
+def goal_cards(tables, section="Goals"):
+    """[(id, title, subtitle, icon)] from 'Title · "Subtitle" · `ti-icon`' (Goals, Page format)."""
     out = []
-    for gid, cells in tables["Goals"]:
+    for gid, cells in tables[section]:
         parts = [p.strip() for p in cells[0].split("·")]
         title = parts[0]
         subtitle = parts[1].strip('"“”') if len(parts) > 1 else ""

@@ -4,8 +4,8 @@ Usage: python start_run.py <out/name> <data file> [--skip field,field] [--glossa
                            [--hint "field=text"]... [--columns col,col]
 
 1. Creates the step folders and starts the run clock (as `run_folder.py init`).
-2. Takes a quick look at the data (column types on a sample, well under a second even for
-   millions of rows) and saves it to 1-profile/quick-look.json.
+2. Takes a quick look at the data (column types on a sample: well under a second for
+   millions of rows, about 2 s for billions) and saves it to 1-profile/quick-look.json.
 3. Starts the full `profile.py` in the background, writing 1-profile/profile.txt.
 4. Builds the form: "What's the ask?" offers 2-3 asks this data can answer, and example text and
    goal subtitles use the data's own columns. Saves it to 2-intake/form.html

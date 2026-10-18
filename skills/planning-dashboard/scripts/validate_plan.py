@@ -25,9 +25,9 @@ except ImportError:
 # Audience hard limits, from references/style-system.md (Audience overrides). With several
 # audiences, the strictest one wins. Orders: low -> high.
 AUDIENCE_LIMITS = {
-    "me":         {"kpis": 8, "sql": True,  "density": "dense",    "interaction": "full",  "motion": "transitions", "provenance": "hidden",     "type_scale": "compact"},
-    "team":       {"kpis": 6, "sql": True,  "density": "dense",    "interaction": "full",  "motion": "transitions", "provenance": "hidden",     "type_scale": "compact"},
-    "leadership": {"kpis": 5, "sql": False, "density": "balanced", "interaction": "light", "motion": "transitions", "provenance": "footnote",   "type_scale": "standard"},
+    "me":         {"kpis": 8, "sql": True,  "density": "dense",    "interaction": "full",  "motion": "reveal",      "provenance": "hidden",     "type_scale": "compact"},
+    "team":       {"kpis": 6, "sql": True,  "density": "dense",    "interaction": "full",  "motion": "reveal",      "provenance": "hidden",     "type_scale": "compact"},
+    "leadership": {"kpis": 5, "sql": False, "density": "balanced", "interaction": "light", "motion": "reveal",      "provenance": "footnote",   "type_scale": "standard"},
     "clients":    {"kpis": 4, "sql": False, "density": "balanced", "interaction": "light", "motion": "reveal",      "provenance": "footnote",   "type_scale": "standard"},
     "regulators": {"kpis": 4, "sql": False, "density": "balanced", "interaction": "light", "motion": "none",        "provenance": "per-number", "type_scale": "standard"},
 }
@@ -44,6 +44,8 @@ AUDIENCE_BANNED_FORMS = {"leadership": {"scatter"}, "clients": {"scatter", "hist
 DENSITY_CAPS = {"sparse": (4, 3), "balanced": (5, 6), "dense": (8, 12)}
 # Daily pages are glanceable: past this many charts they stop being a quick check.
 MAX_DAILY_CHARTS = 4
+# A stage below this many scenes is a grid; above, readers lose the thread (references/stage.md).
+MIN_SCENES, MAX_SCENES = 6, 12
 
 
 def sql_str(path):
@@ -63,8 +65,13 @@ def goal_rules(plan, errors, warnings):
             errors.append(f"Story: pages for {who} have at most {cap} KPIs, found {len(plan['kpis'])}")
     if "regulators" in audience and not plan["reconcile"]:
         errors.append("reconcile: pages for regulators always reconcile, so use 'reconcile: true'")
-    if ("explore" in goals or plan["review_depth"] == "deep") and not plan["detail_table"]:
+    # Audience limits are hard (style-system.md): below 'full' interaction there is no detail table.
+    table_allowed = all(lim["interaction"] == "full" for _, lim in limits)
+    if ("explore" in goals or plan["review_depth"] == "deep") and table_allowed and not plan["detail_table"]:
         errors.append("Interaction: explore goals and deep review use 'Detail table: yes'")
+    if plan["detail_table"] and not table_allowed:
+        capped = [a for a, lim in limits if lim["interaction"] != "full"]
+        errors.append(f"Interaction: pages for {', '.join(capped)} have light interaction at most, so use 'Detail table: no'")
     if plan["reconcile"] and plan["review_depth"] != "deep":
         errors.append("review_depth: reconcile is on, so use 'review_depth: deep'")
     if "spec" in goals and len(goals) > 1:
@@ -74,6 +81,11 @@ def goal_rules(plan, errors, warnings):
             warnings.append("Story: monitor goal without any KPI target, so the page can't show on/off track (add 'target>=N')")
         if not plan["last_updated"]:
             warnings.append("Interaction: monitor goal without '- Last updated: <date column>'")
+    undrawn = [c["title"] for c in plan["charts"] if not c.get("draw")]
+    if "impact" in goals and undrawn:
+        errors.append(f'Story: the impact goal draws every chart in an unconventional form; add a "~ draw:" line under "{undrawn[0]}" (references/visual-language.md)')
+    elif "spec" not in goals and undrawn:
+        warnings.append(f'Story: no "~ draw:" line under {len(undrawn)} chart(s), e.g. "{undrawn[0]}"; pick each visual with references/visual-language.md')
     if "present" in goals and not any(c["note"] or c["annotations"] for c in plan["charts"]):
         warnings.append("Story: present goal without any narrative (> ...) or annotation (@ ...) under a chart")
     if cadence in ("daily", "weekly", "monthly") and not plan["comparison"]:
@@ -115,6 +127,11 @@ def style_rules(plan, errors, warnings):
     if style.get("color_mode") in ("status", "diverging") and style.get("direction") == "none":
         errors.append(f"Style: color_mode '{style['color_mode']}' needs a direction (up-good or down-good)")
     cap = DENSITY_CAPS.get(style.get("density"))
+    if style.get("surface") == "stage":
+        # A stage shows one scene at a time (references/stage.md), so the cap is on scenes, not charts per screen.
+        if not MIN_SCENES <= len(plan["charts"]) <= MAX_SCENES:
+            errors.append(f"Style: a stage has {MIN_SCENES}–{MAX_SCENES} scenes (references/stage.md); the plan has {len(plan['charts'])}")
+        cap = cap and (cap[0], len(plan["charts"]))
     if cap and (len(plan["kpis"]) > cap[0] or len(plan["charts"]) > cap[1]):
         errors.append(f"Style: density '{style['density']}' allows {cap[0]} KPIs and {cap[1]} charts; the plan has "
                       f"{len(plan['kpis'])} and {len(plan['charts'])}")
@@ -138,8 +155,11 @@ def annotation_checks(con, plan, default, errors, warnings):
                         errors.append(f"{where}: annotation '@ {at}' is not a value of {col}")
                 elif c["form"] == "trend":
                     col = c["keys"]["x"].partition(":")[0]
+                    # A numeric time index (e.g. a day number) is annotated with a number, a date column with a date.
+                    kind = con.execute(f'SELECT typeof("{col}") FROM {sql_str(default)} LIMIT 1').fetchone()[0]
+                    cast = "TIMESTAMP" if any(t in kind for t in ("DATE", "TIME")) else "DOUBLE"
                     lo, hi, inside = con.execute(
-                        f'SELECT min("{col}"), max("{col}"), CAST(? AS TIMESTAMP) BETWEEN min("{col}") AND max("{col}") FROM {sql_str(default)}', [at]).fetchone()
+                        f'SELECT min("{col}"), max("{col}"), CAST(? AS {cast}) BETWEEN min("{col}") AND max("{col}") FROM {sql_str(default)}', [at]).fetchone()
                     if not inside:
                         warnings.append(f"{where}: annotation '@ {at}' is outside the data ({lo} to {hi})")
                 elif c["form"] in ("histogram", "scatter"):

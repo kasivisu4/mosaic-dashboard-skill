@@ -25,6 +25,8 @@ def sql_value(expr):
         return f'count("{col}")' if col else "count(*)"
     if agg == "rate":
         return f'avg(CAST("{col}" AS DOUBLE))'
+    if agg == "ratio":
+        return f'sum("{col[0]}") / nullif(sum("{col[1]}"), 0)'
     return f'{agg}("{col}")'
 
 

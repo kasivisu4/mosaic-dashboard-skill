@@ -6,14 +6,14 @@ the repo's tools/sync_plan_format.py copies this file to every executor.
 import re
 
 PLAN_VERSION = 2
-GOALS = {"answer", "spec", "explore", "monitor", "present"}
+GOALS = {"answer", "spec", "explore", "monitor", "present", "impact"}
 AUDIENCES = {"me", "team", "leadership", "clients", "regulators"}
 # Style Profile fields and their allowed values (references/style-system.md). Free-text fields map to None;
 # list fields are checked item by item.
 STYLE_ENUMS = {
     "register": {"analytic", "operational", "editorial", "formal", "evidentiary"},
     "density": {"sparse", "balanced", "dense"},
-    "surface": {"headline", "status", "grid", "narrative", "ledger", "exact"},
+    "surface": {"headline", "status", "grid", "narrative", "ledger", "exact", "stage"},
     "focus": None,
     "color_mode": {"focus", "status", "categorical", "sequential", "diverging"},
     "direction": {"up-good", "down-good", "none"},
@@ -33,7 +33,7 @@ STYLE_LISTS = {
 ENUMS = {
     "cadence": {"one-time", "daily", "weekly", "monthly"},
     "review_depth": {"quick", "guided", "deep"},
-    "destination": {"local", "artifact", "dashboard-type", "self-hosted"},
+    "destination": {"file", "local", "artifact", "dashboard-type", "self-hosted"},
 }
 SECTIONS = ["Assumptions", "Data", "Story", "Interaction", "Style", "Data for the executor"]
 FORMS = {
@@ -47,7 +47,7 @@ FORMS = {
 SETTING_KEYS = {"from", "above", "below", "format"}
 FORMATS = {"number", "compact", "percent", "currency"}
 BUCKETS = {"day", "week", "month", "quarter", "year"}
-VALUE_RE = re.compile(r"^(count|sum|avg|median|min|max|rate)\((.*)\)$")
+VALUE_RE = re.compile(r"^(count|sum|avg|median|min|max|rate|ratio)\((.*)\)$")
 NUMBER_RE = re.compile(r"^-?\d+(?:\.\d+)?%?$")
 
 
@@ -57,9 +57,23 @@ def parse_value(expr):
     if not m:
         raise ValueError(f"'{expr}' is not a value expression like sum(col), count(), rate(col)")
     agg, col = m.group(1), m.group(2).strip() or None
+    if agg == "ratio":
+        # sum(num) / sum(den): the only correct average over rows that are already sums.
+        parts = [c.strip() for c in (col or "").split(",")]
+        if len(parts) != 2 or not all(parts):
+            raise ValueError(f"'{expr}' needs two columns, e.g. ratio(sum_tokens,n_tokens) = sum(sum_tokens) / sum(n_tokens)")
+        return agg, tuple(parts)
     if agg != "count" and not col:
         raise ValueError(f"'{expr}' needs a column, e.g. {agg}(amount)")
     return agg, col
+
+
+def value_columns(expr):
+    """Columns a value expression reads: [] for count(), two for ratio(a, b), else one."""
+    _, col = parse_value(expr)
+    if col is None:
+        return []
+    return list(col) if isinstance(col, tuple) else [col]
 
 
 def parse_number(text):
@@ -272,6 +286,14 @@ def _story(story, plan, errors):
         if chart and stripped.startswith(">"):
             chart["note"] = " ".join(filter(None, [chart["note"], stripped[1:].strip()]))
             continue
+        if chart and stripped.startswith("~"):
+            # "~ draw: <visual> instead of <convention>": how the executor draws the form (references/visual-language.md).
+            key, sep, text = stripped[1:].partition(":")
+            if key.strip() != "draw" or not sep or not text.strip():
+                errors.append(f'Story: "{chart["title"]}": a visual line should look like "~ draw: bump chart instead of multi-line": {stripped}')
+            else:
+                chart["draw"] = text.strip()
+            continue
         if chart and stripped.startswith("@"):
             at, sep, label = stripped[1:].partition(":")
             if not sep or not at.strip() or not label.strip():
@@ -292,7 +314,7 @@ def _story(story, plan, errors):
             continue
         title, form, keys_raw, inter = m.groups()
         keys = dict(re.findall(r"(\w+)=(\S+)", keys_raw))
-        chart = {"title": title, "form": form, "keys": keys, "interaction": inter, "note": "", "annotations": []}
+        chart = {"title": title, "form": form, "keys": keys, "interaction": inter, "note": "", "annotations": [], "draw": ""}
         plan["charts"].append(chart)
         if form not in FORMS:
             errors.append(f'Story: "{title}": form {form!r} must be one of {sorted(FORMS)}')
@@ -334,22 +356,23 @@ def columns_used(plan):
     """Yield (data file or None for default, column, where) for every column the plan references."""
     for k in plan["kpis"]:
         try:
-            _, col = parse_value(k["value"])
+            cols = value_columns(k["value"])
         except ValueError:
             continue
-        if col:
+        for col in cols:
             yield None, col, f"KPI {k['label']}"
     for c in plan["charts"]:
         src, keys, where = c["keys"].get("from"), c["keys"], f'"{c["title"]}"'
         for key, val in keys.items():
             if key in SETTING_KEYS:
                 continue
-            if VALUE_RE.match(val):
-                col = parse_value(val)[1]
-            else:
-                col = val.partition(":")[0]
-            if col:
-                yield src, col, where
+            try:
+                cols = value_columns(val) if VALUE_RE.match(val) else [val.partition(":")[0]]
+            except ValueError:
+                continue
+            for col in cols:
+                if col:
+                    yield src, col, where
     for m in plan["menus"]:
         yield None, m, "Menus"
     if plan.get("comparison"):

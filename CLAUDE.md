@@ -1,7 +1,7 @@
 # Mosaic Dashboard Skill
 
 Two Claude skills:
-- `skills/planning-dashboard/`: the planner. Goal-based intake (references/intake.md), DuckDB profiling, confirmation card, a validated `plan.md` plus exported data. For now it also builds the page itself, designed fresh each time with Mosaic + DuckDB-WASM + Observable Plot (vgplot), per `references/mosaic-tech.md`; there is deliberately no page template.
+- `skills/planning-dashboard/`: the planner. Goal-based intake (references/intake.md), DuckDB profiling, confirmation card, a validated `plan.md` plus exported data. For now it also builds the page itself, designed fresh each time from a design seed (`scripts/design_seed.py`) with Mosaic + DuckDB-WASM, D3 show-reel morphs, d3-3d and Observable Plot, per `references/show-reel.md`, `references/stage.md` and `references/mosaic-tech.md`; there is deliberately no page template, and no page reuses another's code.
 - `skills/building-dashboard-mosaic/`: a parked executor (not used for now). It turns a plan into a page with `scripts/build_page.py`.
 
 The plan format (`skills/planning-dashboard/references/plan-format.md`, v2) is the contract between them. Executors are swappable; organizations customize the planner through `guidelines/` only.

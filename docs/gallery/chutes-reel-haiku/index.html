@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One year of LLM traffic</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.35.0/dist/tabler-icons.min.css">
+<style>
+:root {
+  --bg: #14181d; --panel: #1b2027; --ink: #e6e8eb; --muted: #98a0aa; --rule: #2a313a;
+  --accent: #efb118; --alert: #ff725c; --c0: #4269d0; color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f7f8fa; --panel: #ffffff; --ink: #1c2228; --muted: #5a636d; --rule: #dde1e6;
+    --accent: #a66f00; --alert: #c8402a; --c0: #3457b8; color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f7f8fa; --panel: #ffffff; --ink: #1c2228; --muted: #5a636d; --rule: #dde1e6;
+  --accent: #a66f00; --alert: #c8402a; --c0: #3457b8; color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); }
+body { font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; font-variant-numeric: tabular-nums; overflow: hidden; }
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 380px; height: 100dvh; }
+.stage-wrap { position: relative; min-width: 0; min-height: 0; }
+#stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.overlay { position: absolute; left: 18px; right: 18px; top: 12px; pointer-events: none; }
+.kicker { color: var(--muted); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.overlay h2 { margin: 2px 0 4px; font-size: 20px; line-height: 1.25; font-weight: 600; max-width: 900px; }
+.overlay p { margin: 0; color: var(--muted); max-width: 820px; font-size: 13px; }
+.chips { position: absolute; left: 18px; bottom: 10px; display: flex; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+.chip { background: var(--panel); border: 1px solid var(--rule); border-radius: 999px; padding: 2px 10px; color: var(--ink); }
+.rail { overflow-y: auto; border-left: 1px solid var(--rule); background: var(--panel); padding: 16px 18px 24px; }
+.rail h1 { font-size: 18px; line-height: 1.3; margin: 0 0 6px; font-weight: 650; }
+.rail .take { color: var(--muted); margin: 0 0 12px; }
+.controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 12px; }
+.controls select, .controls button { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 4px 9px; cursor: pointer; }
+.controls button[aria-pressed="true"] { border-color: var(--accent); }
+.controls .hint { color: var(--muted); font-size: 12px; width: 100%; }
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.kpi { border: 1px solid var(--rule); border-radius: 8px; padding: 8px 10px; }
+.kpi .l { color: var(--muted); font-size: 12px; }
+.kpi .v { font-size: 26px; font-weight: 600; line-height: 1.15; }
+.kpi .s { color: var(--muted); font-size: 11px; }
+.scenes { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.scene { width: 100%; text-align: left; background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; padding: 9px 11px; color: var(--ink); font: inherit; cursor: pointer; }
+.scene .t { font-weight: 600; font-size: 13px; line-height: 1.35; display: flex; gap: 8px; align-items: flex-start; }
+.scene .t i { color: var(--muted); font-size: 16px; margin-top: 1px; }
+.scene .c { color: var(--muted); font-size: 12px; margin-top: 4px; display: none; }
+.scene[aria-current="true"] { border-color: var(--accent); }
+.scene[aria-current="true"] .c { display: block; }
+details { margin-top: 14px; border-top: 1px solid var(--rule); padding-top: 10px; }
+summary { cursor: pointer; font-weight: 600; }
+details p, details li { color: var(--muted); font-size: 13px; }
+.foot { color: var(--muted); font-size: 11px; margin-top: 12px; }
+.reveal { opacity: 0; transform: translateY(8px); transition: opacity .6s ease, transform .6s ease; }
+.reveal.in { opacity: 1; transform: none; }
+html:not(.motion-on) .reveal { opacity: 1; transform: none; transition: none; }
+.hint-motion { color: var(--muted); font-size: 12px; }
+@media (max-width: 820px) {
+  body { overflow: auto; }
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: 58dvh auto; height: auto; }
+  .stage-wrap { height: 58dvh; }
+  .rail { border-left: 0; border-top: 1px solid var(--rule); overflow: visible; }
+  .overlay h2 { font-size: 16px; }
+  .overlay p { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage-wrap" id="wrap">
+    <svg id="stage" role="img" aria-label="Animated stage of one year of LLM traffic"></svg>
+    <div class="overlay">
+      <div class="kicker" id="kicker">Opening</div>
+      <h2 id="sTitle">Loading the trace…</h2>
+      <p id="sCap"></p>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <aside class="rail" id="rail">
+    <h1>One year of LLM traffic: 6.12 billion requests, April 2025 to April 2026</h1>
+    <p class="take">DeepSeek carried most requests in May 2025, and Qwen passed it in March 2026, while the monthly total barely moved.</p>
+    <div class="controls">
+      <select id="fam" aria-label="Family filter"><option value="">All families</option></select>
+      <button id="reset" type="button"><i class="ti ti-rotate-clockwise-2" aria-hidden="true"></i> Reset</button>
+      <button id="play" type="button"><i class="ti ti-player-play" aria-hidden="true"></i> Play</button>
+      <button id="prev" type="button" aria-label="Previous scene"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+      <button id="next" type="button" aria-label="Next scene"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+      <button id="motion" type="button" aria-pressed="false">Motion: off</button>
+      <div class="hint" id="motionHint"></div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">Requests</div><div class="v" id="k1">–</div><div class="s" id="k1s"></div></div>
+      <div class="kpi"><div class="l">Input tokens per call</div><div class="v" id="k2">–</div><div class="s">ratio of sums, calls with a count</div></div>
+      <div class="kpi"><div class="l">Output tokens per call</div><div class="v" id="k3">–</div><div class="s">ratio of sums, calls with a count</div></div>
+      <div class="kpi"><div class="l">Time to first token</div><div class="v" id="k4">–</div><div class="s">streaming calls only, seconds</div></div>
+    </div>
+    <ol class="scenes" id="scenes" aria-label="Scenes"></ol>
+    <details>
+      <summary>Technical notes: data source, aggregation and limitations</summary>
+      <ul>
+        <li><b>Source.</b> Chutes LLM traffic trace, 6.12 billion requests, rolled up by trace day and hour (arXiv:2608.13573; code and data at github.com/HarvardMadSys/chutes_workload). Day 0 is 11 April 2025.</li>
+        <li><b>Aggregation.</b> Every average is a ratio of sums. Tokens per call use calls with a count; time to first token uses streaming calls only.</li>
+        <li><b>Comparisons.</b> "From X to Y" claims use full months only (May 2025 to March 2026). April 2025 and April 2026 are partial.</li>
+        <li><b>Gaps.</b> 13 January 2026 has 3 of 24 hours and 14 January has 15. Missing hours are shown as gaps, not interpolated; the file gives no cause.</li>
+        <li><b>Families.</b> The trace's family grouping. "Unnamed", "Other families" and "Long tail" are kept as the trace groups them.</li>
+        <li><b>Clock.</b> Hours are on the trace clock; its time zone is not in the file.</li>
+        <li><b>Units.</b> The file does not state the unit of time to first token; it is read as seconds.</li>
+        <li><b>Mix and latency.</b> Across 367 days, the day's time to first token and Qwen's share of requests correlate at only 0.19.</li>
+      </ul>
+    </details>
+    <p class="foot">Source: Chutes LLM traffic trace (see notes above). Figures are computed from the exported file in this folder.</p>
+  </aside>
+</div>
+
+<script type="module">
+import * as vg from "https://cdn.jsdelivr.net/npm/@uwdata/vgplot@0.31.0/+esm";
+import { clausePoints, clauseInterval } from "https://cdn.jsdelivr.net/npm/@uwdata/mosaic-core@0.31.0/+esm";
+import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
+import { polygons3D } from "https://cdn.jsdelivr.net/npm/d3-3d@1.0.0/+esm";
+
+/* ---------- motion switch (system setting is the default) ---------- */
+const SYSTEM_REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let saved = null; try { saved = localStorage.getItem("motion"); } catch {}
+let REDUCED = saved ? saved === "off" : SYSTEM_REDUCED;
+const T = (ms) => (REDUCED ? 0 : ms);
+const EASE = d3.easeSinInOut;
+const motionBtn = document.getElementById("motion");
+const labelMotion = () => {
+  motionBtn.textContent = REDUCED ? "Motion: off" : "Motion: on";
+  motionBtn.setAttribute("aria-pressed", String(!REDUCED));
+  document.documentElement.classList.toggle("motion-on", !REDUCED);
+  document.getElementById("motionHint").textContent = SYSTEM_REDUCED && REDUCED ? "Animations are off: your system asks for reduced motion." : "";
+};
+motionBtn.addEventListener("click", () => {
+  REDUCED = !REDUCED; try { localStorage.setItem("motion", REDUCED ? "off" : "on"); } catch {}
+  labelMotion(); location.reload();
+});
+labelMotion();
+
+/* ---------- polygon engine: every mark is three K-point polygons ---------- */
+const K = 24;
+const lerp = (a, b, t) => a + (b - a) * t;
+function resample(corners) {
+  const segs = corners.map((p, i) => [p, corners[(i + 1) % corners.length]]);
+  const lens = segs.map(([a, b]) => Math.hypot(b[0] - a[0], b[1] - a[1])), total = d3.sum(lens) || 1;
+  const out = [];
+  for (let i = 0; i < K; i++) {
+    let d = (i / K) * total, s = 0;
+    while (s < segs.length - 1 && d > lens[s]) d -= lens[s++];
+    const [a, b] = segs[s], t = lens[s] ? d / lens[s] : 0;
+    out.push([lerp(a[0], b[0], t), lerp(a[1], b[1], t)]);
+  }
+  return out;
+}
+const rect = (x, y, w, h) => resample([[x, y], [x + w, y], [x + w, y + h], [x, y + h]]);
+const circle = (cx, cy, r) => d3.range(K).map((i) => { const a = -Math.PI * 3 / 4 + (i / K) * 2 * Math.PI; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; });
+function wedge(cx, cy, r0, r1, a0, a1) {
+  const n = K / 2, arc = (r, from, to) => d3.range(n).map((j) => { const a = lerp(from, to, j / (n - 1)); return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; });
+  return [...arc(r1, a0, a1), ...arc(r0, a1, a0)];
+}
+function segment(x0, y0, x1, y1, t) {
+  const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
+  if (len < 1e-9) return rect(x0 - t, y0 - t, 2 * t, 2 * t);
+  const nx = (-dy / len) * t, ny = (dx / len) * t;
+  return resample([[x0 + nx, y0 + ny], [x1 + nx, y1 + ny], [x1 - nx, y1 - ny], [x0 - nx, y0 - ny]]);
+}
+const edgeTop = (p) => { const xs = d3.extent(p, (q) => q[0]), y = d3.min(p, (q) => q[1]); return resample([[xs[0], y], [xs[1], y], [xs[1], y], [xs[0], y]]); };
+const toPath = (p) => "M" + p.map((q) => q[0].toFixed(1) + "," + q[1].toFixed(1)).join("L") + "Z";
+const centroid = (p) => [d3.mean(p, (q) => q[0]), d3.mean(p, (q) => q[1])];
+const collapsed = (c) => Array.from({ length: K }, () => [c[0], c[1]]);
+const flatT = (front, fill, opacity, tip) => ({ front, top: edgeTop(front), side: edgeTop(front), fill, opacity, tip, shade: false });
+const boxT = (faces, fill, opacity, tip) => ({ front: faces.front, top: faces.top, side: faces.side, fill, opacity, tip, shade: true });
+function faceFill(t, face) {
+  if (!t.shade || face === "front") return t.fill;
+  const c = d3.color(t.fill); return c ? (face === "top" ? c.brighter(0.6) : c.darker(0.7)).formatHex() : t.fill;
+}
+
+let svg, guideG, marksLayer, brushLayer;
+const registry = new Map();
+function makeMark(key) {
+  const g = marksLayer.append("g");
+  const title = g.append("title");
+  const faces = {};
+  for (const f of ["side", "top", "front"]) faces[f] = g.append("path").attr("class", f).node();
+  const rec = { g, faces, title };
+  registry.set(key, rec);
+  return rec;
+}
+function morph(targets, ms) {
+  const keys = [...targets.keys()];
+  const centre = Math.max(1, (keys.length - 1) / 2);
+  const pos = new Map(keys.map((k, i) => [k, i]));
+  // marks that leave collapse toward their own centre and fade out
+  for (const [k, rec] of registry) {
+    if (targets.has(k)) continue;
+    const here = centroid(rec.faces.front.__pts);
+    for (const f of ["side", "top", "front"]) {
+      const node = rec.faces[f];
+      let tr = d3.select(node).interrupt("morph").transition("morph").duration(T(ms)).ease(EASE)
+        .attrTween("d", function () { const i = d3.interpolateArray(this.__pts, collapsed(here)); return (t) => toPath((this.__pts = i(t))); })
+        .attr("opacity", 0);
+      if (f === "front") tr.on("end", () => { if (!targets.has(k) && registry.get(k) === rec) { rec.g.remove(); registry.delete(k); } });
+    }
+  }
+  // incoming and continuing marks
+  for (const k of keys) {
+    const t = targets.get(k);
+    let rec = registry.get(k);
+    if (!rec) {
+      rec = makeMark(k);
+      const c = centroid(t.front);
+      for (const f of ["side", "top", "front"]) { rec.faces[f].__pts = collapsed(c); rec.faces[f].setAttribute("d", toPath(rec.faces[f].__pts)); }
+    }
+    rec.title.text(t.tip ?? "");
+    const delay = T(ms * 0.25 * Math.abs(pos.get(k) - centre) / centre);
+    for (const f of ["side", "top", "front"]) {
+      const node = rec.faces[f];
+      const to = t[f];
+      d3.select(node).interrupt("morph").transition("morph").delay(delay).duration(T(ms)).ease(EASE)
+        .attrTween("d", function () { const i = d3.interpolateArray(this.__pts ?? to, to); return (u) => toPath((this.__pts = i(u))); })
+        .attr("fill", faceFill(t, f)).attr("opacity", t.opacity ?? 1);
+    }
+  }
+}
+
+/* ---------- data: Mosaic + DuckDB-WASM ---------- */
+const N = (v) => Number(v);
+const PALETTE = ["#4269d0", "#efb118", "#ff725c", "#6cc5b0", "#3ca951", "#ff8ab7"];
+const MUTED = "#98a0aa";
+const ACCENT = "#efb118";
+const state = { fam: [], months: [], partial: new Map(), days: [], dayIndex: new Map(), cp: [], hods: [], kpi: null, kpiAll: null, famSel: "", dayRange: null };
+const MONTH_LABEL = (ms) => d3.utcFormat("%b %Y")(new Date(ms));
+const colorOf = (f) => { const i = state.fam.indexOf(f); return i >= 0 && i < 6 ? PALETTE[i] : MUTED; };
+const dimFor = (f) => (state.famSel && f !== state.famSel ? 0.22 : 1);
+
+const connector = vg.wasmConnector();
+vg.coordinator().databaseConnector(connector);
+// Works over http and from a shared single file: report.html carries its data in <script data-file> tags.
+async function loadTable(name, file) {
+  const tag = document.querySelector(`script[type="application/octet-stream"][data-file="${file}"]`);
+  if (!tag) return vg.coordinator().exec([vg.loadParquet(name, new URL(file, location.href).href)]);
+  const bytes = new Uint8Array(await (await fetch(`data:application/octet-stream;base64,${tag.textContent.trim()}`)).arrayBuffer());
+  await (await connector.getDuckDB()).registerFileBuffer(file, bytes);
+  await vg.coordinator().exec(`CREATE TABLE "${name}" AS SELECT * FROM read_parquet('${file}')`);
+}
+await loadTable("traffic", "traffic.parquet");
+
+// one-off unfiltered lists: families, months, days (for fixed order and the menu)
+const famRows = (await vg.coordinator().query(vg.Query.from("traffic").select({ f: "g_family", r: vg.sum("reqs") }).groupby("f"))).toArray().map((d) => ({ ...d }));
+state.fam = famRows.sort((a, b) => N(b.r) - N(a.r)).map((d) => d.f);
+const monRows = (await vg.coordinator().query(vg.Query.from("traffic").select({ m: vg.sql`date_trunc('month', day)` }).groupby("m"))).toArray().map((d) => +new Date(d.m));
+state.months = [...new Set(monRows)].sort((a, b) => a - b);
+const span = (await vg.coordinator().query(vg.Query.from("traffic").select({ lo: vg.sql`min(day)`, hi: vg.sql`max(day)` }))).toArray()[0];
+const firstDay = new Date(span.lo), lastDay = new Date(span.hi);
+state.months.forEach((m, i) => {
+  const d = new Date(m);
+  // DuckDB dates arrive at UTC midnight, so the partial-month checks use UTC fields
+  const first = i === 0 && firstDay.getUTCDate() !== 1;
+  const last = i === state.months.length - 1 && lastDay.getUTCDate() !== new Date(Date.UTC(lastDay.getUTCFullYear(), lastDay.getUTCMonth() + 1, 0)).getUTCDate();
+  if (first || last) state.partial.set(m, true);
+});
+const dayRows = (await vg.coordinator().query(vg.Query.from("traffic").select({ d: "day" }).groupby("d"))).toArray().map((d) => +new Date(d.d)).sort((a, b) => a - b);
+state.days = dayRows;
+state.dayIndex = new Map(dayRows.map((d, i) => [d, i]));
+
+// the page filter: a crossfilter over one family menu and one day brush
+const $page = vg.Selection.crossfilter();
+const $fam = vg.Selection.single(); $fam._relay.add($page);
+const $day = vg.Selection.single(); $day._relay.add($page);
+
+const ready = new Set();
+let started = false;
+class Feed extends vg.MosaicClient {
+  constructor(filterBy, q, cb) { super(filterBy); this.q = q; this.cb = cb; }
+  query(filter = []) { return this.q(filter); }
+  queryResult(data) { this.cb(data.toArray().map((d) => ({ ...d }))); return this; }
+  queryError(e) { console.error(e); return this; }
+}
+const qKpi = (w) => vg.Query.from("traffic").select({ r: vg.sum("reqs"), it: vg.sql`SUM(sum_it)/SUM(n_it)`, ot: vg.sql`SUM(sum_ot)/SUM(n_ot)`, tt: vg.sql`SUM(sum_ttft)/SUM(n_ttft)` }).where(w);
+const qMonthFam = (w) => vg.Query.from("traffic").select({ m: vg.sql`date_trunc('month', day)`, f: "g_family", r: vg.sum("reqs") }).where(w).groupby("m", "f");
+const qDay = (w) => vg.Query.from("traffic").select({ d: "day", r: vg.sum("reqs"), h: vg.sql`COUNT(DISTINCT hod)` }).where(w).groupby("d");
+const qHod = (w) => vg.Query.from("traffic").select({ h: "hod", r: vg.sum("reqs"), t: vg.sql`SUM(sum_ttft)/SUM(n_ttft)` }).where(w).groupby("h");
+
+const cpClient = new Feed($page, qMonthFam, (rows) => { state.cp = rows; markReady("cp"); refresh(); });
+const dayClient = new Feed($page, qDay, (rows) => { state.dayRows = rows.map((r) => ({ d: +new Date(r.d), r: N(r.r), h: N(r.h) })); markReady("day"); refresh(); });
+const hodClient = new Feed($page, qHod, (rows) => { state.hods = rows.map((r) => ({ h: N(r.h), r: N(r.r), t: N(r.t) })); markReady("hod"); refresh(); });
+const kpiClient = new Feed($page, qKpi, (rows) => { state.kpi = rows[0]; markReady("kpi"); if (started) countKpis(); });
+const kpiAllClient = new Feed(undefined, qKpi, (rows) => { state.kpiAll = rows[0]; markReady("kpiAll"); document.getElementById("k1s").textContent = "all families: " + fmtBig(N(rows[0].r)); });
+vg.coordinator().connect(cpClient);
+vg.coordinator().connect(dayClient);
+vg.coordinator().connect(hodClient);
+vg.coordinator().connect(kpiClient);
+vg.coordinator().connect(kpiAllClient);
+
+// family menu: the monthly-family view is exempt, so it shows every family and dims the rest
+const famSel = document.getElementById("fam");
+for (const f of state.fam) famSel.append(new Option(f, f));
+famSel.addEventListener("change", () => {
+  state.famSel = famSel.value;
+  $fam.update(clausePoints(["g_family"], state.famSel ? [[state.famSel]] : null, { source: famSel, clients: new Set([cpClient]) }));
+  chipsNow();
+});
+// day brush: the daily view is exempt from its own brush
+function setDayRange(d0, d1) {
+  state.dayRange = d0 ? [d0, d1] : null;
+  $day.update(clauseInterval("day", state.dayRange, { source: brushSource, clients: new Set([dayClient]) }));
+  chipsNow();
+}
+const brushSource = {};
+function reset() {
+  famSel.value = ""; state.famSel = "";
+  $fam.update(clausePoints(["g_family"], null, { source: famSel, clients: new Set([cpClient]) }));
+  state.dayRange = null;
+  $day.update(clauseInterval("day", null, { source: brushSource, clients: new Set([dayClient]) }));
+  if (brushG) brushG.call(brush.move, null);
+  chipsNow(); refresh();
+}
+document.getElementById("reset").addEventListener("click", reset);
+
+function chipsNow() {
+  const el = document.getElementById("chips"); el.innerHTML = "";
+  const add = (t) => { const s = document.createElement("span"); s.className = "chip"; s.textContent = t; el.append(s); };
+  if (state.famSel) add("Family: " + state.famSel);
+  if (state.dayRange) add("Days: " + d3.utcFormat("%-d %b %Y")(state.dayRange[0]) + " to " + d3.utcFormat("%-d %b %Y")(new Date(state.dayRange[1] - 1)));
+  if (!state.famSel && !state.dayRange) add("All families, all days");
+}
+
+/* ---------- geometry ---------- */
+let W = 900, H = 600;
+const geo = () => {
+  const small = H < 520, x = W < 700 ? 40 : 60, y = small ? 112 : 132;
+  return { x, y, w: Math.max(220, W - x - 22), h: Math.max(160, H - y - 54) };
+};
+const fmtBig = (v) => (v >= 1e9 ? (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? (v / 1e3).toFixed(1) + "K" : String(Math.round(v)));
+const fmtM = (v) => (v / 1e6).toFixed(1) + "M";
+
+function monthMatrix() {
+  const idx = new Map(state.months.map((m, i) => [m, i]));
+  const V = new Map(state.fam.map((f) => [f, new Array(state.months.length).fill(0)]));
+  for (const r of state.cp) { const i = idx.get(+new Date(r.m)); if (i != null && V.has(r.f)) V.get(r.f)[i] += N(r.r); }
+  return V;
+}
+const monthTotals = (V) => state.months.map((_, i) => d3.sum(state.fam, (f) => V.get(f)[i]));
+function dayValues() {
+  const v = new Array(state.days.length).fill(0), h = new Array(state.days.length).fill(24);
+  for (const r of state.dayRows || []) { const i = state.dayIndex.get(r.d); if (i != null) { v[i] = r.r; h[i] = r.h; } }
+  return { v, h };
+}
+function hourValues() {
+  const r = new Array(24).fill(0), t = new Array(24).fill(0);
+  for (const x of state.hods || []) if (x.h >= 0 && x.h < 24) { r[x.h] = x.r; t[x.h] = Number.isFinite(x.t) ? x.t : 0; }
+  return { r, t };
+}
+
+// d3-3d: fixed viewpoint that shows the +x (month) and +z (family) faces
+let proj = null;
+function projector() {
+  // fit the scale and origin to the floor's projected bounding box (project at scale 1, then place it in the plot)
+  const g = geo(), ROT = { y: -0.62, x: -0.46 };
+  const probe = polygons3D().origin({ x: 0, y: 0 }).scale(1).rotateY(ROT.y).rotateX(ROT.x);
+  const corners = [];
+  for (const x of [0, 13]) for (const z of [0, 9]) for (const y of [0, 6]) corners.push({ x, y: -y, z });
+  const pts = probe([corners])[0];
+  const xs = pts.map((p) => p.projected.x), ys = pts.map((p) => p.projected.y);
+  const w0 = d3.max(xs) - d3.min(xs), h0 = d3.max(ys) - d3.min(ys);
+  const s = Math.min(g.w / w0, g.h / h0) * 0.9;
+  const ox = g.x + (g.w - w0 * s) / 2 - d3.min(xs) * s, oy = g.y + (g.h - h0 * s) / 2 - d3.min(ys) * s;
+  return polygons3D().origin({ x: ox, y: oy }).scale(s).rotateY(ROT.y).rotateX(ROT.x);
+}
+const P3 = (x, y, z) => ({ x, y: -y, z });
+function boxFaces(x0, z0, w, d, h) {
+  const faceQuad = (q) => { const pr = proj([q])[0]; return resample(pr.map((v) => [v.projected.x, v.projected.y])); };
+  return {
+    front: faceQuad([P3(x0, h, z0 + d), P3(x0 + w, h, z0 + d), P3(x0 + w, 0, z0 + d), P3(x0, 0, z0 + d)]),
+    top: faceQuad([P3(x0, h, z0), P3(x0 + w, h, z0), P3(x0 + w, h, z0 + d), P3(x0, h, z0 + d)]),
+    side: faceQuad([P3(x0 + w, h, z0 + d), P3(x0 + w, h, z0), P3(x0 + w, 0, z0), P3(x0 + w, 0, z0 + d)]),
+  };
+}
+
+/* ---------- scenes ---------- */
+const SCENES = [
+  {
+    kicker: "Act 1 · family share by month", icon: "ti-chart-bar",
+    title: "DeepSeek fell from 84.4% of requests in May 2025 to 24.8% in March 2026; Qwen rose from 5.3% to 47.0%",
+    caption: "Each month's requests by family, as a share of that month. Full months only. Qwen passes DeepSeek in March 2026.",
+    brush: false,
+    targets() {
+      const V = monthMatrix(), tot = monthTotals(V), n = state.months.length, g = geo();
+      const colW = g.w / n, out = new Map();
+      state.months.forEach((m, i) => {
+        let cum = 0;
+        for (const f of state.fam) {
+          const share = tot[i] ? V.get(f)[i] / tot[i] : 0, top = cum + share;
+          const x0 = g.x + i * colW + colW * 0.12, w = colW * 0.76;
+          const y1 = g.y + g.h - top * g.h, y0 = g.y + g.h - cum * g.h;
+          out.set(`${f}|${i}`, flatT(rect(x0, y1, w, Math.max(0, y0 - y1)), colorOf(f), dimFor(f), `${f}, ${MONTH_LABEL(m)}: ${(share * 100).toFixed(1)}%`));
+          cum = top;
+        }
+      });
+      return out;
+    },
+    guides(gr) { const g = geo(), n = state.months.length, colW = g.w / n;
+      [0, 0.5, 1].forEach((v) => { gr.append("text").attr("x", g.x - 8).attr("y", g.y + g.h - v * g.h + 4).attr("text-anchor", "end").attr("fill", MUTED).attr("font-size", 11).text(Math.round(v * 100) + "%"); });
+      state.months.forEach((m, i) => { gr.append("text").attr("x", g.x + i * colW + colW / 2).attr("y", g.y + g.h + 16).attr("text-anchor", "middle").attr("fill", MUTED).attr("font-size", 10).text(d3.utcFormat("%b")(new Date(m))); if (state.partial.has(m)) gr.append("text").attr("x", g.x + i * colW + colW / 2).attr("y", g.y + g.h + 29).attr("text-anchor", "middle").attr("fill", MUTED).attr("font-size", 9).text("partial"); });
+      const iM = state.months.findIndex((m) => d3.utcFormat("%Y-%m")(new Date(m)) === "2026-03");
+      if (iM >= 0) gr.append("text").attr("x", g.x + iM * colW + colW / 2).attr("y", g.y + 2).attr("text-anchor", "middle").attr("fill", ACCENT).attr("font-size", 11).text("Qwen passes DeepSeek");
+    },
+  },
+  {
+    kicker: "Act 1 · one panel per family", icon: "ti-chart-line",
+    title: "Qwen's monthly requests rose from 18.5M in May 2025 to 156.6M in March 2026; its largest step came in December 2025",
+    caption: "Small multiples on one shared scale, so each family's size is comparable. The step: 45.8M requests in November 2025, 132.5M in December 2025.",
+    brush: false,
+    targets() {
+      const V = monthMatrix(), n = state.months.length, g = geo(), out = new Map();
+      const cols = 3, rows = Math.ceil(state.fam.length / cols), gap = 14;
+      const pw = (g.w - gap * (cols - 1)) / cols, ph = (g.h - gap * (rows - 1)) / rows - 12;
+      const vmax = d3.max(state.fam, (f) => d3.max(V.get(f))) || 1;
+      state.fam.forEach((f, fi) => {
+        const px = g.x + (fi % cols) * (pw + gap), py = g.y + Math.floor(fi / cols) * (ph + gap + 12);
+        const xs = (i) => px + (n > 1 ? (i / (n - 1)) * pw : 0), ys = (v) => py + ph - (v / vmax) * ph;
+        for (let i = 0; i < n; i++) {
+          const v = V.get(f)[i];
+          const poly = i < n - 1 ? segment(xs(i), ys(v), xs(i + 1), ys(V.get(f)[i + 1]), 1.6) : segment(xs(i), ys(v), xs(i), ys(v), 2.4);
+          out.set(`${f}|${i}`, flatT(poly, colorOf(f), dimFor(f), `${f}, ${MONTH_LABEL(state.months[i])}: ${fmtM(v)}`));
+        }
+      });
+      return out;
+    },
+    guides(gr) { const g = geo(), n = state.months.length, cols = 3, rows = Math.ceil(state.fam.length / cols), gap = 14;
+      const pw = (g.w - gap * (cols - 1)) / cols, ph = (g.h - gap * (rows - 1)) / rows - 12;
+      state.fam.forEach((f, fi) => { const px = g.x + (fi % cols) * (pw + gap), py = g.y + Math.floor(fi / cols) * (ph + gap + 12);
+        gr.append("text").attr("x", px).attr("y", py - 4).attr("fill", MUTED).attr("font-size", 11).text(f);
+        gr.append("line").attr("x1", px).attr("x2", px + pw).attr("y1", py + ph).attr("y2", py + ph).attr("stroke", "var(--rule)"); });
+      const vmax = d3.max(state.fam, (f) => d3.max(monthMatrix().get(f))) || 0;
+      gr.append("text").attr("x", g.x).attr("y", g.y + g.h + 16).attr("fill", MUTED).attr("font-size", 11).text("Shared scale: 0 to " + fmtM(vmax) + " requests a month. Months " + d3.utcFormat("%b %Y")(new Date(state.months[0])) + " to " + d3.utcFormat("%b %Y")(new Date(state.months[n - 1])) + ".");
+    },
+  },
+  {
+    kicker: "Act 1 · the total in three dimensions", icon: "ti-cube-3d-sphere",
+    title: "The monthly total barely moved: 346M requests in May 2025, 333M in March 2026",
+    caption: "Totals from full months only. The September 2025 peak (822M) is in the data and not in this comparison.",
+    brush: false,
+    targets() {
+      const V = monthMatrix(), out = new Map(), n = state.months.length;
+      const vmax = d3.max(state.fam, (f) => d3.max(V.get(f))) || 1;
+      proj = projector();
+      const items = [];
+      state.fam.forEach((f, fi) => state.months.forEach((m, i) => {
+        const v = V.get(f)[i];
+        const faces = boxFaces(i, fi, 0.78, 0.78, (v / vmax) * 6);
+        items.push({ key: `${f}|${i}`, depth: i + fi, faces, f, m, v });
+      }));
+      items.sort((a, b) => a.depth - b.depth).forEach((it) => out.set(it.key, boxT(it.faces, colorOf(it.f), dimFor(it.f), `${it.f}, ${MONTH_LABEL(it.m)}: ${fmtM(it.v)} requests`)));
+      return out;
+    },
+    guides(gr) { const g = geo();
+      const n = state.months.length;
+      gr.append("text").attr("x", g.x).attr("y", g.y + 12).attr("fill", MUTED).attr("font-size", 11).text("Height = requests (zero at the floor). Exact values on hover. Months run left to right; families run from front to back, largest first.");
+      gr.append("text").attr("x", g.x).attr("y", g.y + g.h + 16).attr("fill", MUTED).attr("font-size", 10).text(d3.utcFormat("%b %Y")(new Date(state.months[0])) + " to " + d3.utcFormat("%b %Y")(new Date(state.months[n - 1])));
+    },
+  },
+  {
+    kicker: "Act 2 · the days", icon: "ti-chart-area-line",
+    title: "Busiest day: 29 October 2025, with 34.9M requests",
+    caption: "Daily requests in three horizon bands: each band is one third of the busiest day's height, so darker means higher. Drag across the days to filter every view.",
+    brush: true,
+    targets() {
+      const { v } = dayValues(), M = d3.max(v) || 1, b = M / 3, g = geo(), n = v.length, colW = g.w / n, out = new Map();
+      // a compact horizon: three folded bands share one baseline; darker = higher
+      const bandTop = g.y + g.h * 0.5, bandH = g.h * 0.42, base = bandTop + bandH;
+      v.forEach((val, di) => {
+        for (let L = 0; L < 3; L++) {
+          const part = Math.min(Math.max(val - L * b, 0), b), hgt = (part / b) * bandH;
+          const x = g.x + di * colW;
+          out.set(`d${di}|${L}`, flatT(rect(x, base - hgt, Math.max(0.5, colW * 0.9), hgt), PALETTE[0], [0.42, 0.72, 1][L], `${d3.utcFormat("%-d %b %Y")(new Date(state.days[di]))}: ${fmtM(val)} requests`));
+        }
+      });
+      return out;
+    },
+    guides(gr) { const g = geo(); const { v } = dayValues(); const M = d3.max(v) || 0; const bandTop = g.y + g.h * 0.5;
+      gr.append("text").attr("x", g.x).attr("y", bandTop - 8).attr("fill", MUTED).attr("font-size", 11).text("Horizon: each band is " + fmtM(M / 3) + " of requests; darker = higher");
+      gr.append("line").attr("x1", g.x).attr("x2", g.x + g.w).attr("y1", bandTop + g.h * 0.42).attr("y2", bandTop + g.h * 0.42).attr("stroke", "var(--rule)");
+      gr.append("text").attr("x", g.x).attr("y", g.y + g.h + 16).attr("fill", MUTED).attr("font-size", 10).text(d3.utcFormat("%b %Y")(new Date(state.days[0])));
+      gr.append("text").attr("x", g.x + g.w).attr("y", g.y + g.h + 16).attr("text-anchor", "end").attr("fill", MUTED).attr("font-size", 10).text(d3.utcFormat("%b %Y")(new Date(state.days[state.days.length - 1])));
+      const di = state.dayIndex.get(+new Date(Date.UTC(2025, 9, 29))) ?? state.days.findIndex((d) => d3.utcFormat("%Y-%m-%d")(new Date(d)) === "2025-10-29");
+      if (di >= 0) gr.append("text").attr("x", g.x + di * (g.w / v.length) + 4).attr("y", g.y + g.h * 0.5 + g.h * 0.42 + 16).attr("fill", ACCENT).attr("font-size", 11).text("Busiest day, 29 Oct 2025");
+    },
+  },
+  {
+    kicker: "Act 2 · the same days, as bars", icon: "ti-chart-bar",
+    title: "13 January 2026 has 3 of 24 hours in the trace, so its 1.6M requests are not a real low",
+    caption: "Missing hours are shown as gaps, not as zero or interpolated. The file gives no cause. Same days as the horizon above, with each day's full height.",
+    brush: true,
+    targets() {
+      const { v, h } = dayValues(), M = d3.max(v) || 1, g = geo(), n = v.length, colW = g.w / n, out = new Map();
+      v.forEach((val, di) => {
+        const x = g.x + di * colW, partial = h[di] < 24;
+        for (let L = 0; L < 3; L++) {
+          if (L === 0) out.set(`d${di}|0`, flatT(rect(x, g.y + g.h - (val / M) * g.h, Math.max(0.5, colW * 0.9), (val / M) * g.h), partial ? MUTED : PALETTE[0], 1, `${d3.utcFormat("%-d %b %Y")(new Date(state.days[di]))}: ${fmtM(val)} requests, ${h[di]} of 24 hours`));
+          else out.set(`d${di}|${L}`, flatT(rect(x, g.y + g.h, Math.max(0.5, colW * 0.9), 0), PALETTE[0], 0));
+        }
+      });
+      return out;
+    },
+    guides(gr) { const g = geo(); const { v, h } = dayValues(); const M = d3.max(v) || 0; const colW = g.w / v.length;
+      [0, 0.5, 1].forEach((t) => gr.append("text").attr("x", g.x - 8).attr("y", g.y + g.h - t * g.h + 4).attr("text-anchor", "end").attr("fill", MUTED).attr("font-size", 11).text(fmtM(M * t)));
+      const di = state.days.findIndex((d) => d3.utcFormat("%Y-%m-%d")(new Date(d)) === "2026-01-13");
+      if (di >= 0) { gr.append("text").attr("x", g.x + di * colW + colW / 2).attr("y", g.y + g.h - 10).attr("text-anchor", "middle").attr("fill", ACCENT).attr("font-size", 11).text("3 of 24 hours recorded"); }
+      gr.append("text").attr("x", g.x + g.w).attr("y", g.y + g.h + 16).attr("text-anchor", "end").attr("fill", MUTED).attr("font-size", 10).text("grey bars: fewer than 24 hours recorded");
+    },
+  },
+  {
+    kicker: "Act 3 · the day's clock", icon: "ti-clock-hour-3",
+    title: "Requests peak at 13:00 on the trace clock: 285.6M, 18% above the 05:00 low",
+    caption: "Requests by hour of day on the trace clock. The time zone is not in the file.",
+    brush: false,
+    targets() {
+      const { r } = hourValues(), g = geo(), out = new Map();
+      const vmax = d3.max(r) || 1, peak = d3.maxIndex(r);
+      const cx = g.x + g.w / 2, cy = g.y + g.h / 2, R = Math.min(g.w, g.h) / 2 - 16, r0 = R * 0.22;
+      for (let h = 0; h < 24; h++) {
+        const a0 = (h / 24) * 2 * Math.PI, a1 = ((h + 1) / 24) * 2 * Math.PI - 0.035;
+        const r1 = r0 + (r[h] / vmax) * (R - r0);
+        out.set(`h${h}`, flatT(wedge(cx, cy, r0, r1, a0, a1), h === peak ? ACCENT : MUTED, 1,`${String(h).padStart(2, "0")}:00: ${fmtM(r[h])} requests`));
+      }
+      return out;
+    },
+    guides(gr) { const g = geo(); const cx = g.x + g.w / 2, cy = g.y + g.h / 2, R = Math.min(g.w, g.h) / 2 - 16;
+      [0, 6, 12, 18].forEach((h) => { const a = (h / 24) * 2 * Math.PI; gr.append("text").attr("x", cx + (R + 14) * Math.sin(a)).attr("y", cy - (R + 14) * Math.cos(a) + 4).attr("text-anchor", "middle").attr("fill", MUTED).attr("font-size", 11).text(String(h).padStart(2, "0") + ":00"); });
+      gr.append("text").attr("x", cx).attr("y", cy + 4).attr("text-anchor", "middle").attr("fill", MUTED).attr("font-size", 11).text("requests by hour");
+      gr.append("text").attr("x", cx).attr("y", cy + 20).attr("text-anchor", "middle").attr("fill", MUTED).attr("font-size", 10).text("radius from zero; trace clock");
+    },
+  },
+  {
+    kicker: "Act 3 · time to first token by hour", icon: "ti-hourglass-high",
+    title: "Time to first token rises with the daytime load: 2.09 s at 00:00, 2.50 s at 11:00",
+    caption: "Streaming calls only. Across 367 days, the day's time to first token and Qwen's share of requests correlate at only 0.19, so the mix does not explain the latency.",
+    brush: false,
+    targets() {
+      const { t } = hourValues(), g = geo(), out = new Map();
+      const tmax = (d3.max(t) || 1) * 1.08, peak = d3.maxIndex(t);
+      for (let h = 0; h < 24; h++) {
+        const cx = g.x + (t[h] / tmax) * g.w, cy = g.y + ((h + 0.5) / 24) * g.h;
+        out.set(`h${h}`, flatT(circle(cx, cy, 4.2), h === peak ? ACCENT : MUTED, 1, `${String(h).padStart(2, "0")}:00: ${t[h].toFixed(2)} s`));
+      }
+      return out;
+    },
+    guides(gr) { const g = geo(); const { t } = hourValues(); const tmax = (d3.max(t) || 1) * 1.08;
+      const all = state.kpi ? N(state.kpi.tt) : d3.mean(t);
+      const ax = g.x + (all / tmax) * g.w;
+      gr.append("line").attr("x1", ax).attr("x2", ax).attr("y1", g.y).attr("y2", g.y + g.h).attr("stroke", MUTED).attr("stroke-dasharray", "3 4");
+      gr.append("text").attr("x", ax + 4).attr("y", g.y + 12).attr("fill", MUTED).attr("font-size", 11).text("all-hours average " + all.toFixed(2) + " s");
+      [0, 3, 6, 9, 12, 15, 18, 21].forEach((h) => gr.append("text").attr("x", g.x - 8).attr("y", g.y + ((h + 0.5) / 24) * g.h + 4).attr("text-anchor", "end").attr("fill", MUTED).attr("font-size", 10).text(String(h).padStart(2, "0") + ":00"));
+      [0, 1, 2, 3].forEach((s) => { const x = g.x + (s / tmax) * g.w; if (s * 1 <= tmax) gr.append("text").attr("x", x).attr("y", g.y + g.h + 16).attr("text-anchor", "middle").attr("fill", MUTED).attr("font-size", 10).text(s + " s"); });
+    },
+  },
+  {
+    kicker: "Act 4 · share of all requests", icon: "ti-grid-dots",
+    title: "Across the whole year, 55 of every 100 requests went to DeepSeek and 15 to Qwen",
+    caption: "Full year, all families, one square = 1% of requests. The grouped families are shown as the trace groups them. Each family keeps its colour through the change.",
+    brush: false,
+    steps: 2,
+    targets(step = 0) {
+      const V = monthMatrix(), g = geo(), out = new Map();
+      const totals = state.fam.map((f) => d3.sum(V.get(f)));
+      const grand = d3.sum(totals) || 1;
+      // largest-remainder rounding to 100 units, computed from the data
+      const raw = totals.map((x) => (x / grand) * 100), base = raw.map(Math.floor);
+      let left = 100 - d3.sum(base);
+      raw.map((x, i) => [x - base[i], i]).sort((a, b) => b[0] - a[0]).slice(0, left).forEach(([, i]) => base[i]++);
+      const owner = []; base.forEach((c, fi) => { for (let k = 0; k < c; k++) owner.push(fi); });
+      const s = Math.min(g.w, g.h) / 10 * 0.9, gx = g.x, gy = g.y + (g.h - 10 * s) / 2;
+      const barX = g.x + 130, barW = (g.w - 130) / 100, rowH = g.h / state.fam.length;
+      const start = []; base.reduce((acc, c, fi) => { start[fi] = acc; return acc + c; }, 0);
+      owner.forEach((fi, i) => {
+        const f = state.fam[fi];
+        const wx = gx + (i % 10) * s + 1, wy = gy + Math.floor(i / 10) * s + 1;   // step 0: waffle square
+        const col = i - start[fi];
+        const bx = barX + col * barW, by = g.y + fi * rowH + rowH * 0.18;          // step 1: unit bar in the family's row
+        const front = step === 0 ? rect(wx, wy, s - 2, s - 2) : rect(bx, by, Math.max(0.5, barW - 1), rowH * 0.64);
+        out.set(`u${i}`, flatT(front, colorOf(f), dimFor(f), `${f}: ${base[fi]} of 100 units (1% each)`));
+      });
+      return out;
+    },
+    guides(gr) { const g = geo(); const totals = monthTotals(monthMatrix()); const grand = d3.sum(totals) || 1;
+      const rows = state.fam.map((f) => d3.sum(monthMatrix().get(f)));
+      const rowH = g.h / state.fam.length;
+      state.fam.forEach((f, fi) => { const pct = (rows[fi] / (grand || 1) * 100); gr.append("text").attr("x", g.x + 124).attr("y", g.y + fi * rowH + rowH * 0.6).attr("text-anchor", "end").attr("fill", MUTED).attr("font-size", 10).text(f + " " + pct.toFixed(1) + "%"); });
+      gr.append("text").attr("x", g.x).attr("y", g.y + g.h + 16).attr("fill", MUTED).attr("font-size", 10).text("Left: waffle, 1 square = 1% of requests. The bars run from zero; the unit row is the same share.");
+    },
+  },
+];
+window.__dash = { showScene: (i) => showScene(i), SCENES: SCENES.map((s) => ({ title: s.title, kicker: s.kicker })) };
+
+/* ---------- scene targets; a scene with steps morphs in stages (scene 8: waffle, then unit bars) ---------- */
+function runScene(i, ms) {
+  const s = SCENES[i];
+  morph(s.targets(0), ms);
+  if (s.steps > 1) setTimeout(() => { if (current === i) morph(s.targets(1), ms); }, ms + 80);
+}
+
+/* ---------- playback, navigation and stage wiring ---------- */
+const kicker = document.getElementById("kicker"), sTitle = document.getElementById("sTitle"), sCap = document.getElementById("sCap");
+const sceneList = document.getElementById("scenes");
+let current = -1, playing = false, timer = null;
+const cardEls = SCENES.map((s, i) => {
+  const li = document.createElement("li");
+  li.className = "reveal";
+  li.innerHTML = `<button class="scene" type="button" data-i="${i}" aria-current="false"><div class="t"><i class="ti ${s.icon}" aria-hidden="true"></i><span>${s.title}</span></div><div class="c">${s.caption}</div></button>`;
+  li.querySelector("button").addEventListener("click", () => { showScene(i); history.replaceState(null, "", "#s" + (i + 1)); });
+  sceneList.append(li);
+  return li.querySelector("button");
+});
+
+// scrolly: each card reveals in reading order; a card that is mostly on screen triggers its scene
+const revealIO = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); revealIO.unobserve(e.target); } }), { threshold: 0.1 });
+const sceneIO = new IntersectionObserver((es) => {
+  for (const e of es) if (e.isIntersecting && started) {
+    const i = +e.target.querySelector("button").dataset.i;
+    if (i !== current) { showScene(i); history.replaceState(null, "", "#s" + (i + 1)); }
+  }
+}, { threshold: 0.6 });
+cardEls.forEach((b) => { revealIO.observe(b.parentNode); sceneIO.observe(b.parentNode); });
+
+function setGuides(i) {
+  const gg = guideG;
+  gg.interrupt("guide").transition("guide").duration(T(500)).style("opacity", 0).on("end", () => {
+    gg.selectAll("*").remove(); SCENES[i].guides(gg);
+    gg.transition("guide").duration(T(900)).style("opacity", 1);
+  });
+}
+function showScene(i) {
+  if (!started) return;
+  i = ((i % SCENES.length) + SCENES.length) % SCENES.length;
+  current = i;
+  const s = SCENES[i];
+  kicker.textContent = s.kicker; sTitle.textContent = s.title; sCap.textContent = s.caption;
+  cardEls.forEach((b, k) => b.setAttribute("aria-current", String(k === i)));
+  if (brushG) brushG.style("display", s.brush ? null : "none");
+  runScene(i, T(1600));
+  setGuides(i);
+  if (playing) schedule();
+}
+function refresh() {
+  if (!started || current < 0) return;
+  const s = SCENES[current];
+  morph(s.targets(s.steps > 1 ? s.steps - 1 : 0), T(500));
+  setGuides(current);
+}
+
+// Play: each scene holds for its reading time, then morphs on
+const words = (s) => s.split(/\s+/).length;
+function schedule() {
+  clearTimeout(timer);
+  if (!playing) return;
+  const hold = 4000 + 300 * words(SCENES[current].caption);
+  timer = setTimeout(() => showScene(current + 1), hold);
+}
+const playBtn = document.getElementById("play");
+function setPlaying(on) {
+  playing = on;
+  playBtn.innerHTML = on ? '<i class="ti ti-player-pause" aria-hidden="true"></i> Pause' : '<i class="ti ti-player-play" aria-hidden="true"></i> Play';
+  playBtn.setAttribute("aria-pressed", String(on));
+  if (on) schedule(); else clearTimeout(timer);
+}
+playBtn.addEventListener("click", () => setPlaying(!playing));
+document.getElementById("prev").addEventListener("click", () => showScene(current - 1));
+document.getElementById("next").addEventListener("click", () => showScene(current + 1));
+document.addEventListener("keydown", (e) => { if (e.key === "ArrowRight") showScene(current + 1); if (e.key === "ArrowLeft") showScene(current - 1); if (e.key === " " && e.target === document.body) { e.preventDefault(); setPlaying(!playing); } });
+
+// the stage: svg layers, day brush, responsive size
+svg = d3.select("#stage");
+guideG = svg.append("g").attr("class", "guides");
+marksLayer = svg.append("g").attr("class", "marks");
+brushLayer = svg.append("g").attr("class", "brush-layer");
+// the page follows the brush while it is dragged ("brush") and on release ("brush end")
+const onBrush = ({ selection, sourceEvent }) => {
+  if (!selection) { if (sourceEvent) setDayRange(null); return; }
+  const g = geo(), colW = g.w / state.days.length;
+  const i0 = Math.max(0, Math.floor((selection[0] - g.x) / colW)), i1 = Math.min(state.days.length - 1, Math.floor((selection[1] - g.x) / colW));
+  if (i1 < i0) return;
+  setDayRange(new Date(state.days[i0]), new Date(state.days[i1] + 86400000));
+};
+const brush = d3.brushX().on("brush", onBrush).on("brush end", onBrush);
+let brushG = null;
+function placeBrush() {
+  const g = geo();
+  brushG = brushLayer.selectAll("g").data([0]).join("g").attr("class", "brush");
+  brushG.call(brush.extent([[g.x, g.y], [g.x + g.w, g.y + g.h]]));
+}
+function sizeStage() {
+  const el = document.getElementById("wrap");
+  W = el.clientWidth || window.innerWidth * 0.6; H = el.clientHeight || window.innerHeight;
+  svg.attr("viewBox", [0, 0, W, H]);
+}
+const ro = new ResizeObserver(() => { sizeStage(); placeBrush(); if (started && current >= 0) { const s = SCENES[current]; morph(s.targets(s.steps > 1 ? s.steps - 1 : 0), 0); setGuides(current); } });
+ro.observe(document.getElementById("wrap"));
+sizeStage(); placeBrush();
+
+// KPI count-up with real values only
+function tween(el, to, fmt) {
+  const from = el.__v ?? 0; el.__v = to;
+  d3.select(el).transition().duration(T(700)).ease(d3.easeCubicOut).tween("text", () => { const i = d3.interpolateNumber(from, to); return (t) => { el.textContent = fmt(i(t)); }; });
+}
+function countKpis() {
+  const k = state.kpi; if (!k) return;
+  tween(document.getElementById("k1"), N(k.r), fmtBig);
+  tween(document.getElementById("k2"), N(k.it), (v) => Math.round(v).toLocaleString("en-US"));
+  tween(document.getElementById("k3"), N(k.ot), (v) => Math.round(v).toLocaleString("en-US"));
+  tween(document.getElementById("k4"), N(k.tt), (v) => v.toFixed(2) + " s");
+}
+
+// start the first scene only after every client has its first data
+const need = ["cp", "day", "hod", "kpi", "kpiAll"];
+function markReady(n) {
+  ready.add(n);
+  if (!started && need.every((x) => ready.has(x))) {
+    started = true;
+    countKpis();
+    chipsNow();
+    const h = location.hash.match(/#s(\d+)/);
+    showScene(h ? +h[1] - 1 : 0);
+  } else if (started) countKpis();
+}
+// a fixed one-line check of every client, for the console
+window.addEventListener("error", (e) => console.error("page error", e.message));
+</script>
+</body>
+</html>

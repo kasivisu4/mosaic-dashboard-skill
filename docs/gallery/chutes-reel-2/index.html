@@ -1,0 +1,1238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A year of LLM traffic</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.35.0/dist/tabler-icons.min.css">
+<style>
+/* Theme "paper" from the design seed; palette dark2 is set in the script. */
+:root {
+  --bg: #f7f5f0; --panel: #efece4; --ink: #1f1d1a; --muted: #6e6a62; --rule: #ddd8cc;
+  --focus: #2b5c8a; --breach: #c2410c; --selected: #1f1d1a; --other: #a39e93;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #1b1a18; --panel: #24221f; --ink: #ece8df; --muted: #a39d91; --rule: #3a3732;
+          --focus: #7fb0dc; --breach: #f0844d; --selected: #ece8df; --other: #6f6a61; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.4 var(--sans); font-variant-numeric: tabular-nums;
+       display: grid; grid-template-rows: auto 1fr auto; height: 100dvh; overflow: hidden; }
+button, select { font: inherit; color: inherit; }
+button { background: var(--panel); border: 1px solid var(--rule); border-radius: 999px; padding: 4px 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.ti { font-size: 1.1em; }
+
+/* Top bar */
+header { padding: 12px 20px 6px; display: grid; grid-template-columns: minmax(260px, 1fr) auto; gap: 6px 24px; align-items: end; border-bottom: 1px solid var(--rule); }
+.masthead h1 { font: 600 clamp(22px, 2.3vw, 32px)/1.05 var(--serif); margin: 0; letter-spacing: -.01em; }
+.masthead p { margin: 4px 0 0; color: var(--muted); max-width: 70ch; font-size: 13px; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 10px; }
+.kpi { border-left: 2px solid var(--rule); padding: 0 0 0 10px; }
+.kpi .kl { color: var(--muted); font-size: 12px; display: flex; gap: 5px; align-items: center; white-space: nowrap; }
+.kpi .kl .ti { color: var(--focus); }
+.kpi .kv { font: 600 24px/1.1 var(--serif); }
+.kpi .kt { color: var(--muted); font-size: 11.5px; }
+.controls { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 4px; }
+.controls label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
+select { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 3px 6px; }
+#chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { background: color-mix(in srgb, var(--focus) 14%, var(--bg)); border-color: color-mix(in srgb, var(--focus) 40%, var(--bg)); font-size: 12.5px; padding: 2px 9px; }
+.spacer { flex: 1; }
+#motion-hint { color: var(--muted); font-size: 12px; }
+
+/* Poster hub: stage in the middle, scene icons around its frame */
+main.hub { display: grid; grid-template-columns: 58px minmax(0, 1fr) 58px; grid-template-rows: 46px minmax(0, 1fr) 46px; padding: 2px 10px; min-height: 0; }
+.ring { display: flex; align-items: center; justify-content: center; gap: 10px; position: relative; z-index: 3; }
+.ring.top { grid-area: 1 / 2; } .ring.right { grid-area: 2 / 3; flex-direction: column; } .ring.bottom { grid-area: 3 / 2; } .ring.left { grid-area: 2 / 1; flex-direction: column; }
+.ring .actname { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.ring.left .actname, .ring.right .actname { writing-mode: vertical-rl; }
+.ring.left .actname { transform: rotate(180deg); }
+.sc { position: relative; width: 36px; height: 36px; padding: 0; justify-content: center; border-radius: 999px; background: var(--bg); transition: background .3s, color .3s, width .35s, padding .35s; }
+.sc .lab { max-width: 0; overflow: hidden; white-space: nowrap; transition: max-width .35s; font-size: 12.5px; }
+.sc.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.ring.top .sc.on, .ring.bottom .sc.on { width: auto; padding: 0 12px; }
+.ring.top .sc.on .lab, .ring.bottom .sc.on .lab { max-width: 160px; }
+.ring.left .sc .lab, .ring.right .sc .lab { position: absolute; top: 50%; transform: translateY(-50%); background: var(--ink); color: var(--bg); border-radius: 999px; padding: 0; }
+.ring.right .sc .lab { right: 40px; } .ring.left .sc .lab { left: 40px; }
+.ring.left .sc.on .lab, .ring.right .sc.on .lab { max-width: 160px; padding: 6px 12px; }
+.stage { grid-area: 2 / 2; border: 1px solid var(--rule); border-radius: 14px; background: var(--panel); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; overflow: hidden; }
+.stage-head { padding: 14px 20px 0; }
+.act { font-size: 11.5px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+#title { font: 600 clamp(19px, 2.1vw, 30px)/1.12 var(--serif); margin: 2px 0 0; max-width: 60ch; text-wrap: balance; }
+#scope { margin: 4px 0 0; font-size: 12.5px; color: var(--focus); min-height: 0; }
+#scope:empty { display: none; }
+.canvas { position: relative; min-height: 0; }
+#svg { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: pan-y; }
+#svg.orbit { cursor: grab; }
+#caption { margin: 0; padding: 0 20px 12px; color: var(--muted); font-size: 13px; }
+#tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12px; padding: 5px 8px; border-radius: 6px; opacity: 0; transition: opacity .12s; white-space: nowrap; z-index: 5; }
+#tip b { font-weight: 600; }
+
+/* Marks and guides */
+.mark path { stroke: var(--panel); stroke-width: .7; stroke-linejoin: round; }
+.layer.thin .mark path, .layer.solid .mark path { stroke: none; }
+.mark { cursor: default; }
+.layer.clickable .mark { cursor: pointer; }
+.guide text { fill: var(--ink); font-size: 11.5px; }
+.guide .m { fill: var(--muted); }
+.guide .big { font: 600 15px var(--serif); }
+.guide .ann { font-weight: 600; }
+.guide .note { fill: var(--muted); font-size: 11px; font-style: italic; }
+.guide .domain, .guide .tick line { stroke: var(--rule); }
+.guide .tick text { fill: var(--muted); font-size: 11px; }
+.guide .gridl { stroke: var(--rule); stroke-width: .8; }
+.guide .lead { stroke: var(--ink); stroke-width: .8; fill: none; }
+.guide .outline { fill: none; stroke: var(--ink); stroke-width: 1.4; }
+.guide .dash { fill: none; stroke: var(--muted); stroke-dasharray: 3 3; }
+.guide .band { fill: var(--focus); opacity: .1; }
+.guide .bandline { stroke: var(--focus); stroke-width: 1.2; }
+
+/* Bottom: transport and time strip */
+footer { padding: 4px 20px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; border-top: 1px solid var(--rule); }
+.transport { display: flex; gap: 6px; align-items: center; }
+#count { color: var(--muted); font-size: 12px; min-width: 52px; text-align: center; }
+.timestrip { position: relative; height: 66px; min-width: 0; }
+#strip { width: 100%; height: 100%; display: block; }
+#strip .area { fill: color-mix(in srgb, var(--ink) 30%, var(--bg)); }
+#strip .tick text { fill: var(--muted); font-size: 10.5px; }
+#strip .domain, #strip .tick line { stroke: var(--rule); }
+#strip .selection { fill: var(--focus); fill-opacity: .18; stroke: var(--focus); }
+#strip .lab { fill: var(--muted); font-size: 10.5px; }
+.playbox { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+#winlab { font-size: 11.5px; color: var(--muted); min-height: 1.2em; }
+#play.on { background: var(--focus); color: var(--bg); border-color: var(--focus); }
+
+/* Technical notes drawer */
+#notes { position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100vw); background: var(--bg); border-left: 1px solid var(--rule); padding: 20px 22px; overflow: auto; transform: translateX(105%); transition: transform .35s ease; z-index: 20; box-shadow: -10px 0 30px rgb(0 0 0 / .08); }
+#notes.open { transform: none; }
+#notes h2 { font: 600 20px var(--serif); margin: 0 0 8px; }
+#notes h3 { font-size: 13px; margin: 16px 0 4px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+#notes p, #notes li { font-size: 13px; }
+#notes ul { padding-left: 18px; margin: 4px 0; }
+#notes .close { position: absolute; top: 14px; right: 14px; }
+html:not(.motion-on) #notes { transition: none; }
+
+/* Staged entrance, only with motion on */
+.motion-on .reveal { opacity: 0; transform: translateY(10px); transition: opacity .6s ease, transform .6s ease; }
+.motion-on .reveal.in { opacity: 1; transform: none; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
+
+/* Phones: rings become a scroller above the stage; the page may scroll */
+@media (max-width: 760px) {
+  body { height: auto; overflow: auto; display: block; }
+  header { grid-template-columns: 1fr; padding: 10px 16px; }
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  main.hub { display: flex; flex-direction: column; padding: 6px 16px; gap: 4px; }
+  .ring { flex-direction: row !important; justify-content: flex-start; overflow-x: auto; }
+  .ring .actname { writing-mode: horizontal-tb !important; transform: none !important; }
+  .ring .sc .lab { display: none; }
+  .ring.bottom, .ring.left { order: -1; } .ring.top, .ring.right { order: -2; }
+  .stage { height: 72vh; min-height: 440px; }
+  .canvas { overflow-x: auto; }                       /* the chart scrolls inside its card; the page never does */
+  #svg { position: relative; display: block; min-width: 720px; height: 100%; }
+  footer { grid-template-columns: 1fr; padding: 6px 16px 16px; }
+}
+</style>
+</head>
+<body>
+<header class="reveal">
+  <div class="masthead">
+    <h1>A year of LLM traffic</h1>
+    <p>Over one year of traffic, model choice flipped: DeepSeek fell from 84% of requests in May 2025 to 25% in March 2026 while Qwen rose from 5% to 47%.</p>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="controls">
+    <label for="fam"><i class="ti ti-filter" aria-hidden="true"></i> Model family</label>
+    <select id="fam"><option value="">All families</option></select>
+    <div id="chips" aria-live="polite"></div>
+    <button id="reset" type="button"><i class="ti ti-refresh" aria-hidden="true"></i> Reset</button>
+    <span class="spacer"></span>
+    <button id="motion" type="button" aria-pressed="false"></button><span id="motion-hint"></span>
+    <button id="notes-btn" type="button" aria-controls="notes"><i class="ti ti-info-circle" aria-hidden="true"></i> Technical notes</button>
+  </div>
+</header>
+
+<main class="hub reveal">
+  <nav class="ring top" data-act="k" aria-label="Scenes, act I"></nav>
+  <nav class="ring right" data-act="cp" aria-label="Scenes, act II"></nav>
+  <nav class="ring bottom" data-act="c" aria-label="Scenes, act III"></nav>
+  <nav class="ring left" data-act="g" aria-label="Scenes, act IV"></nav>
+  <section class="stage" aria-live="polite">
+    <div class="stage-head">
+      <div class="act" id="act"></div>
+      <h2 id="title">Loading the trace…</h2>
+      <p id="scope"></p>
+    </div>
+    <div class="canvas" id="canvas"><svg id="svg" role="img" aria-labelledby="title"></svg><div id="tip"></div><div class="loading" id="loading">Starting DuckDB in your browser…</div></div>
+    <p id="caption"></p>
+  </section>
+</main>
+
+<footer class="reveal">
+  <div class="transport">
+    <button id="prev" type="button" aria-label="Previous scene"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+    <button id="tour" type="button" aria-pressed="false"><i class="ti ti-player-play" aria-hidden="true"></i> Tour</button>
+    <button id="next" type="button" aria-label="Next scene"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+    <span id="count"></span>
+  </div>
+  <div class="timestrip"><svg id="strip" aria-label="Daily requests; drag to choose dates"></svg></div>
+  <div class="playbox">
+    <button id="play" type="button" aria-pressed="false"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Play the year</button>
+    <span id="winlab"></span>
+  </div>
+</footer>
+
+<aside id="notes" aria-label="Technical notes" aria-hidden="true">
+  <button class="close" type="button" id="notes-close" aria-label="Close technical notes"><i class="ti ti-x" aria-hidden="true"></i></button>
+  <h2>Technical notes</h2>
+  <h3>Data source</h3>
+  <p>The Chutes production LLM trace published with arXiv:2608.13573 (github.com/HarvardMadSys/chutes_workload). This page reads <code>traffic.parquet</code>, a rollup of that trace to <span data-n="grain"></span> rows: one per trace day × trace hour × model family, from <span data-n="span"></span>.</p>
+  <h3>Aggregation</h3>
+  <ul>
+    <li>Requests and tokens are sums. Tokens = input + output tokens.</li>
+    <li>Averages are ratios of sums: output tokens per request = output tokens ÷ requests with an output count; time to first token = summed seconds ÷ requests with a measured first token.</li>
+    <li>Month views show requests <em>per day of the month</em>, so the partial months (<span data-n="partial"></span>) compare fairly with full ones; they are labelled partial wherever they appear.</li>
+    <li>Colors: the five largest named families by requests have their own hue; every other family, including the catch-all labels, is drawn as <span data-n="other"></span> in muted grey. The family menu lists all <span data-n="nfam"></span>.</li>
+    <li>Shares are of the requests (or tokens) in view: with a family filter they are shares among the chosen families.</li>
+  </ul>
+  <h3>What the filters reach</h3>
+  <ul>
+    <li>The family menu filters everything. A click on a family mark filters the numbers, the hour views and the time strip, and highlights the family in the chart you clicked.</li>
+    <li>Dates (brush or Play): the KPIs, the share views (act I) and the hour views (act III) follow the window. The month views (acts II and IV) keep the whole year as context and dim the months outside the window.</li>
+    <li>Scene titles describe all the data; when a filter is on, the chart and the numbers follow it, and a note under the title says so.</li>
+  </ul>
+  <h3>Limitations</h3>
+  <ul>
+    <li>Dates are reconstructed from the paper's stated span: trace day 0 is taken as 11 April 2025.</li>
+    <li>Hours are on the trace clock; its timezone is not stated.</li>
+    <li>Time to first token exists only for streamed calls: <span data-n="ttftcov"></span> of requests have a measured first token.</li>
+    <li>Token counts are missing for <span data-n="tokmiss"></span> of requests; token totals cover the rest, and output tokens per request is divided only by requests with a count.</li>
+    <li>Quietest day in the trace: <span data-n="quiet"></span>. Slowest day by time to first token: <span data-n="slow"></span>.</li>
+    <li>No cost, error or user data: the trace can't say why families rose or fell.</li>
+  </ul>
+  <h3>Built with</h3>
+  <p>Mosaic 0.31.0 and DuckDB-WASM (every number is a query in your browser), D3 7.9.0 polygon morphs, d3-3d 1.0.0 for the 3D boxes, Tabler icons 3.35.0.</p>
+</aside>
+
+<script type="module">
+import * as vg from "https://cdn.jsdelivr.net/npm/@uwdata/vgplot@0.31.0/+esm";
+import { clausePoints, clauseInterval } from "https://cdn.jsdelivr.net/npm/@uwdata/mosaic-core@0.31.0/+esm";
+import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
+import { polygons3D } from "https://cdn.jsdelivr.net/npm/d3-3d@1.0.0/+esm";
+
+/* ---------- Design seed (3-layout/design-seed.json) ---------- */
+const PALETTE = ["#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02"]; // dark2
+const TEMPO = 1100;                 // seed tempo "measured": 1,100 ms per morph step
+const EASE = d3.easeSinInOut;       // seed easing "sinInOut"
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* ---------- Scenes: titles and captions verbatim from plan.md ---------- */
+const SCENES = [
+  { key: "one-bar", act: "k", form: "single-100-bar", icon: "ti-percentage", short: "One bar",
+    title: "DeepSeek served 55% of the trace's 6.12 billion requests",
+    caption: "One bar is the whole year; each family's length is its share of requests." },
+  { key: "treemap", act: "k", form: "treemap", icon: "ti-chart-treemap", short: "Treemap",
+    title: "Fourteen model families shared the year; DeepSeek and Qwen served 70%",
+    caption: "The same shares as areas, so the small families stay visible." },
+  { key: "heat", act: "cp", form: "heat-cells", icon: "ti-grid-4x4", short: "Heat cells",
+    title: "Qwen grew from 0.6M to 5.1M requests a day while DeepSeek fell from 9.4M to 2.7M",
+    caption: "Each cell is one family in one month; darker means more requests a day." },
+  { key: "skyline", act: "cp", form: "3d-bars", icon: "ti-box", short: "3D bars",
+    title: "Traffic peaked in September 2025 at 27.4M requests a day",
+    caption: "The same cells rise into boxes: height is requests a day, from zero." },
+  { key: "stacked", act: "cp", form: "stacked-bars", icon: "ti-chart-bar", short: "Stacked days",
+    title: "By March 2026 daily requests were back near May 2025's level: 10.7M against 11.2M",
+    caption: "The boxes settle into one stacked column per month." },
+  { key: "mix", act: "cp", form: "stacked-bars-100", icon: "ti-stack-2", short: "Request mix",
+    title: "Qwen overtook DeepSeek: 5% of requests in May 2025, 47% in March 2026",
+    caption: "Every column stretched to 100%: the mix, not the volume." },
+  { key: "tokens", act: "cp", form: "stacked-100", icon: "ti-chart-area", short: "Token mix",
+    title: "By tokens, DeepSeek's share fell from 92% in May 2025 to 22% in March 2026",
+    caption: "The measure changes to tokens (input + output); the columns join into a 100% area." },
+  { key: "hours", act: "c", form: "bars", icon: "ti-clock-hour-4", short: "By hour",
+    title: "13:00 on the trace clock carries 18.5% more requests than 22:00",
+    caption: "All requests of the year, by hour of the trace clock." },
+  { key: "ttft", act: "c", form: "dot-plot", icon: "ti-stopwatch", short: "First token",
+    title: "First tokens arrive slowest at 11:00 (2.50 s) and fastest at 23:00 (2.08 s)",
+    caption: "The measure changes to time to first token, streamed requests only; the axis does not start at zero and says so." },
+  { key: "curves", act: "g", form: "small-multiple-lines", icon: "ti-wave-sine", short: "Day curves",
+    title: "The daily cycle deepened: the busiest hour was 1.14× the quietest in May 2025, 1.33× in March 2026",
+    caption: "One day-curve per month: requests per hour as a share of the month, on one shared scale." },
+  { key: "ridges", act: "g", form: "ridgeline", icon: "ti-layers-intersect", short: "Ridgeline",
+    title: "Afternoons grew: 12:00–17:00 carried 26.1% of May's requests and 28.7% of March's",
+    caption: "The panels slide into overlapping rows, earliest month at the top." },
+  { key: "hourmap", act: "g", form: "heatmap", icon: "ti-layout-grid", short: "Hour map",
+    title: "In 10 of 11 full months the busiest hour fell between 12:00 and 15:00",
+    caption: "The rows square up into cells: month × hour, darker means a larger share of the month." },
+];
+const ACTS = { k: "Act I · Share", cp: "Act II · The year", c: "Act III · The clock", g: "Act IV · Rhythm" };
+// Hour window named by scene 11's title (plan content), parsed rather than retyped.
+const AFT = (() => { const m = SCENES[10].title.match(/(\d{1,2}):00–(\d{1,2}):00/); return m ? [+m[1], +m[2]] : null; })();
+
+/* ---------- Motion: system setting by default, Motion switch overrides ---------- */
+const SYSTEM_REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let saved = null; try { saved = localStorage.getItem("motion"); } catch {}
+let REDUCED = saved ? saved === "off" : SYSTEM_REDUCED;
+document.documentElement.classList.toggle("motion-on", !REDUCED);
+const T = (ms) => (REDUCED ? 0 : ms);
+let quick = false, quickTimer;
+const hurry = () => { quick = true; clearTimeout(quickTimer); quickTimer = setTimeout(() => (quick = false), 400); };
+const dur = () => T(quick ? 160 : 500);
+let playing = false;
+const glideDur = () => (playing ? T(260) : null);
+const updDur = () => glideDur() ?? dur();
+const updEase = () => (playing || quick ? d3.easeLinear : d3.easeCubicOut);
+const motionBtn = document.getElementById("motion");
+const motionLabel = () => {
+  motionBtn.innerHTML = `<i class="ti ${REDUCED ? "ti-player-pause" : "ti-sparkles"}" aria-hidden="true"></i> Motion: ${REDUCED ? "off" : "on"}`;
+  motionBtn.setAttribute("aria-pressed", String(!REDUCED));
+  document.getElementById("motion-hint").textContent = SYSTEM_REDUCED && REDUCED ? "Animations are off: your system asks for reduced motion" : "";
+};
+motionBtn.addEventListener("click", () => { REDUCED = !REDUCED; try { localStorage.setItem("motion", REDUCED ? "off" : "on"); } catch {} location.reload(); });
+motionLabel();
+const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: 0.05 });
+document.querySelectorAll(".reveal").forEach((el, i) => setTimeout(() => io.observe(el), T(i * 90)));
+
+/* ---------- Formats ---------- */
+const big = (v) => d3.format(".3~s")(v).replace("G", "B");
+const pct = d3.format(".1%"), pct0 = d3.format(".0%");
+const secs = (v) => d3.format(".2f")(v) + " s";
+const utc = d3.utcFormat;
+const monthName = utc("%B %Y"), monthShort = utc("%b"), dayFmt = utc("%b %-d, %Y");
+const hh = (h) => String(h).padStart(2, "0") + ":00";
+
+/* ---------- DuckDB ---------- */
+const coord = vg.coordinator();
+coord.databaseConnector(vg.wasmConnector());
+await coord.exec([vg.loadParquet("t", new URL("traffic.parquet", location.href).href)]);
+const q = async (sql) => (await coord.query(sql)).toArray().map((r) => ({ ...r }));
+
+// Everything the page shows by name or order comes from these queries.
+const [groupsQ, famsQ, monthsQ, daysQ, totQ, extraQ, quietQ, slowQ] = await Promise.all([
+  q(`SELECT fam6, count(DISTINCT family) AS nf, sum(reqs) AS r FROM t GROUP BY 1 ORDER BY r DESC`),
+  q(`SELECT family, any_value(fam6) AS fam6, sum(reqs) AS r FROM t GROUP BY 1 ORDER BY r DESC`),
+  q(`SELECT strftime(date_trunc('month', day), '%Y-%m') AS m, count(DISTINCT day) AS nd, min(day) AS d0 FROM t GROUP BY 1 ORDER BY 1`),
+  q(`SELECT day FROM t GROUP BY 1 ORDER BY 1`),
+  q(`SELECT sum(reqs) AS r, sum(tok) AS tok, sum(tok_out) AS to_, sum(n_out) AS no, sum(ttft_s) AS ts, sum(n_ttft) AS nt, count(*) AS n FROM t`),
+  q(`SELECT 1 - sum(n_out) / sum(reqs) AS tokmiss, sum(n_ttft) / sum(reqs) AS ttftcov FROM t`),
+  q(`SELECT day, sum(reqs) AS r FROM t GROUP BY 1 ORDER BY r ASC LIMIT 1`),
+  q(`SELECT day, sum(ttft_s) / sum(n_ttft) AS v FROM t GROUP BY 1 HAVING sum(n_ttft) > 0 ORDER BY v DESC LIMIT 1`),
+]);
+// The catch-all group is the one value of fam6 that holds several families; it gets muted ink.
+const GROUPS = [...groupsQ.filter((g) => g.nf === 1 || Number(g.nf) === 1), ...groupsQ.filter((g) => Number(g.nf) > 1)]
+  .map((g, i) => ({ g: g.fam6, catchAll: Number(g.nf) > 1, i }));
+GROUPS.forEach((g, i) => (g.color = g.catchAll ? css("--other") : PALETTE[i % PALETTE.length]));
+const colorG = (g) => GROUPS.find((x) => x.g === g)?.color ?? css("--other");
+const FAMS = famsQ.map((f) => ({ family: f.family, fam6: f.fam6 }));
+const famGroup = new Map(FAMS.map((f) => [f.family, f.fam6]));
+const DAYS = daysQ.map((d) => +new Date(d.day));
+const DAY = 864e5;
+const MONTHS = monthsQ.map((m, i) => {
+  const start = d3.utcParse("%Y-%m")(m.m), end = d3.utcMonth.offset(start, 1);
+  const cal = Math.round((end - start) / DAY), nd = Number(m.nd);
+  return { m: m.m, i, nd, start: +start, end: +end, partial: nd < cal, cal, short: monthShort(start), name: monthName(start), year: start.getUTCFullYear() };
+});
+const monthIdx = new Map(MONTHS.map((m) => [m.m, m]));
+const FULL = MONTHS.filter((m) => !m.partial);
+const FIRST_FULL = FULL[0], LAST_FULL = FULL[FULL.length - 1];
+const TOT = totQ[0];
+
+// Fill the notes from the data.
+const setN = (k, v) => document.querySelectorAll(`[data-n="${k}"]`).forEach((el) => (el.textContent = v));
+setN("grain", d3.format(",")(Number(TOT.n)));
+setN("span", `${dayFmt(new Date(DAYS[0]))} to ${dayFmt(new Date(DAYS[DAYS.length - 1]))} (${DAYS.length} days)`);
+setN("partial", MONTHS.filter((m) => m.partial).map((m) => `${m.name}: ${m.nd} of ${m.cal} days`).join("; "));
+setN("other", `"${GROUPS.find((g) => g.catchAll)?.g ?? "—"}"`);
+setN("nfam", String(FAMS.length));
+setN("tokmiss", pct(extraQ[0].tokmiss));
+setN("ttftcov", pct(extraQ[0].ttftcov));
+setN("quiet", `${dayFmt(new Date(+new Date(quietQ[0].day)))}, ${big(quietQ[0].r)} requests`);
+setN("slow", `${dayFmt(new Date(+new Date(slowQ[0].day)))}, ${secs(slowQ[0].v)}`);
+
+// Family menu: all families, largest first.
+const famSel = document.getElementById("fam");
+FAMS.forEach((f) => famSel.append(new Option(f.family, f.family)));
+
+/* ---------- KPIs (count-up) ---------- */
+const KPIS = [
+  { k: "r", label: "Requests", icon: "ti-message-chatbot", val: (r) => r.r, fmt: big },
+  { k: "tok", label: "Tokens", icon: "ti-coins", val: (r) => r.tok, fmt: big },
+  { k: "opr", label: "Output tokens per request", icon: "ti-message-2", val: (r) => (r.no ? r.to_ / r.no : NaN), fmt: d3.format(",.0f") },
+  { k: "ttft", label: "Time to first token", icon: "ti-bolt", val: (r) => (r.nt ? r.ts / r.nt : NaN), fmt: secs },
+];
+const kpiBox = d3.select("#kpis").selectAll("div").data(KPIS).join("div").attr("class", "kpi")
+  .html((d) => `<div class="kl"><i class="ti ${d.icon}" aria-hidden="true"></i>${d.label}</div><div class="kv">–</div><div class="kt">of ${d.fmt(d.val(TOT))} in all data</div>`);
+kpiBox.filter((d) => d.k === "ttft").select(".kt").text(`of ${secs(TOT.ts / TOT.nt)} in all data · streamed only`);
+function tweenNumber(el, to, format) {
+  const from = el.__v ?? 0; el.__v = to;
+  if (!isFinite(to)) { el.textContent = "–"; return; }
+  d3.select(el).transition().duration(glideDur() ?? T(700)).ease(playing ? d3.easeLinear : d3.easeCubicOut)
+    .tween("text", () => { const i = d3.interpolateNumber(isFinite(from) ? from : 0, to); return (t) => { el.textContent = format(i(t)); }; });
+}
+
+/* ---------- Selections: one page filter, own selections relayed into it ---------- */
+const $page = vg.Selection.crossfilter();   // everything that follows dates and families
+const $fams = vg.Selection.crossfilter();   // month views: families only (they keep the whole year)
+const $menu = vg.Selection.single(); $menu._relay.add($page); $menu._relay.add($fams);
+const $click = vg.Selection.single(); $click._relay.add($page); $click._relay.add($fams);
+const $time = vg.Selection.single(); $time._relay.add($page);
+
+class Live extends vg.MosaicClient {
+  constructor(filterBy, query, render) { super(filterBy); this.q = query; this.r = render; }
+  query(where = []) { return this.q(where); }
+  queryResult(data) { this.r(data.toArray().map((d) => ({ ...d }))); return this; }
+  queryError(e) { console.error(e); busy = false; return this; }
+}
+
+/* ---------- The polygon engine (show-reel.md §2) ---------- */
+const K = 24, N = K / 2;            // K points per polygon in every form: N along the top edge, N back along the bottom
+const lerp = (a, b, t) => a + (b - a) * t;
+const lin = (a, b) => d3.range(N).map((j) => [lerp(a[0], b[0], j / (N - 1)), lerp(a[1], b[1], j / (N - 1))]);
+const strip = (top, bot) => [...top, ...bot.slice().reverse()];          // both edges left→right, N points each
+const rectP = (x, y, w, h) => strip(lin([x, y], [x + w, y]), lin([x, y + h], [x + w, y + h]));
+const quadP = (tl, tr, br, bl) => strip(lin(tl, tr), lin(bl, br));
+const circleP = (cx, cy, r) => {
+  const th = d3.range(N).map((j) => Math.PI - (Math.PI * j) / (N - 1));
+  return strip(th.map((a) => [cx + r * Math.cos(a), cy - r * Math.sin(a)]), th.map((a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)]));
+};
+// Sample a left→right polyline at N evenly spaced x positions (so area and line marks share point order).
+const polyAt = (pts) => {
+  const x0 = pts[0][0], x1 = pts[pts.length - 1][0];
+  return d3.range(N).map((j) => {
+    const x = lerp(x0, x1, j / (N - 1)); let s = 0;
+    while (s < pts.length - 2 && x > pts[s + 1][0]) s++;
+    const [a, b] = [pts[s], pts[s + 1]], t = b[0] === a[0] ? 0 : (x - a[0]) / (b[0] - a[0]);
+    return [x, lerp(a[1], b[1], t)];
+  });
+};
+const topEdge = (p) => { const t = p.slice(0, N); return strip(t, t); };
+const botEdge = (p) => { const b = p.slice(N).reverse(); return strip(b, b); };
+const toPath = (p) => "M" + p.map((q) => q[0].toFixed(1) + "," + q[1].toFixed(1)).join("L") + "Z";
+const FACES = ["side", "top", "front"];
+const shade = (fill, face) => face === "top" ? d3.color(fill).brighter(0.55).formatHex() : face === "side" ? d3.color(fill).darker(0.7).formatHex() : fill;
+function complete(s) {                                        // a 2D form's top and side sit on its top edge, ready to grow
+  const out = { front: s.front, top: s.top ?? topEdge(s.front), side: s.side ?? topEdge(s.front), fill: s.fill, depth: s.depth };
+  out.fills = Object.fromEntries(FACES.map((f) => [f, s.fills?.[f] ?? shade(s.fill, f)]));
+  return out;
+}
+const centroid = (p) => [d3.mean(p, (q) => q[0]), d3.mean(p, (q) => q[1])];
+
+/* ---------- Stage geometry ---------- */
+const svg = d3.select("#svg");
+const canvas = document.getElementById("canvas");
+let W = 900, H = 500;
+const M = { t: 26, r: 34, b: 54, l: 74 };
+const measure = () => {
+  const el = svg.node();                                                  // the svg's own box (on phones it is wider than the card)
+  W = el.clientWidth || canvas.clientWidth || Math.min(window.innerWidth, 1400) - 160;   // a hidden tab can report 0
+  H = el.clientHeight || canvas.clientHeight || Math.max(360, window.innerHeight - 320);
+  svg.attr("viewBox", [0, 0, W, H]);
+};
+measure();
+const defs = svg.append("defs");
+const bandRoot = svg.append("g");
+const layerRoot = svg.append("g");
+const guideRoot = svg.append("g");
+
+/* ---------- Acts: one keyed mark set each, one Mosaic client each ---------- */
+const ACT = {};
+function makeAct(name) {
+  const a = { name, rows: null, g: layerRoot.append("g").attr("class", "layer").attr("display", "none"), ctx: {}, v: 0 };
+  ACT[name] = a; return a;
+}
+["k", "cp", "c", "g"].forEach(makeAct);
+ACT.k.emph = (d) => (!picked ? 1 : pickMatch(d.family, d.fam6) ? 1 : 0.28);
+ACT.cp.emph = (d) => Math.min(!picked ? 1 : pickMatch(null, d.g) ? 1 : 0.28, inWindow(d.m) ? 1 : 0.22);
+ACT.g.emph = (d) => (inWindow(d.m) ? 1 : 0.22);
+ACT.c.emph = () => 1;
+
+/* ---------- Forms ---------- */
+const sumBy = (rows, f) => d3.sum(rows, f);
+const FORMS = {};
+const ctxOf = (act, form) => (act.ctx[form] ??= FORMS[form].prep(act));
+
+// Act I · Share (unit: family)
+FORMS["single-100-bar"] = {
+  prep(a) {
+    const rows = a.rows.slice().sort((x, y) => y.r - x.r), R = sumBy(rows, (d) => d.r) || 1;
+    const x = d3.scaleLinear([0, R], [M.l, W - M.r]); const h = Math.min(110, H * 0.24), y = H * 0.44 - h / 2;
+    let c = 0; const pos = new Map(rows.map((d) => { const p = [c, c + d.r]; c += d.r; return [d.key, p]; }));
+    return { x, y, h, R, pos, rows };
+  },
+  shape: (d, c) => { const [a, b] = c.pos.get(d.key); return { front: rectP(c.x(a), c.y, c.x(b) - c.x(a), c.h), fill: colorG(d.fam6) }; },
+  guides(g, c, t) {
+    const ax = g.selectAll("g.ax").data([0]).join("g").attr("class", "ax").attr("transform", `translate(0,${c.y + c.h + 10})`);
+    const pctScale = d3.scaleLinear([0, 1], [M.l, W - M.r]);
+    ax.call(d3.axisBottom(pctScale).ticks(4, "%").tickSizeOuter(0));
+    const labs = c.rows.filter((d) => c.x(c.pos.get(d.key)[1]) - c.x(c.pos.get(d.key)[0]) > 64);
+    const sel = g.selectAll("g.lab").data(labs, (d) => d.key).join((e) => { const n = e.append("g").attr("class", "lab"); n.append("text").attr("class", "ann"); n.append("text").attr("class", "m").attr("dy", 15); return n; });
+    sel.select(".ann").text((d) => d.family); sel.select(".m").text((d) => pct(d.r / c.R));
+    tr(sel, t).attr("transform", (d) => `translate(${c.x(c.pos.get(d.key)[0]) + 4},${c.y - 24})`);
+    const top = c.rows[0];
+    const ann = g.selectAll("g.callout").data(top ? [top] : []).join((e) => { const n = e.append("g").attr("class", "callout"); n.append("path").attr("class", "lead"); n.append("text").attr("class", "big"); return n; });
+    ann.select("text").text((d) => `${d.family}: ${pct(d.r / c.R)} of requests`);
+    tr(ann, t).attr("transform", (d) => { const [a, b] = c.pos.get(d.key); return `translate(${(c.x(a) + c.x(b)) / 2},${c.y + c.h + 58})`; });
+    ann.select("path").attr("d", `M0,-36V-8`); ann.select("text").attr("text-anchor", "middle").attr("dy", 10);
+    g.selectAll("text.note").data([0]).join("text").attr("class", "note").attr("x", M.l).attr("y", c.y - 46)
+      .text(`Share of ${big(c.R)} requests in view, by model family; grey = families outside the top five`);
+  },
+  tip: (d, c) => `<b>${d.family}</b> · ${big(d.r)} requests · ${pct(d.r / c.R)}`,
+};
+FORMS.treemap = {
+  prep(a) {
+    const R = sumBy(a.rows, (d) => d.r) || 1;
+    const root = d3.hierarchy({ children: a.rows }).sum((d) => d.r || 0).sort((x, y) => y.value - x.value);
+    d3.treemap().size([W - M.l - M.r + 40, H - M.t - M.b + 20]).paddingInner(2).tile(d3.treemapSquarify)(root);
+    const pos = new Map(root.leaves().map((l) => [l.data.key, l]));
+    const ranked = a.rows.slice().sort((x, y) => y.r - x.r);
+    return { R, pos, ranked, ox: M.l - 40, oy: M.t };
+  },
+  shape: (d, c) => { const l = c.pos.get(d.key); return { front: rectP(c.ox + l.x0, c.oy + l.y0, Math.max(0, l.x1 - l.x0), Math.max(0, l.y1 - l.y0)), fill: colorG(d.fam6) }; },
+  guides(g, c, t) {
+    const fits = c.ranked.filter((d) => { const l = c.pos.get(d.key); return l.x1 - l.x0 > 58 && l.y1 - l.y0 > 34; });
+    const sel = g.selectAll("g.tl").data(fits, (d) => d.key).join((e) => { const n = e.append("g").attr("class", "tl"); n.append("text").attr("class", "ann"); n.append("text").attr("dy", 15); return n; });
+    sel.select(".ann").text((d) => d.family).style("fill", "#fff");
+    sel.select("text:last-child").text((d) => pct(d.r / c.R)).style("fill", "#fff");
+    tr(sel, t).attr("transform", (d) => { const l = c.pos.get(d.key); return `translate(${c.ox + l.x0 + 7},${c.oy + l.y0 + 17})`; });
+    const two = c.ranked.slice(0, 2), s2 = d3.sum(two, (d) => d.r) / c.R;
+    g.selectAll("text.note").data([0]).join("text").attr("class", "note").attr("x", c.ox).attr("y", H - M.b + 40)
+      .text(`Area = requests. ${two.map((d) => `${d.family} ${pct(d.r / c.R)}`).join(" + ")} = ${pct(s2)} of ${big(c.R)} in view. Hover a tile for its value.`);
+  },
+  tip: (d, c) => `<b>${d.family}</b> · ${big(d.r)} requests · ${pct(d.r / c.R)}`,
+};
+
+// Act II · The year (unit: family × month). Requests per day of the month, so partial months compare fairly.
+const monthBand = () => d3.scaleBand(MONTHS.map((m) => m.m), [M.l, W - M.r]).paddingInner(0.2).paddingOuter(0.05);
+const groupOrder = new Map(GROUPS.map((g, i) => [g.g, i]));
+function monthAxis(g, x, y, t) {
+  const sel = g.selectAll("g.mx").data(MONTHS, (d) => d.m).join((e) => { const n = e.append("g").attr("class", "mx"); n.append("text").attr("class", "m"); n.append("text").attr("class", "note").attr("dy", 14); return n; });
+  sel.select(".m").attr("text-anchor", "middle").text((d) => (d.i === 0 || d.short === "Jan" ? `${d.short} ${String(d.year).slice(2)}` : d.short));
+  sel.select(".note").attr("text-anchor", "middle").text((d) => (d.partial ? `partial · ${d.nd} d` : ""));
+  tr(sel, t).attr("transform", (d) => `translate(${x(d.m) + x.bandwidth() / 2},${y})`);
+}
+function stackRows(a, val) {                 // cumulative extents within each month, groups in fixed order
+  const out = new Map(), tot = new Map();
+  for (const m of MONTHS) {
+    const rs = a.rows.filter((d) => d.m === m.m).sort((p, q) => groupOrder.get(p.g) - groupOrder.get(q.g));
+    let c = 0; for (const d of rs) { const v = val(d); out.set(d.key, [c, c + v]); c += v; } tot.set(m.m, c);
+  }
+  return { out, tot };
+}
+// Sequential scale: lightness runs one way from the panel color (dark → light in dark mode).
+const DARK = matchMedia("(prefers-color-scheme: dark)").matches;
+const seqColor = () => d3.interpolateRgbBasis(DARK ? [css("--panel"), "#2f4a63", "#5f93c2", "#d9e8f5"] : [d3.interpolateRgb(css("--panel"), "#a9c1d3")(0.18), "#a9c1d3", "#2b5c8a", "#10263a"]);
+FORMS["heat-cells"] = {
+  prep(a) {
+    const x = monthBand(), y = d3.scaleBand(GROUPS.map((g) => g.g), [M.t + 28, H - M.b - 10]).padding(0.1);
+    const max = d3.max(a.rows, (d) => d.rpd) || 1, col = d3.scaleSequential([0, max], seqColor());
+    return { x, y, max, col };
+  },
+  shape: (d, c) => ({ front: rectP(c.x(d.m), c.y(d.g), c.x.bandwidth(), c.y.bandwidth()), fill: c.col(d.rpd) }),
+  guides(g, c, t) {
+    monthAxis(g, c.x, H - M.b + 10, t);
+    const rows = g.selectAll("g.gy").data(GROUPS, (d) => d.g).join((e) => { const n = e.append("g").attr("class", "gy"); n.append("circle").attr("r", 4.5); n.append("text").attr("x", -10).attr("dy", 4).attr("text-anchor", "end"); return n; });
+    rows.select("circle").attr("cx", -2).attr("fill", (d) => d.color); rows.select("text").attr("x", -10).text((d) => d.g);
+    tr(rows, t).attr("transform", (d) => `translate(${M.l - 6},${c.y(d.g) + c.y.bandwidth() / 2})`);
+    legendSeq(g, c.col, c.max, "requests per day", big, t);
+    const lf = LAST_FULL && [LAST_FULL];
+    const o = g.selectAll("g.lf").data(lf || [], (d) => d.m).join((e) => { const n = e.append("g").attr("class", "lf"); n.append("rect").attr("class", "outline"); n.append("text").attr("class", "ann").attr("text-anchor", "middle"); return n; });
+    o.select("rect").attr("x", (d) => c.x(d.m) - 3).attr("y", c.y.range()[0] - 3).attr("width", c.x.bandwidth() + 6).attr("height", c.y.range()[1] - c.y.range()[0] + 6);
+    o.select("text").attr("x", (d) => c.x(d.m) + c.x.bandwidth() / 2).attr("y", c.y.range()[0] - 9).text("Last full month");
+  },
+  tip: (d) => `<b>${d.g}</b> · ${monthIdx.get(d.m).name}${monthIdx.get(d.m).partial ? " (partial)" : ""} · ${big(d.rpd)} requests a day`,
+};
+function legendSeq(g, col, max, label, fmt, t) {
+  const id = "grad-" + label.replace(/\W/g, "");
+  const gr = defs.selectAll("#" + id).data([0]).join("linearGradient").attr("id", id);
+  gr.selectAll("stop").data(d3.range(0, 1.01, 0.1)).join("stop").attr("offset", (d) => d).attr("stop-color", (d) => col(col.domain()[0] + d * (col.domain()[1] - col.domain()[0])));
+  const L = g.selectAll("g.leg").data([0]).join((e) => { const n = e.append("g").attr("class", "leg"); n.append("rect").attr("width", 160).attr("height", 9).attr("rx", 2); n.append("g").attr("class", "lx"); n.append("text").attr("class", "m").attr("y", -5); return n; });
+  L.attr("transform", `translate(${W - M.r - 160},${M.t - 14})`);
+  L.select("rect").attr("fill", `url(#${id})`);
+  L.select("text").text(label);
+  tr(L.select(".lx").attr("transform", "translate(0,9)"), t).call(d3.axisBottom(d3.scaleLinear(col.domain(), [0, 160])).ticks(3).tickFormat(fmt).tickSize(3));
+}
+
+// 3D: boxes at (month, family) with height = requests a day, from zero (show-reel.md §5).
+const SX = 1, SZ = 1.25, BW = 0.64, BD = 0.8, HW = 4.6;   // world units: month spacing, family spacing, box width, depth, tallest box
+let yaw = -0.62, pitch = -0.52;                            // radians; limits below keep the floor visible
+const YAW = [-1.25, -0.15], PITCH = [-0.95, -0.25];
+let fit3 = null;
+function view3d() {
+  const nM = MONTHS.length, nG = GROUPS.length;
+  const X = (i) => (i - (nM - 1) / 2) * SX, Z = (j) => (j - (nG - 1) / 2) * SZ;
+  const P = (x, y, z) => ({ x, y: -y, z });
+  const rot = (o) => polygons3D().origin({ x: o?.x ?? 0, y: o?.y ?? 0 }).scale(o?.s ?? 1).rotateY(yaw).rotateX(pitch);
+  if (!fit3 || fit3.W !== W || fit3.H !== H) {            // fit once per size at the default angles; dragging keeps the scale
+    const ex = X(nM - 1) + SX, ez = Z(nG - 1) + SZ;
+    const corners = [];
+    for (const x of [-ex, ex]) for (const z of [-ez, ez]) for (const y of [0, HW]) corners.push(P(x, y, z));
+    const pr = polygons3D().origin({ x: 0, y: 0 }).scale(1).rotateY(-0.62).rotateX(-0.52)([corners])[0];
+    const xs = d3.extent(pr, (p) => p.projected.x), ys = d3.extent(pr, (p) => p.projected.y);
+    const s = Math.min((W - M.l - M.r) / (xs[1] - xs[0]), (H - M.t - M.b) / (ys[1] - ys[0])) * 0.88;
+    fit3 = { W, H, s, x: (W + M.l - M.r) / 2 - s * (xs[0] + xs[1]) / 2, y: (H + M.t - M.b) / 2 - s * (ys[0] + ys[1]) / 2 + 6 };
+  }
+  const proj = rot(fit3);
+  // Which faces point at the viewer: the nearer of each pair (larger rotated z paints last, d3-3d's convention).
+  const probe = proj([[P(0, 0, 1), P(0, 0, -1), P(1, 0, 0), P(-1, 0, 0)]])[0];
+  const nearZ = probe[0].rotated.z > probe[1].rotated.z ? 1 : -1, nearX = probe[2].rotated.z > probe[3].rotated.z ? 1 : -1;
+  const pt = (x, y, z) => { const p = proj([[P(x, y, z)]])[0][0]; return [p.projected.x, p.projected.y, p.rotated.z]; };
+  function box(i, j, h) {
+    const cx = X(i), cz = Z(j), x0 = cx - BW / 2, x1 = cx + BW / 2;
+    const zf = cz + (nearZ * BD) / 2, zb = cz - (nearZ * BD) / 2, xf = cx + (nearX * BW) / 2;
+    const quads = [
+      [P(x0, h, zf), P(x1, h, zf), P(x1, 0, zf), P(x0, 0, zf)],     // front
+      [P(x0, h, zb), P(x1, h, zb), P(x1, h, zf), P(x0, h, zf)],     // top
+      [P(xf, h, zf), P(xf, h, zb), P(xf, 0, zb), P(xf, 0, zf)],     // side
+    ];
+    const pr = proj(quads).map((poly) => poly.map((p) => [p.projected.x, p.projected.y]));
+    const depth = d3.mean(proj([[P(cx, h / 2, cz)]])[0], (p) => p.rotated.z);
+    const [f, tp, sd] = pr.map((qd) => quadP(qd[0], qd[1], qd[2], qd[3]));
+    return { front: f, top: tp, side: sd, depth };
+  }
+  return { X, Z, P, box, pt, nM, nG, nearZ, nearX };
+}
+const prep3d = (a) => { const max = d3.max(a.rows, (d) => d.rpd) || 1; return { ...view3d(), max, hs: d3.scaleLinear([0, max], [0, HW]) }; };
+FORMS["3d-bars"] = {
+  prep: prep3d,
+  shape: (d, c) => { const b = c.box(d.mi, d.gi, c.hs(d.rpd)); return { front: b.front, top: b.top, side: b.side, fill: colorG(d.g), depth: b.depth }; },
+  guides(g, c, t) {
+    const ex = c.X(c.nM - 1) + SX * 0.6, ez = c.Z(c.nG - 1) + SZ * 0.6;
+    const zNear = c.nearZ * ez, zFar = -zNear, xNear = c.nearX * ex, xFar = -xNear;
+    const floor = [];
+    MONTHS.forEach((m) => floor.push([c.pt(c.X(m.i) - SX / 2, 0, -ez), c.pt(c.X(m.i) - SX / 2, 0, ez)]));
+    floor.push([c.pt(ex, 0, -ez), c.pt(ex, 0, ez)]);
+    GROUPS.forEach((gg) => floor.push([c.pt(-ex, 0, c.Z(gg.i) - SZ / 2), c.pt(ex, 0, c.Z(gg.i) - SZ / 2)]));
+    floor.push([c.pt(-ex, 0, ez), c.pt(ex, 0, ez)]);
+    g.selectAll("line.gridl").data(floor).join("line").attr("class", "gridl").attr("x1", (d) => d[0][0]).attr("y1", (d) => d[0][1]).attr("x2", (d) => d[1][0]).attr("y2", (d) => d[1][1]);
+    g.selectAll("text.mx3").data(MONTHS, (d) => d.m).join("text").attr("class", "mx3 m").attr("text-anchor", "middle")
+      .attr("transform", (d) => { const p = c.pt(c.X(d.i), 0, zNear + c.nearZ * 0.35); return `translate(${p[0]},${p[1] + 12})`; })
+      .text((d) => (d.i === 0 || d.short === "Jan" ? `${d.short} ${String(d.year).slice(2)}` : d.short) + (d.partial ? "*" : ""));
+    g.selectAll("text.gz3").data(GROUPS, (d) => d.g).join("text").attr("class", "gz3").attr("text-anchor", c.nearX > 0 ? "start" : "end")
+      .attr("transform", (d) => { const p = c.pt(xNear + c.nearX * 0.3, 0, c.Z(d.i)); return `translate(${p[0] + c.nearX * 4},${p[1] + 4})`; })
+      .style("fill", (d) => d.color).style("font-weight", 600).text((d) => d.g);
+    // Height axis on the far corner: linear from zero.
+    const ticks = c.hs.ticks(4);
+    const base = (v) => c.pt(xFar, c.hs(v), zFar);
+    g.selectAll("line.hax").data([0]).join("line").attr("class", "lead hax").attr("x1", base(0)[0]).attr("y1", base(0)[1]).attr("x2", base(c.hs.invert(HW))[0]).attr("y2", base(c.hs.invert(HW))[1]);
+    const tk = g.selectAll("g.ht").data(ticks, (d) => d).join((e) => { const n = e.append("g").attr("class", "ht"); n.append("text").attr("class", "m").attr("text-anchor", "end").attr("dx", -6).attr("dy", 4); n.append("line").attr("class", "lead").attr("x2", -4); return n; });
+    tk.select("text").text((d) => big(d)); tr(tk, t).attr("transform", (d) => `translate(${base(d)[0]},${base(d)[1]})`);
+    const ttl = base(c.hs.invert(HW));
+    g.selectAll("text.hl").data([0]).join("text").attr("class", "hl note").attr("x", ttl[0] - 6).attr("y", ttl[1] - 12).attr("text-anchor", "end").text("requests per day, from 0");
+    // The peak month, from the data in view.
+    const totals = d3.rollups(ACT.cp.rows, (v) => d3.sum(v, (d) => d.rpd), (d) => d.m).sort((a, b) => b[1] - a[1]);
+    const peak = totals[0];
+    if (peak && peak[1] > 0) {
+      const m = monthIdx.get(peak[0]); const tall = d3.max(ACT.cp.rows.filter((d) => d.m === peak[0]), (d) => d.rpd);
+      const p = c.pt(c.X(m.i), c.hs(tall), c.Z(0) - c.nearZ * 0.5);
+      const a = g.selectAll("g.pk").data([peak]).join((e) => { const n = e.append("g").attr("class", "pk"); n.append("path").attr("class", "lead"); n.append("text").attr("class", "big").attr("text-anchor", "middle"); return n; });
+      a.attr("transform", `translate(${p[0]},${Math.max(M.t + 30, p[1] - 34)})`);
+      a.select("path").attr("d", `M0,6V${Math.max(8, p[1] - Math.max(M.t + 30, p[1] - 34) - 4)}`);
+      a.select("text").text(`Peak month: ${m.name}, ${big(peak[1])} a day`);
+    } else g.selectAll("g.pk").remove();
+    g.selectAll("text.drag").data([0]).join("text").attr("class", "drag note").attr("x", M.l - 50).attr("y", H - 12)
+      .text("Drag to orbit · hover a box for its value · * partial month (requests a day of the days present)");
+  },
+  tip: (d) => `<b>${d.g}</b> · ${monthIdx.get(d.m).name}${monthIdx.get(d.m).partial ? " (partial)" : ""} · ${big(d.rpd)} requests a day`,
+  orbit: true,
+};
+// Intermediate forms for heat cells ↔ 3D: first move onto the floor, then rise, then recolor (one change at a time).
+FORMS["3d-floor-heat"] = {
+  prep: (a) => ({ v: prep3d(a), heat: FORMS["heat-cells"].prep(a) }),
+  shape: (d, c) => { const b = c.v.box(d.mi, d.gi, 0), f = c.heat.col(d.rpd); return { front: b.front, top: b.top, side: b.side, fill: f, fills: { top: f }, depth: b.depth }; },
+};
+FORMS["3d-rise-heat"] = {
+  prep: (a) => ({ v: prep3d(a), heat: FORMS["heat-cells"].prep(a) }),
+  shape: (d, c) => { const b = c.v.box(d.mi, d.gi, c.v.hs(d.rpd)), f = c.heat.col(d.rpd); return { front: b.front, top: b.top, side: b.side, fill: f, depth: b.depth }; },
+};
+function stackedPrep(a, val, norm) {
+  const x = monthBand(), { out, tot } = stackRows(a, val);
+  const max = norm ? 1 : d3.max([...tot.values()]) || 1;
+  const y = d3.scaleLinear([0, max], [H - M.b, M.t + 30]); if (!norm) y.nice();
+  const v = (d, k) => (norm ? (tot.get(d.m) ? out.get(d.key)[k] / tot.get(d.m) : 0) : out.get(d.key)[k]);
+  return { x, y, out, tot, v, norm };
+}
+function legendGroups(g) {
+  const L = g.selectAll("g.lg").data(GROUPS, (d) => d.g).join((e) => { const n = e.append("g").attr("class", "lg"); n.append("rect").attr("width", 10).attr("height", 10).attr("rx", 2).attr("y", -9); n.append("text").attr("x", 14); return n; });
+  L.select("rect").attr("fill", (d) => d.color); L.select("text").text((d) => d.g);
+  const ws = []; L.each(function () { ws.push(this.getBBox().width + 16); });
+  const total = d3.sum(ws);
+  if (total < W - M.l - M.r - 260) {                 // one row, right-aligned, beside the axis label
+    let x = W - M.r - total; L.attr("transform", (d, i) => { const at = x; x += ws[i]; return `translate(${at},${M.t - 6})`; });
+    return 0;
+  }
+  let x = 8, y = M.t - 10; const pos = ws.map((w) => { if (x + w > W - 8) { x = 8; y += 14; } const at = [x, y]; x += w; return at; });
+  L.attr("transform", (d, i) => `translate(${pos[i][0]},${pos[i][1]})`);
+  return y - (M.t - 10) + 16;                        // extra height the wrapped legend takes
+}
+function stackedGuides(g, c, t, fmt, label) {
+  const ax = g.selectAll("g.yax").data([0]).join("g").attr("class", "yax").attr("transform", `translate(${M.l - 8},0)`);
+  tr(ax, t).call(d3.axisLeft(c.y).ticks(5, fmt).tickSizeOuter(0));
+  const extra = legendGroups(g);
+  g.selectAll("text.yl").data([0]).join("text").attr("class", "yl m").attr("x", extra ? 8 : M.l - 8).attr("y", M.t - 6 + extra).attr("text-anchor", "start").text(label);
+  monthAxis(g, c.x, H - M.b + 18, t);
+}
+FORMS["stacked-bars"] = {
+  prep: (a) => stackedPrep(a, (d) => d.rpd, false),
+  shape: (d, c) => { const y0 = c.y(c.v(d, 0)), y1 = c.y(c.v(d, 1)); return { front: rectP(c.x(d.m), y1, c.x.bandwidth(), y0 - y1), fill: colorG(d.g) }; },
+  guides(g, c, t) {
+    stackedGuides(g, c, t, "~s", "requests per day (all families in view, stacked)");
+    const part = MONTHS.filter((m) => m.partial);
+    const pp = g.selectAll("rect.dash").data(part, (d) => d.m).join("rect").attr("class", "dash");
+    tr(pp, t).attr("x", (d) => c.x(d.m) - 2).attr("width", c.x.bandwidth() + 4).attr("y", (d) => c.y(c.tot.get(d.m)) - 2).attr("height", (d) => c.y(0) - c.y(c.tot.get(d.m)) + 2);
+    const pl = g.selectAll("text.pl").data(part, (d) => d.m).join("text").attr("class", "pl note").attr("text-anchor", "middle").text((d) => `partial: ${d.nd} days`);
+    tr(pl, t).attr("x", (d) => c.x(d.m) + c.x.bandwidth() / 2).attr("y", (d) => c.y(c.tot.get(d.m)) - 8);
+    const ends = [FIRST_FULL, LAST_FULL].filter(Boolean);
+    const el = g.selectAll("text.end").data(ends, (d) => d.m).join("text").attr("class", "end ann").attr("text-anchor", "middle").text((d) => big(c.tot.get(d.m)));
+    tr(el, t).attr("x", (d) => c.x(d.m) + c.x.bandwidth() / 2).attr("y", (d) => c.y(c.tot.get(d.m)) - 8);
+  },
+  tip: (d) => `<b>${d.g}</b> · ${monthIdx.get(d.m).name}${monthIdx.get(d.m).partial ? " (partial)" : ""} · ${big(d.rpd)} requests a day`,
+};
+function shareLabels(g, c, t, measure) {    // first and last full month: the two groups the title compares, from the data
+  const at = (m) => ACT.cp.rows.filter((d) => d.m === m.m && c.tot.get(m.m)).map((d) => ({ g: d.g, s: (c.out.get(d.key)[1] - c.out.get(d.key)[0]) / c.tot.get(m.m) }));
+  const lead = (m) => d3.greatest(at(m), (d) => d.s)?.g;
+  const pair = [...new Set([lead(LAST_FULL), lead(FIRST_FULL)].filter(Boolean))];
+  const items = [FIRST_FULL, LAST_FULL].filter(Boolean).map((m) => ({ m, txt: pair.map((gname) => `${gname} ${pct0(at(m).find((d) => d.g === gname)?.s ?? 0)}`).join(", ") }));
+  const sel = g.selectAll("g.sl").data(items, (d) => d.m.m).join((e) => { const n = e.append("g").attr("class", "sl"); n.append("path").attr("class", "lead"); n.append("text").attr("class", "ann").attr("text-anchor", "middle"); return n; });
+  sel.select("text").text((d) => `${d.m.short} ${String(d.m.year).slice(2)}: ${d.txt}${measure}`);
+  tr(sel, t).attr("transform", (d) => `translate(${c.x(d.m.m) + c.x.bandwidth() / 2},${M.t + 14})`);
+  sel.select("path").attr("d", "M0,4V15");
+}
+FORMS["stacked-bars-100"] = {
+  prep: (a) => stackedPrep(a, (d) => d.r, true),
+  shape: (d, c) => { const y0 = c.y(c.v(d, 0)), y1 = c.y(c.v(d, 1)); return { front: rectP(c.x(d.m), y1, c.x.bandwidth(), y0 - y1), fill: colorG(d.g) }; },
+  guides(g, c, t) { stackedGuides(g, c, t, "%", "share of requests in each month"); shareLabels(g, c, t, ""); },
+  tip: (d, c) => `<b>${d.g}</b> · ${monthIdx.get(d.m).name} · ${pct(c.v(d, 1) - c.v(d, 0))} of requests`,
+};
+FORMS["stacked-100"] = {
+  prep: (a) => stackedPrep(a, (d) => d.tok, true),
+  shape(d, c) {                                  // a slice of the 100% area; edges meet the neighbouring months halfway
+    const i = monthIdx.get(d.m).i, n = MONTHS.length, cx = (k) => c.x(MONTHS[k].m) + c.x.bandwidth() / 2;
+    const key = (k) => MONTHS[k].m + "|" + d.g;
+    const val = (k, e) => { const kk = key(k); const tt = c.tot.get(MONTHS[k].m); return tt && c.out.get(kk) ? c.out.get(kk)[e] / tt : 0; };
+    const xl = i === 0 ? c.x(MONTHS[0].m) : (cx(i - 1) + cx(i)) / 2, xr = i === n - 1 ? c.x(MONTHS[n - 1].m) + c.x.bandwidth() : (cx(i) + cx(i + 1)) / 2;
+    const edge = (e) => {
+      const v = val(i, e), vl = i === 0 ? v : (val(i - 1, e) + v) / 2, vr = i === n - 1 ? v : (val(i + 1, e) + v) / 2;
+      return polyAt([[xl, c.y(vl)], [cx(i), c.y(v)], [xr, c.y(vr)]]);
+    };
+    return { front: strip(edge(1), edge(0)), fill: colorG(d.g) };
+  },
+  guides(g, c, t) { stackedGuides(g, c, t, "%", "share of tokens (input + output) in each month"); shareLabels(g, c, t, " of tokens"); },
+  tip: (d, c) => `<b>${d.g}</b> · ${monthIdx.get(d.m).name} · ${pct(c.v(d, 1) - c.v(d, 0))} of tokens`,
+  layerClass: "solid",
+};
+
+// Act III · The clock (unit: hour of the trace clock)
+const hourBand = () => d3.scaleBand(d3.range(24), [M.l, W - M.r]).paddingInner(0.22);
+function hourAxis(g, x, t) {
+  const ax = g.selectAll("g.hx").data([0]).join("g").attr("class", "hx").attr("transform", `translate(0,${H - M.b + 4})`);
+  tr(ax, t).call(d3.axisBottom(x).tickValues(d3.range(0, 24, 2)).tickFormat(hh).tickSizeOuter(0));
+  g.selectAll("text.hxl").data([0]).join("text").attr("class", "hxl m").attr("x", W - M.r).attr("y", H - M.b + 38).attr("text-anchor", "end").text("hour of the trace clock (timezone not stated)");
+}
+const barsPrep = (a) => {
+  const x = hourBand(), y = d3.scaleLinear([0, d3.max(a.rows, (d) => d.r) || 1], [H - M.b, M.t + 30]).nice();
+  const live = a.rows.filter((d) => d.r > 0);
+  return { x, y, hi: d3.greatest(live, (d) => d.r), lo: d3.least(live, (d) => d.r) };
+};
+const dotPrep = (a) => {
+  const live = a.rows.filter((d) => d.nt > 0);
+  const ext = d3.extent(live, (d) => d.ttft); const pad = ((ext[1] - ext[0]) || 0.1) * 0.25;
+  const y = d3.scaleLinear([ext[0] - pad, ext[1] + pad], [H - M.b, M.t + 30]).nice();
+  return { x: hourBand(), y, hi: d3.greatest(live, (d) => d.ttft), lo: d3.least(live, (d) => d.ttft) };
+};
+const hlColor = (d, c) => (d === c.hi || d === c.lo ? css("--focus") : css("--other"));
+FORMS.bars = {
+  prep: barsPrep,
+  shape: (d, c) => ({ front: rectP(c.x(d.h), c.y(d.r), c.x.bandwidth(), c.y(0) - c.y(d.r)), fill: hlColor(d, c) }),
+  guides(g, c, t) {
+    hourAxis(g, c.x, t);
+    const ax = g.selectAll("g.yax").data([0]).join("g").attr("class", "yax").attr("transform", `translate(${M.l - 6},0)`);
+    tr(ax, t).call(d3.axisLeft(c.y).ticks(5, "~s").tickSizeOuter(0));
+    g.selectAll("text.yl").data([0]).join("text").attr("class", "yl m").attr("x", M.l - 6).attr("y", M.t + 16).text("requests in the dates in view, from 0");
+    const items = [c.hi && { d: c.hi, txt: `Busiest ${hh(c.hi.h)}: ${big(c.hi.r)}` }, c.lo && { d: c.lo, txt: `Quietest ${hh(c.lo.h)}: ${big(c.lo.r)}` }].filter(Boolean);
+    const sel = g.selectAll("text.ann").data(items, (d) => d.txt.split(" ")[0]).join("text").attr("class", "ann").attr("text-anchor", "middle").text((d) => d.txt);
+    tr(sel, t).attr("x", (d) => c.x(d.d.h) + c.x.bandwidth() / 2).attr("y", (d) => c.y(d.d.r) - 8);
+    g.selectAll("text.note").data([0]).join("text").attr("class", "note").attr("x", M.l).attr("y", M.t + 30)
+      .text(c.hi && c.lo ? `${hh(c.hi.h)} carries ${pct(c.hi.r / c.lo.r - 1)} more requests than ${hh(c.lo.h)}` : "");
+  },
+  tip: (d) => `<b>${hh(d.h)}</b> · ${big(d.r)} requests`,
+};
+FORMS["bar-dots"] = {                              // bars collapse to dots where their tops were, then the dots move to the new axis
+  prep: barsPrep,
+  shape: (d, c) => ({ front: circleP(c.x(d.h) + c.x.bandwidth() / 2, c.y(d.r), 6), fill: hlColor(d, c) }),
+};
+FORMS["dot-plot"] = {
+  prep: dotPrep,
+  shape: (d, c) => ({ front: circleP(c.x(d.h) + c.x.bandwidth() / 2, d.nt > 0 ? c.y(d.ttft) : c.y.range()[0], d.nt > 0 ? 6.5 : 0), fill: hlColor(d, c) }),
+  guides(g, c, t) {
+    hourAxis(g, c.x, t);
+    const ax = g.selectAll("g.yax").data([0]).join("g").attr("class", "yax").attr("transform", `translate(${M.l - 6},0)`);
+    tr(ax, t).call(d3.axisLeft(c.y).ticks(5).tickFormat((v) => v.toFixed(2) + " s").tickSizeOuter(0).tickSizeInner(-(W - M.l - M.r)));
+    ax.selectAll(".tick line").attr("stroke", css("--rule")).attr("stroke-opacity", 0.7);
+    g.selectAll("text.yl").data([0]).join("text").attr("class", "yl m").attr("x", M.l - 6).attr("y", M.t + 16)
+      .text(`time to first token, streamed requests only · axis starts at ${c.y.domain()[0].toFixed(2)} s, not zero`);
+    const items = [c.hi && { d: c.hi, txt: `Slowest ${hh(c.hi.h)}: ${secs(c.hi.ttft)}`, dy: -14 }, c.lo && { d: c.lo, txt: `Fastest ${hh(c.lo.h)}: ${secs(c.lo.ttft)}`, dy: 22 }].filter(Boolean);
+    const sel = g.selectAll("text.ann").data(items, (d) => d.txt.split(" ")[0]).join("text").attr("class", "ann").attr("text-anchor", "middle").text((d) => d.txt);
+    tr(sel, t).attr("x", (d) => c.x(d.d.h) + c.x.bandwidth() / 2).attr("y", (d) => c.y(d.d.ttft) + d.dy);
+  },
+  tip: (d) => `<b>${hh(d.h)}</b> · ${d.nt > 0 ? secs(d.ttft) : "no streamed requests"} · ${big(d.nt)} streamed requests`,
+};
+
+// Act IV · Rhythm (unit: month × hour). Share of the month's requests in each hour.
+const isHL = (m) => m === FIRST_FULL?.m || m === LAST_FULL?.m;
+const gFill = (d) => (isHL(d.m) ? css("--focus") : monthIdx.get(d.m).partial ? d3.color(css("--other")).brighter(0.4).formatHex() : css("--other"));
+// Ridgeline rows overlap, so each grey row gets its own step of lightness and its edge shows against the next.
+const ridgeFill = (d) => { if (isHL(d.m)) return css("--focus"); const i = monthIdx.get(d.m).i, o = d3.hsl(css("--other")); return d3.hsl(o.h, o.s, Math.max(0.15, Math.min(0.85, o.l + (DARK ? -0.16 : 0.16) + ((DARK ? 0.24 : -0.24) * i) / (MONTHS.length - 1)))).formatHex(); };
+function hourPts(c, d, xOf, yOf) {               // the mark's slice of its month's curve: halfway to each neighbouring hour
+  const v = (h) => c.share.get(d.m + "|" + h) ?? 0, s = v(d.h);
+  const vl = d.h === 0 ? s : (v(d.h - 1) + s) / 2, vr = d.h === 23 ? s : (v(d.h + 1) + s) / 2;
+  const xl = d.h === 0 ? xOf(0) : (xOf(d.h - 1) + xOf(d.h)) / 2, xr = d.h === 23 ? xOf(23) : (xOf(d.h) + xOf(d.h + 1)) / 2;
+  return [[xl, yOf(vl)], [xOf(d.h), yOf(s)], [xr, yOf(vr)]];
+}
+function gPrep(a) {
+  const tot = d3.rollup(a.rows, (v) => d3.sum(v, (d) => d.r), (d) => d.m);
+  const share = new Map(a.rows.map((d) => [d.key, tot.get(d.m) ? d.r / tot.get(d.m) : 0]));
+  const max = d3.max([...share.values()]) || 0.01, min = d3.min([...share.values()].filter((v) => v > 0)) || 0;
+  const byMonth = MONTHS.map((m) => {
+    const rs = d3.range(24).map((h) => ({ h, s: share.get(m.m + "|" + h) ?? 0 }));
+    const hi = d3.greatest(rs, (d) => d.s), lo = d3.least(rs, (d) => d.s);
+    const aft = AFT ? d3.sum(rs.filter((d) => d.h >= AFT[0] && d.h <= AFT[1]), (d) => d.s) : null;
+    return { m, hi, lo, ratio: lo?.s ? hi.s / lo.s : NaN, aft };
+  });
+  return { tot, share, max, min, byMonth };
+}
+FORMS["small-multiple-lines"] = {
+  prep(a) {
+    const b = gPrep(a), n = MONTHS.length, cols = W > 980 ? 7 : W > 640 ? 5 : 3, rows = Math.ceil(n / cols);
+    const gx = 18, gy = 34, pw = (W - M.l + 30 - M.r - gx * (cols - 1)) / cols, ph = Math.min(240, (H - M.t - M.b - 10 - gy * (rows - 1)) / rows);
+    const panel = (i) => ({ x: M.l - 30 + (i % cols) * (pw + gx), y: M.t + 26 + Math.floor(i / cols) * (ph + gy) });
+    const y = (v, i) => panel(i).y + ph - (v / b.max) * ph;     // shared y from zero
+    return { ...b, pw, ph, panel, y };
+  },
+  shape(d, c) {
+    const i = monthIdx.get(d.m).i, p = c.panel(i), xOf = (h) => p.x + (h / 23) * c.pw;
+    const pts = hourPts(c, d, xOf, (v) => c.y(v, i));
+    return { front: strip(polyAt(pts.map(([x, y]) => [x, y - 1.3])), polyAt(pts.map(([x, y]) => [x, y + 1.3]))), fill: gFill(d) };
+  },
+  guides(g, c, t) {
+    const P = g.selectAll("g.pn").data(c.byMonth, (d) => d.m.m).join((e) => { const n = e.append("g").attr("class", "pn"); n.append("line").attr("class", "gridl"); n.append("text").attr("class", "pt").attr("y", -6); n.append("text").attr("class", "note pr").attr("text-anchor", "end").attr("y", -6); return n; });
+    P.attr("transform", (d) => `translate(${c.panel(d.m.i).x},${c.panel(d.m.i).y})`);
+    P.select("line").attr("y1", c.ph).attr("y2", c.ph).attr("x2", c.pw);
+    P.select(".pt").attr("class", (d) => "pt" + (isHL(d.m.m) ? " ann" : " m")).text((d) => d.m.short + " " + String(d.m.year).slice(2) + (d.m.partial ? " · partial" : ""));
+    P.select(".pr").attr("x", c.pw).text((d) => (isHL(d.m.m) && isFinite(d.ratio) ? `${d.ratio.toFixed(2)}× peak/trough` : ""));
+    g.selectAll("text.note.top").data([0]).join("text").attr("class", "note top").attr("x", M.l - 30).attr("y", M.t + 2)
+      .text(`Shared y-scale from 0 to ${pct(c.max)} of the month's requests per hour · x: 00:00–23:00 on the trace clock`);
+  },
+  tip: (d, c) => `<b>${monthIdx.get(d.m).name}</b> · ${hh(d.h)} · ${pct(c.share.get(d.key) ?? 0)} of the month's requests`,
+  layerClass: "thin",
+};
+FORMS.ridgeline = {
+  prep(a) {
+    const b = gPrep(a), n = MONTHS.length;
+    const top = M.t + 30, step = (H - M.b - top) / (n + 1.2), amp = step * 1.9;
+    const x = d3.scaleLinear([0, 23], [M.l + 20, W - M.r - 20]);
+    const base = (i) => top + step * (i + 2);
+    return { ...b, x, base, amp, step, top };
+  },
+  shape(d, c) {
+    const i = monthIdx.get(d.m).i, b0 = c.base(i), yOf = (v) => b0 - (v / c.max) * c.amp;   // area from each row's zero line
+    const pts = hourPts(c, d, c.x, yOf);
+    return { front: strip(polyAt(pts), polyAt(pts.map(([x]) => [x, b0]))), fill: ridgeFill(d) };
+  },
+  guides(g, c, t) {
+    const band = AFT ? [AFT] : [];
+    g.selectAll("rect.band").data(band).join("rect").attr("class", "band").attr("x", (d) => c.x(d[0] - 0.5)).attr("width", (d) => c.x(d[1] + 0.5) - c.x(d[0] - 0.5)).attr("y", c.top).attr("height", H - M.b - c.top).lower();
+    g.selectAll("text.bl").data(band).join("text").attr("class", "bl m").attr("x", (d) => c.x(d[0] - 0.5) + 4).attr("y", c.top + 10).text((d) => `${hh(d[0])}–${hh(d[1] + 1 > 23 ? d[1] : d[1])}`);
+    const R = g.selectAll("g.rw").data(c.byMonth, (d) => d.m.m).join((e) => { const n = e.append("g").attr("class", "rw"); n.append("text").attr("class", "rl").attr("text-anchor", "end").attr("dy", -2); n.append("text").attr("class", "ra ann").attr("dy", -2); return n; });
+    tr(R, t).attr("transform", (d) => `translate(0,${c.base(d.m.i)})`);
+    R.select(".rl").attr("x", M.l + 12).attr("class", (d) => "rl " + (isHL(d.m.m) ? "ann" : "m")).text((d) => d.m.short + " " + String(d.m.year).slice(2) + (d.m.partial ? "*" : ""));
+    R.select(".ra").attr("x", W - M.r - 16).attr("text-anchor", "end").text((d) => (isHL(d.m.m) && d.aft != null ? `${pct(d.aft)} in ${hh(AFT[0])}–${hh(AFT[1])}` : ""));
+    const ax = g.selectAll("g.hx").data([0]).join("g").attr("class", "hx").attr("transform", `translate(0,${H - M.b + 4})`);
+    ax.call(d3.axisBottom(c.x).tickValues(d3.range(0, 24, 3)).tickFormat(hh).tickSizeOuter(0));
+    g.selectAll("text.note.top").data([0]).join("text").attr("class", "note top").attr("x", M.l - 30).attr("y", M.t + 2)
+      .text(`Each row's area starts at its own zero line; peak height = ${pct(c.max)} of a month's requests · * partial month · ${hh(AFT?.[0] ?? 0)}–${hh(AFT?.[1] ?? 0)} counts whole hours ${AFT?.[0]} through ${AFT?.[1]}`);
+  },
+  tip: (d, c) => `<b>${monthIdx.get(d.m).name}</b> · ${hh(d.h)} · ${pct(c.share.get(d.key) ?? 0)} of the month's requests`,
+  layerClass: "solid",
+};
+FORMS.heatmap = {
+  prep(a) {
+    const b = gPrep(a);
+    const x = d3.scaleBand(d3.range(24), [M.l + 20, W - M.r]).padding(0.06), y = d3.scaleBand(MONTHS.map((m) => m.m), [M.t + 30, H - M.b]).padding(0.08);
+    const col = d3.scaleSequential([b.min, b.max], seqColor());
+    // The month whose busiest hour lies farthest from the typical (median) busiest hour, computed.
+    const full = b.byMonth.filter((r) => !r.m.partial && r.hi);
+    const med = d3.median(full, (r) => r.hi.h);
+    const odd = d3.greatest(full, (r) => Math.min(Math.abs(r.hi.h - med), 24 - Math.abs(r.hi.h - med)));
+    return { ...b, x, y, col, odd };
+  },
+  shape: (d, c) => ({ front: rectP(c.x(d.h), c.y(d.m), c.x.bandwidth(), c.y.bandwidth()), fill: c.col(c.share.get(d.key) ?? 0) }),
+  guides(g, c, t) {
+    const ax = g.selectAll("g.hx").data([0]).join("g").attr("class", "hx").attr("transform", `translate(0,${H - M.b + 2})`);
+    ax.call(d3.axisBottom(c.x).tickValues(d3.range(0, 24, 2)).tickFormat(hh).tickSizeOuter(0));
+    const rl = g.selectAll("text.rl").data(MONTHS, (d) => d.m).join("text").attr("class", "rl m").attr("text-anchor", "end").attr("dy", 4);
+    rl.attr("x", M.l + 14).attr("y", (d) => c.y(d.m) + c.y.bandwidth() / 2).text((d) => d.short + " " + String(d.year).slice(2) + (d.partial ? "*" : ""));
+    const pk = g.selectAll("rect.outline").data(c.byMonth.filter((r) => r.hi && r.hi.s > 0), (d) => d.m.m).join("rect").attr("class", "outline");
+    tr(pk, t).attr("x", (d) => c.x(d.hi.h)).attr("y", (d) => c.y(d.m.m)).attr("width", c.x.bandwidth()).attr("height", c.y.bandwidth());
+    legendSeq(g, c.col, c.max, "share of the month's requests", d3.format(".1%"), t);
+    const odd = c.odd ? [c.odd] : [];
+    const o = g.selectAll("text.odd").data(odd).join("text").attr("class", "odd ann").attr("dy", 4);
+    o.attr("x", (d) => c.x(d.hi.h) + c.x.bandwidth() + 6).attr("y", (d) => c.y(d.m.m) + c.y.bandwidth() / 2).text((d) => `${d.m.short}: busiest at ${hh(d.hi.h)}`);
+    g.selectAll("text.note.top").data([0]).join("text").attr("class", "note top").attr("x", M.l - 30).attr("y", M.t + 2).text("Outlined: each month's busiest hour · * partial month");
+  },
+  tip: (d, c) => `<b>${monthIdx.get(d.m).name}</b> · ${hh(d.h)} · ${pct(c.share.get(d.key) ?? 0)} of the month's requests`,
+};
+const tr = (sel, t) => (t ? sel.transition(t) : sel);
+
+/* ---------- Running forms on an act ---------- */
+function staggerDelays(shapes) {                 // seed stagger "centre-out": marks nearest the stage centre move first
+  const dist = shapes.map((s) => { const [x, y] = centroid(s.front); return Math.hypot(x - W / 2, y - H / 2); });
+  const order = d3.range(shapes.length).sort((a, b) => dist[a] - dist[b]);
+  const per = Math.min(8, 420 / Math.max(1, shapes.length)), out = new Array(shapes.length);
+  order.forEach((idx, r) => (out[idx] = r * per));
+  return out;
+}
+function run(act, steps, { stagger = false, initFrom = null } = {}) {
+  const rows = act.rows;
+  const shapes = steps.map((s) => rows.map((d) => complete(FORMS[s.form].shape(d, ctxOf(act, s.form)))));
+  const delays = stagger && !REDUCED ? staggerDelays(shapes[shapes.length - 1]) : rows.map(() => 0);
+  const last = shapes[shapes.length - 1];
+  const marks = act.g.selectAll("g.mark").data(rows, (d) => d.key).join((e) => {
+    const g = e.append("g").attr("class", "mark");
+    FACES.forEach((f) => g.append("path").attr("class", f));
+    return g;
+  });
+  marks.each(function (d, i) {
+    const g = d3.select(this);
+    FACES.forEach((f) => {
+      const p = g.select("." + f), node = p.node();
+      if (!node.__pts) { node.__pts = initFrom === "base" ? botEdge(shapes[0][i][f === "front" ? "front" : f]) : shapes[0][i][f]; p.attr("d", toPath(node.__pts)).attr("fill", shapes[0][i].fills[f]); }
+      let tsel = p;
+      steps.forEach((s, si) => {
+        const to = shapes[si][i][f];
+        tsel = tsel.transition().duration(s.ms).delay(si === 0 ? delays[i] : 0).ease(s.ease ?? EASE)
+          .attrTween("d", function () { const it = d3.interpolateArray(this.__pts, to); return (tt) => { this.__pts = it(tt); return toPath(this.__pts); }; })
+          .attr("fill", shapes[si][i].fills[f]);
+      });
+    });
+  });
+  const deepest = [...shapes].reverse().find((sh) => sh[0]?.depth !== undefined);   // a 3D step: paint back to front
+  if (deepest) {
+    const dep = new Map(rows.map((d, i) => [d.key, deepest[i].depth]));
+    marks.sort((a, b) => dep.get(a.key) - dep.get(b.key));   // back to front
+  }
+  emphasize(act, 0);
+}
+function collapse(act, ms) {                     // between acts: marks shrink to their baseline, then the layer hides
+  const marks = act.g.selectAll("g.mark");
+  let pending = 0;
+  marks.selectAll("path").each(function () {
+    const to = botEdge(this.__pts ?? []); pending++;
+    d3.select(this).transition().duration(ms).ease(d3.easeCubicIn)
+      .attrTween("d", function () { const it = d3.interpolateArray(this.__pts, to); return (tt) => { this.__pts = it(tt); return toPath(this.__pts); }; })
+      .on("end interrupt", () => { if (--pending === 0 && act !== ACT[scene.act]) act.g.attr("display", "none"); });
+  });
+  if (!pending) act.g.attr("display", "none");
+}
+function emphasize(act, ms = T(250)) {
+  act.g.selectAll("g.mark").transition("emph").duration(ms).attr("opacity", (d) => act.emph(d));
+}
+
+/* ---------- Scenes and guides ---------- */
+let si = 0, scene = SCENES[0], shown = null;
+const VIA = { "heat-cells>3d-bars": ["3d-floor-heat", "3d-rise-heat"], "3d-bars>heat-cells": ["3d-rise-heat", "3d-floor-heat"],
+              "bars>dot-plot": ["bar-dots"], "dot-plot>bars": ["bar-dots"] };
+const guideG = (key) => guideRoot.selectAll(`g.guide[data-k="${key}"]`).data([key]).join("g").attr("class", "guide").attr("data-k", key);
+function drawGuides(t) {
+  const f = FORMS[scene.form], a = ACT[scene.act];
+  if (!a.rows || !f.guides) return;
+  f.guides(guideG(scene.key), ctxOf(a, scene.form), t);
+  drawBand();
+}
+function showScene(i, { instant = false } = {}) {
+  si = (i + SCENES.length) % SCENES.length;
+  const prev = shown; scene = SCENES[si];
+  const a = ACT[scene.act];
+  history.replaceState(null, "", "#" + scene.key);
+  document.getElementById("act").textContent = `${ACTS[scene.act]} · scene ${si + 1} of ${SCENES.length}`;
+  document.getElementById("title").textContent = scene.title;
+  document.getElementById("caption").textContent = scene.caption;
+  document.getElementById("count").textContent = `${si + 1} / ${SCENES.length}`;
+  d3.selectAll(".sc").classed("on", (d) => d.key === scene.key).attr("aria-current", (d) => (d.key === scene.key ? "step" : null));
+  svg.classed("orbit", !!FORMS[scene.form].orbit);
+  updateScope();
+  tip.style.opacity = 0;
+  if (!a.rows) return;                           // data not back yet; the client draws when it arrives
+  // Old guides fade out first; new guides fade in last.
+  guideRoot.selectAll("g.guide").filter(function () { return this.dataset.k !== scene.key; })
+    .transition().duration(T(300)).attr("opacity", 0).remove();
+  const ms = instant ? 0 : T(TEMPO);
+  a.g.attr("display", null).attr("class", "layer " + (FORMS[scene.form].layerClass ?? "") + (scene.act === "k" || scene.act === "cp" ? " clickable" : ""));
+  let total = ms;
+  if (prev && prev.act !== scene.act && !instant) {
+    collapse(ACT[prev.act], T(500));
+    a.g.selectAll("g.mark").remove();            // the next act grows in from its baseline
+    a.g.selectAll("g.mark path").each(function () { this.__pts = null; });
+    setTimeout(() => { if (scene === SCENES[si] && ACT[scene.act] === a) run(a, [{ form: scene.form, ms }], { stagger: true, initFrom: "base" }); }, T(450));
+    total = T(450) + ms;
+  } else if (!prev || instant) {
+    Object.values(ACT).forEach((o) => o !== a && o.g.attr("display", "none"));
+    run(a, [{ form: scene.form, ms: instant ? 0 : ms }], { stagger: !instant, initFrom: "base" });
+  } else {
+    const via = VIA[`${prev.form}>${scene.form}`] ?? [];
+    const steps = [...via, scene.form].map((form) => ({ form, ms: via.length ? Math.round(ms * 0.62) : ms }));
+    run(a, steps, { stagger: true });
+    total = d3.sum(steps, (s) => s.ms);
+  }
+  shown = scene;
+  const g = guideG(scene.key); g.interrupt().selectAll("*").remove();
+  drawGuides(null);
+  g.attr("opacity", 0).transition().delay(Math.max(0, total * 0.75)).duration(T(400)).attr("opacity", 1);
+}
+
+/* ---------- Ring of scene icons ---------- */
+for (const actName of Object.keys(ACTS)) {
+  const ring = d3.select(`.ring[data-act="${actName}"]`);
+  ring.append("span").attr("class", "actname").text(ACTS[actName].split(" · ")[1]);
+  ring.selectAll("button.sc").data(SCENES.filter((s) => s.act === actName)).join("button").attr("class", "sc").attr("type", "button")
+    .attr("title", (d) => d.short).attr("aria-label", (d) => `Scene ${SCENES.indexOf(d) + 1}: ${d.short}`)
+    .html((d) => `<i class="ti ${d.icon}" aria-hidden="true"></i><span class="lab">${d.short}</span>`)
+    .on("click", (e, d) => { pauseTour(); showScene(SCENES.indexOf(d)); });
+}
+
+/* ---------- Picks (click a family mark) and the filter chips ---------- */
+let picked = null;                                // { field: "family" | "fam6", value }
+const pickMatch = (family, g) => (picked.field === "family" ? (family ? family === picked.value : famGroup.get(picked.value) === g) : g === picked.value);
+let clickSrc;
+function setPick(p) {
+  picked = p && picked && picked.field === p.field && picked.value === p.value ? null : p;
+  $click.update(clausePoints([picked?.field ?? "family"], picked ? [[picked.value]] : null, clickSrc));
+  emphasize(ACT.k); emphasize(ACT.cp); updateChips();
+}
+const menuSrc = { source: { reset() {} }, clients: new Set() };
+famSel.addEventListener("change", () => {
+  $menu.update(clausePoints(["family"], famSel.value ? [[famSel.value]] : null, menuSrc));
+  updateChips();
+});
+let win = null;                                   // the date window [lo, hi] in ms
+const inWindow = (m) => { if (!win) return true; const mm = monthIdx.get(m); return mm.end > win[0] && mm.start <= win[1]; };
+function updateChips() {
+  const chips = [];
+  if (famSel.value) chips.push({ txt: `Family: ${famSel.value}`, clear: () => { famSel.value = ""; famSel.dispatchEvent(new Event("change")); } });
+  if (picked) chips.push({ txt: `${picked.field === "family" ? "Family" : "Group"}: ${picked.value} (clicked)`, clear: () => setPick(null) });
+  if (win) chips.push({ txt: `Dates: ${dayFmt(new Date(win[0]))} – ${dayFmt(new Date(win[1]))}`, clear: () => { stopPlay(); moveBrush(null); setWindow(null); } });
+  d3.select("#chips").selectAll("button").data(chips).join("button").attr("class", "chip").attr("type", "button")
+    .attr("aria-label", (d) => `Remove filter ${d.txt}`).html((d) => `${d.txt} <i class="ti ti-x" aria-hidden="true"></i>`)
+    .on("click", (e, d) => d.clear());
+  document.getElementById("winlab").textContent = win ? `${dayFmt(new Date(win[0]))} – ${dayFmt(new Date(win[1]))}` : "Drag the strip to pick dates";
+  updateScope();
+}
+function updateScope() {
+  const any = famSel.value || picked || win;
+  let s = any ? "The title describes all the data; the chart and the numbers follow your filters." : "";
+  if (win && (scene.act === "cp" || scene.act === "g")) s += " This month view keeps the whole year; months outside your dates are dimmed.";
+  if (picked && (scene.act === "k" || scene.act === "cp")) s += " Your clicked family is highlighted here and filters the rest of the page.";
+  document.getElementById("scope").textContent = s;
+}
+document.getElementById("reset").addEventListener("click", () => {
+  stopPlay(); moveBrush(null);
+  famSel.value = ""; picked = null; win = null;
+  [$menu, $click, $time].forEach((s) => s.reset());
+  emphasize(ACT.k); emphasize(ACT.cp); emphasize(ACT.g); drawBand(); updateChips();
+});
+
+/* ---------- Clients ---------- */
+let busy = false;
+function onRows(act, rows) {
+  act.rows = rows; act.ctx = {};
+  if (scene.act === act.name && shown) {
+    run(act, [{ form: scene.form, ms: updDur(), ease: updEase() }]);
+    drawGuides(d3.transition().duration(updDur()).ease(updEase()));
+  } else if (scene.act === act.name) showScene(si, { instant: REDUCED });
+}
+const kClient = new Live($page, (w) => vg.Query.from("t").select({ family: "family", fam6: vg.sql`any_value(fam6)`, r: vg.sum("reqs") }).where(w).groupby("family"),
+  (rows) => { const by = new Map(rows.map((d) => [d.family, d])); onRows(ACT.k, FAMS.map((f) => ({ key: f.family, family: f.family, fam6: f.fam6, r: Number(by.get(f.family)?.r ?? 0) }))); });
+const cpClient = new Live($fams, (w) => vg.Query.from("t").select({ m: vg.sql`strftime(date_trunc('month', day), '%Y-%m')`, g: "fam6", r: vg.sum("reqs"), tok: vg.sum("tok") }).where(w).groupby("m", "fam6"),
+  (rows) => {
+    const by = new Map(rows.map((d) => [d.m + "|" + d.g, d]));
+    const out = [];
+    for (const m of MONTHS) for (const g of GROUPS) { const r = by.get(m.m + "|" + g.g); const rr = Number(r?.r ?? 0); out.push({ key: m.m + "|" + g.g, m: m.m, g: g.g, mi: m.i, gi: g.i, r: rr, tok: Number(r?.tok ?? 0), rpd: rr / m.nd }); }
+    onRows(ACT.cp, out);
+  });
+const cClient = new Live($page, (w) => vg.Query.from("t").select({ h: "hod", r: vg.sum("reqs"), ts: vg.sum("ttft_s"), nt: vg.sum("n_ttft") }).where(w).groupby("hod"),
+  (rows) => { const by = new Map(rows.map((d) => [Number(d.h), d])); onRows(ACT.c, d3.range(24).map((h) => { const r = by.get(h); const nt = Number(r?.nt ?? 0); return { key: h, h, r: Number(r?.r ?? 0), nt, ttft: nt ? Number(r.ts) / nt : NaN }; })); });
+const gClient = new Live($fams, (w) => vg.Query.from("t").select({ m: vg.sql`strftime(date_trunc('month', day), '%Y-%m')`, h: "hod", r: vg.sum("reqs") }).where(w).groupby("m", "hod"),
+  (rows) => { const by = new Map(rows.map((d) => [d.m + "|" + Number(d.h), Number(d.r)])); const out = []; for (const m of MONTHS) for (let h = 0; h < 24; h++) out.push({ key: m.m + "|" + h, m: m.m, h, r: by.get(m.m + "|" + h) ?? 0 }); onRows(ACT.g, out); });
+const kpiClient = new Live($page, (w) => vg.Query.from("t").select({ r: vg.sum("reqs"), tok: vg.sum("tok"), to_: vg.sum("tok_out"), no: vg.sum("n_out"), ts: vg.sum("ttft_s"), nt: vg.sum("n_ttft") }).where(w),
+  ([r]) => { busy = false; const row = Object.fromEntries(Object.entries(r ?? {}).map(([k, v]) => [k, Number(v ?? 0)])); kpiBox.each(function (d) { tweenNumber(this.querySelector(".kv"), d.val(row), d.fmt); }); });
+clickSrc = { source: kClient, clients: new Set([kClient, cpClient]) };
+
+/* ---------- Time strip: brush and gliding Play (motion.md §5) ---------- */
+const stripSvg = d3.select("#strip");
+const SM = { t: 6, r: 8, b: 18, l: 8 };
+let SW = 600, SH = 66;
+const sx = d3.scaleUtc(), sy = d3.scaleLinear();
+const area = d3.area().curve(d3.curveStepAfter).x((d) => sx(d.d)).y0(() => sy(0)).y1((d) => sy(d.r));
+const sArea = stripSvg.append("path").attr("class", "area");
+const sAxis = stripSvg.append("g");
+const sLab = stripSvg.append("text").attr("class", "lab").attr("x", SM.l + 4).attr("y", SM.t + 10);
+let stripRows = DAYS.map((d) => ({ d, r: 0 }));
+let programmatic = false;
+const brush = d3.brushX().on("brush end", (ev) => {
+  if (programmatic) return;
+  if (ev.sourceEvent) { hurry(); stopPlay(); pauseTour(); }
+  setWindow(ev.selection ? ev.selection.map((px) => +sx.invert(px)) : null);
+});
+const gb = stripSvg.append("g").attr("class", "brush");
+let stripClient;
+function setWindow(range) {
+  win = range;
+  $time.update(clauseInterval("day", range ? [new Date(range[0]), new Date(range[1])] : null, { source: stripClient, clients: new Set([stripClient]) }));
+  updateChips(); emphasize(ACT.cp, playing ? T(200) : T(250)); emphasize(ACT.g, playing ? T(200) : T(250)); drawBand();
+}
+const moveBrush = (range) => { programmatic = true; gb.call(brush.move, range ? range.map((v) => sx(v)) : null); programmatic = false; };
+function sizeStrip() {
+  const el = stripSvg.node(); SW = el.clientWidth || 600; SH = el.clientHeight || 66;
+  stripSvg.attr("viewBox", [0, 0, SW, SH]);
+  sx.domain([DAYS[0], DAYS[DAYS.length - 1] + DAY]).range([SM.l, SW - SM.r]);
+  sy.range([SH - SM.b, SM.t]);
+  brush.extent([[SM.l, SM.t], [SW - SM.r, SH - SM.b]]); gb.call(brush);
+  sAxis.attr("transform", `translate(0,${SH - SM.b})`).call(d3.axisBottom(sx).ticks(d3.utcMonth.every(SW > 700 ? 1 : 2)).tickFormat((d) => (d.getUTCMonth() === 0 ? utc("%b %Y")(d) : utc("%b")(d))).tickSizeOuter(0));
+  if (win) moveBrush(win);
+  drawStrip(0);
+}
+function drawStrip(ms) {
+  const max = d3.max(stripRows, (d) => d.r) || 1; sy.domain([0, max]);
+  const rows = [...stripRows, { d: DAYS[DAYS.length - 1] + DAY, r: stripRows[stripRows.length - 1]?.r ?? 0 }];
+  sArea.transition().duration(ms).ease(d3.easeLinear).attr("d", area(rows));
+  const pk = d3.greatest(stripRows, (d) => d.r);
+  sLab.text(pk ? `Requests per day, from 0 · peak ${big(pk.r)} on ${dayFmt(new Date(pk.d))}` : "");
+}
+stripClient = new Live($page, (w) => vg.Query.from("t").select({ d: "day", r: vg.sum("reqs") }).where(w).groupby("day"),
+  (rows) => { const by = new Map(rows.map((d) => [+new Date(d.d), Number(d.r)])); stripRows = DAYS.map((d) => ({ d, r: by.get(d) ?? 0 })); drawStrip(updDur()); });
+
+let timer = null, lastSent = 0;
+const WINDOW = 28 * DAY, SPEED = 9;               // a 28-day window gliding 9 days per second (≈ 38 s for the year)
+const playBtn = document.getElementById("play");
+function play() {
+  pauseTour();
+  const START = DAYS[0], END = DAYS[DAYS.length - 1] + DAY;
+  let from = win && win[1] < END - DAY ? win[0] : START;
+  playing = true; playBtn.classList.add("on"); playBtn.setAttribute("aria-pressed", "true");
+  playBtn.innerHTML = `<i class="ti ti-player-pause-filled" aria-hidden="true"></i> Pause`;
+  const t0 = performance.now();
+  timer = d3.timer(() => {
+    let lo = from + ((performance.now() - t0) / 1000) * SPEED * DAY;
+    if (lo + WINDOW > END) { lo = END - WINDOW; moveBrush([lo, lo + WINDOW]); setWindow([lo, lo + WINDOW]); stopPlay(); return; }
+    moveBrush([lo, lo + WINDOW]);
+    const now = performance.now();
+    if (!busy && now - lastSent > 120) { busy = true; lastSent = now; setWindow([lo, lo + WINDOW]); }   // only when DuckDB has answered
+  });
+}
+function stopPlay() {
+  if (timer) timer.stop(); timer = null;
+  if (!playing) return;
+  playing = false; busy = false; playBtn.classList.remove("on"); playBtn.setAttribute("aria-pressed", "false");
+  playBtn.innerHTML = `<i class="ti ti-player-play-filled" aria-hidden="true"></i> Play the year`;
+}
+playBtn.addEventListener("click", () => (playing ? stopPlay() : play()));
+function drawBand() {                            // the date window as a band on month-axis scenes
+  const f = scene.form, a = ACT.cp;
+  const show = win && ["heat-cells", "stacked-bars", "stacked-bars-100", "stacked-100"].includes(f) && a.rows;
+  const c = show ? ctxOf(a, f) : null;
+  const pos = (ms) => { const m = MONTHS.find((mm) => ms >= mm.start && ms < mm.end) ?? (ms < MONTHS[0].start ? MONTHS[0] : MONTHS[MONTHS.length - 1]); const fr = Math.max(0, Math.min(1, (ms - m.start) / (m.end - m.start))); return c.x(m.m) + fr * c.x.bandwidth(); };
+  const b = bandRoot.selectAll("rect").data(show ? [win] : []).join("rect").attr("class", "band").attr("fill", css("--focus")).attr("opacity", 0.1);
+  if (show) b.attr("x", pos(win[0])).attr("width", Math.max(2, pos(win[1]) - pos(win[0]))).attr("y", M.t + 20).attr("height", H - M.b - M.t - 10);
+}
+
+/* ---------- Tooltip, clicks, orbit ---------- */
+const tip = document.getElementById("tip");
+svg.on("pointermove", (e) => {
+  const m = e.target.closest?.("g.mark"); if (!m || dragging) { tip.style.opacity = 0; return; }
+  const d = d3.select(m).datum(), f = FORMS[scene.form];
+  if (!f.tip) return;
+  tip.innerHTML = f.tip(d, ctxOf(ACT[scene.act], scene.form));
+  const r = canvas.getBoundingClientRect(); let x = e.clientX - r.left + 14, y = e.clientY - r.top + 14;
+  if (x + tip.offsetWidth > r.width - 6) x = e.clientX - r.left - tip.offsetWidth - 10;
+  if (y + tip.offsetHeight > r.height - 6) y = e.clientY - r.top - tip.offsetHeight - 10;
+  tip.style.left = x + "px"; tip.style.top = y + "px"; tip.style.opacity = 1;
+}).on("pointerleave", () => (tip.style.opacity = 0));
+svg.on("click", (e) => {
+  if (moved) return;
+  const m = e.target.closest?.("g.mark"); if (!m) return;
+  const d = d3.select(m).datum(); pauseTour();
+  if (scene.act === "k") setPick({ field: "family", value: d.family });
+  else if (scene.act === "cp") setPick({ field: "fam6", value: d.g });
+});
+let dragging = false, moved = false, dragStart = null;
+svg.on("pointerdown", (e) => { moved = false; dragStart = [e.clientX, e.clientY, yaw, pitch]; if (FORMS[scene.form].orbit) { dragging = true; svg.node().setPointerCapture(e.pointerId); } });
+svg.on("pointerup pointercancel", (e) => {
+  if (dragStart && !FORMS[scene.form].orbit && e.pointerType === "touch") {      // swipe between scenes on touch screens
+    const dx = e.clientX - dragStart[0]; if (Math.abs(dx) > 60) { pauseTour(); showScene(si + (dx < 0 ? 1 : -1)); }
+  }
+  dragging = false; dragStart = null;
+});
+svg.on("pointermove.orbit", (e) => {
+  if (!dragging || !dragStart) return;
+  const dx = e.clientX - dragStart[0], dy = e.clientY - dragStart[1];
+  if (Math.hypot(dx, dy) > 3) moved = true; else return;
+  pauseTour();
+  yaw = Math.max(YAW[0], Math.min(YAW[1], dragStart[2] + dx * 0.008));
+  pitch = Math.max(PITCH[0], Math.min(PITCH[1], dragStart[3] - dy * 0.005));
+  ACT.cp.ctx = {};
+  run(ACT.cp, [{ form: scene.form, ms: 0 }]); drawGuides(null);
+});
+
+/* ---------- Navigation and the tour ---------- */
+document.getElementById("prev").addEventListener("click", () => { pauseTour(); showScene(si - 1); });
+document.getElementById("next").addEventListener("click", () => { pauseTour(); showScene(si + 1); });
+let tourTimer = null;
+const tourBtn = document.getElementById("tour");
+function hold() { return 4000 + 300 * scene.caption.split(/\s+/).length + T(TEMPO); }
+function tourStep() { tourTimer = setTimeout(() => { showScene(si + 1); tourStep(); }, hold()); }
+function startTour() { tourBtn.setAttribute("aria-pressed", "true"); tourBtn.innerHTML = `<i class="ti ti-player-pause" aria-hidden="true"></i> Tour`; tourStep(); }
+function pauseTour() { if (!tourTimer) return; clearTimeout(tourTimer); tourTimer = null; tourBtn.setAttribute("aria-pressed", "false"); tourBtn.innerHTML = `<i class="ti ti-player-play" aria-hidden="true"></i> Tour`; }
+tourBtn.addEventListener("click", () => (tourTimer ? pauseTour() : startTour()));
+document.addEventListener("keydown", (e) => {
+  if (["SELECT", "INPUT", "TEXTAREA"].includes(e.target.tagName)) return;
+  if (e.key === "ArrowRight") { pauseTour(); showScene(si + 1); }
+  else if (e.key === "ArrowLeft") { pauseTour(); showScene(si - 1); }
+  else if (e.key === " " && e.target.tagName !== "BUTTON") { e.preventDefault(); tourTimer ? pauseTour() : startTour(); }
+  else if (e.key === "Escape") closeNotes();
+});
+window.addEventListener("hashchange", () => { const i = SCENES.findIndex((s) => "#" + s.key === location.hash); if (i >= 0 && i !== si) showScene(i); });
+
+/* ---------- Notes drawer ---------- */
+const notes = document.getElementById("notes");
+const openNotes = () => { notes.classList.add("open"); notes.setAttribute("aria-hidden", "false"); document.getElementById("notes-close").focus(); };
+const closeNotes = () => { notes.classList.remove("open"); notes.setAttribute("aria-hidden", "true"); };
+document.getElementById("notes-btn").addEventListener("click", () => (notes.classList.contains("open") ? closeNotes() : openNotes()));
+document.getElementById("notes-close").addEventListener("click", closeNotes);
+
+/* ---------- Start ---------- */
+const startAt = SCENES.findIndex((s) => "#" + s.key === location.hash);
+si = startAt >= 0 ? startAt : 0; scene = SCENES[si];
+sizeStrip(); updateChips();
+// Start the first scene only once every view has its first data: entrances and count-ups that start
+// while the initial results are still arriving stall partway (a hairline bar, numbers that crawl).
+const clients = [kClient, cpClient, cClient, gClient, kpiClient, stripClient];
+const firstData = clients.map((c) => new Promise((resolve) => { const draw = c.r; c.r = (rows) => { draw(rows); resolve(); c.r = draw; }; }));
+clients.forEach((c) => coord.connect(c));
+await Promise.all(firstData);
+document.getElementById("loading").remove();
+showScene(si);
+new ResizeObserver(() => {
+  const w = svg.node().clientWidth, h = svg.node().clientHeight; if (!w || (w === W && h === H)) return;
+  measure(); Object.values(ACT).forEach((a) => (a.ctx = {}));
+  if (ACT[scene.act].rows) { run(ACT[scene.act], [{ form: scene.form, ms: 0 }]); guideG(scene.key).selectAll("*").remove(); drawGuides(null); }
+  sizeStrip();
+}).observe(canvas);
+window.__dash = { showScene, ACT, SCENES, play, stopPlay, setPick, $page, $fams, $time, $menu, $click, coord };   // for testing in the console
+</script>
+</body>
+</html>

@@ -1,0 +1,1003 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chutes Traffic Reel</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.35.0/dist/tabler-icons.min.css">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0b0d12; --panel: #131722; --panel-2: #171c29; --ink: #e9ecf2; --muted: #8d95a5; --rule: #232a38;
+  --focus: #e69f00; --breach: #f0e442; --selected: #ffffff;
+  --c1: #0072b2; --c2: #e69f00; --c3: #009e73; --c4: #cc79a7; --c5: #56b4e9; --c6: #d55e00;
+  --seq-lo: #16263a; --seq-hi: #9fd8ff;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); }
+body { font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-variant-numeric: tabular-nums; overflow: hidden; }
+button, select { font: inherit; color: inherit; }
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 340px; height: 100dvh; }
+main { display: flex; flex-direction: column; min-width: 0; padding: 16px 20px 12px 24px; gap: 6px; }
+.masthead { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.masthead h1 { font-size: 22px; line-height: 1.25; margin: 0; font-weight: 650; }
+.masthead p { margin: 0; color: var(--muted); font-size: 14px; }
+.scene-head { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; align-items: start; margin-top: 4px; }
+.scene-badge { grid-row: span 3; width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; background: var(--panel); border: 1px solid var(--rule); color: var(--focus); font-size: 24px; }
+.scene-meta { font-size: 13px; color: var(--muted); }
+.scene-title { font-size: 24px; line-height: 1.3; font-weight: 620; margin: 0; transition: opacity .25s; }
+.scene-caption { margin: 0; color: var(--muted); font-size: 15px; transition: opacity .25s; }
+.filter-note { font-size: 13px; color: var(--breach); min-height: 1.2em; }
+.stage-wrap { position: relative; flex: 1; min-height: 240px; background: radial-gradient(ellipse at 50% 40%, #121826 0%, var(--bg) 70%); border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
+#stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+#stage.rotatable { cursor: grab; }
+.stage-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 40px; }
+#legend { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--muted); flex: 1; transition: opacity .3s; }
+.sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.grad { display: inline-block; width: 120px; height: 10px; border-radius: 3px; background: linear-gradient(90deg, var(--seq-lo), var(--seq-hi)); vertical-align: -1px; margin: 0 6px; }
+.nav { display: flex; gap: 6px; align-items: center; }
+.btn { background: var(--panel); border: 1px solid var(--rule); border-radius: 9px; padding: 6px 11px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; font-size: 14px; }
+.btn:hover, .btn:focus-visible { border-color: var(--muted); outline: none; }
+.btn[aria-pressed="true"] { border-color: var(--focus); color: var(--focus); }
+.dots { display: flex; gap: 5px; }
+.dots button { width: 9px; height: 9px; padding: 0; border-radius: 50%; border: 0; background: var(--rule); cursor: pointer; }
+.dots button.on { background: var(--focus); }
+aside { background: var(--panel); border-left: 1px solid var(--rule); padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.rail-h { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; margin: 0 0 4px; }
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.kpi { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 11px; padding: 8px 10px; }
+.kpi .lab { font-size: 12.5px; color: var(--muted); display: flex; gap: 5px; align-items: center; line-height: 1.3; }
+.kpi .val { font-size: 34px; line-height: 1.15; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+.kpi .val small { font-size: 16px; color: var(--muted); font-weight: 500; }
+.kpi .tot { font-size: 12px; color: var(--muted); }
+.help { background: none; border: 0; padding: 0; color: var(--muted); cursor: help; font-size: 15px; line-height: 1; }
+.help:hover, .help:focus-visible { color: var(--ink); outline: none; }
+select { width: 100%; background: var(--panel-2); border: 1px solid var(--rule); border-radius: 9px; padding: 6px 8px; }
+.chips-fam { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 999px; padding: 3px 10px 3px 8px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; }
+.chip[aria-pressed="true"] { border-color: var(--selected); }
+.chip.dim { opacity: .45; }
+#strip { width: 100%; height: 86px; display: block; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.active-filters { font-size: 13px; color: var(--ink); min-height: 1.3em; }
+.active-filters em { color: var(--muted); font-style: normal; }
+.scenes { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.scenes button { width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: 4px 8px; cursor: pointer; font-size: 13.5px; display: flex; gap: 8px; align-items: center; color: var(--muted); }
+.scenes button i { font-size: 16px; }
+.scenes button.on { background: var(--panel-2); color: var(--ink); }
+.scenes button.on i { color: var(--focus); }
+.scenes .act { font-size: 11.5px; color: var(--muted); padding: 6px 8px 0; }
+.hint { font-size: 12px; color: var(--muted); }
+#tip { position: fixed; z-index: 30; pointer-events: none; background: #1c2232; border: 1px solid #39425a; border-radius: 9px; padding: 8px 10px; font-size: 13px; line-height: 1.45; max-width: 300px; box-shadow: 0 8px 24px rgba(0,0,0,.45); opacity: 0; transition: opacity .12s; }
+#tip b { font-weight: 620; }
+#tip .m { color: var(--muted); }
+.drawer { position: fixed; top: 0; bottom: 0; right: 340px; width: min(560px, 100vw); visibility: hidden; background: var(--panel); border-left: 1px solid var(--rule); z-index: 20; padding: 20px 24px; overflow-y: auto; transform: translateX(calc(100% + 340px)); transition: transform .3s, visibility .3s; box-shadow: -12px 0 30px rgba(0,0,0,.4); }
+.drawer.open { transform: none; visibility: visible; }
+.drawer h2 { margin: 0 0 8px; font-size: 20px; }
+.drawer h3 { font-size: 15px; margin: 18px 0 4px; }
+.drawer p, .drawer li { font-size: 14px; color: #c9cfdb; }
+.drawer a { color: var(--c5); }
+svg text { fill: var(--ink); font-family: system-ui, sans-serif; }
+.g-muted { fill: var(--muted) !important; }
+.reveal { opacity: 1; }
+html.motion-on .reveal { opacity: 0; transform: translateY(10px); transition: opacity .6s ease, transform .6s ease; }
+html.motion-on .reveal.in { opacity: 1; transform: none; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 15px; }
+@media (max-width: 860px) {
+  body { overflow: auto; }
+  .app { grid-template-columns: 1fr; height: auto; }
+  main { height: 100dvh; padding: 12px 16px; }
+  aside { border-left: 0; border-top: 1px solid var(--rule); }
+  .scene-title { font-size: 19px; }
+  .drawer { right: 0; width: 100vw; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <main>
+    <div class="masthead reveal">
+      <h1>A year of LLM traffic on Chutes</h1>
+      <p id="takeaway">6.12 billion requests, April 2025 – April 2026: the traffic changed hands from DeepSeek to Qwen.</p>
+    </div>
+    <div class="scene-head">
+      <div class="scene-badge" aria-hidden="true"><i id="scene-icon" class="ti ti-circle"></i></div>
+      <div class="scene-meta"><span id="scene-act">Act</span> · scene <span id="scene-n">1</span> of <span id="scene-of">10</span></div>
+      <div style="display:flex;gap:8px;align-items:flex-start"><h2 class="scene-title" id="scene-title">Loading…</h2><button class="help" id="scene-help" data-help="" aria-label="About this scene"><i class="ti ti-info-circle"></i></button></div>
+      <div><p class="scene-caption" id="scene-caption"></p><div class="filter-note" id="filter-note"></div></div>
+    </div>
+    <div class="stage-wrap" id="stage-wrap">
+      <svg id="stage" role="img" aria-label="Animated stage: the current scene's chart"></svg>
+      <div class="loading" id="loading">Loading 247,258 rows into DuckDB…</div>
+    </div>
+    <div class="stage-foot">
+      <div id="legend"></div>
+      <div class="nav">
+        <button class="btn" id="prev" data-help="Previous scene (left arrow key)." aria-label="Previous scene"><i class="ti ti-player-track-prev-filled"></i></button>
+        <button class="btn" id="auto" aria-pressed="false" data-help="Autoplay steps through the scenes, holding each for its reading time; any click pauses it (space bar)."><i class="ti ti-player-play-filled"></i><span>Autoplay</span></button>
+        <button class="btn" id="next" data-help="Next scene (right arrow key)." aria-label="Next scene"><i class="ti ti-player-track-next-filled"></i></button>
+        <div class="dots" id="dots"></div>
+      </div>
+    </div>
+  </main>
+  <aside>
+    <section class="reveal">
+      <h3 class="rail-h"><i class="ti ti-gauge"></i>Numbers for your selection <button class="help" data-help="Each number follows every filter (category, family, dates). The line under it is the same number for all data, so you can see what a filter changed."><i class="ti ti-info-circle"></i></button></h3>
+      <div class="kpis">
+        <div class="kpi"><div class="lab"><i class="ti ti-send"></i>Requests <button class="help" data-help="Total requests in the selection: the sum of request counts in the rolled-up trace."><i class="ti ti-info-circle"></i></button></div><div class="val" id="k-reqs">–</div><div class="tot" id="t-reqs"></div></div>
+        <div class="kpi"><div class="lab"><i class="ti ti-arrow-bar-to-right"></i>Avg input tokens <button class="help" data-help="Input (prompt) tokens per request: total input tokens ÷ requests that report an input-token count. Non-text endpoints (embeddings, audio, images, control plane) report none and are left out of the denominator."><i class="ti ti-info-circle"></i></button></div><div class="val" id="k-in">–</div><div class="tot" id="t-in"></div></div>
+        <div class="kpi"><div class="lab"><i class="ti ti-arrow-bar-left"></i>Avg output tokens <button class="help" data-help="Output (generated) tokens per request: total output tokens ÷ requests that report an output-token count."><i class="ti ti-info-circle"></i></button></div><div class="val" id="k-out">–</div><div class="tot" id="t-out"></div></div>
+        <div class="kpi"><div class="lab"><i class="ti ti-clock-bolt"></i>Avg first token <button class="help" data-help="Average time to first token in seconds: total time to first token ÷ streaming calls that report it. Non-streaming calls have no first-token time and are not counted."><i class="ti ti-info-circle"></i></button></div><div class="val" id="k-tt">–</div><div class="tot" id="t-tt"></div></div>
+      </div>
+    </section>
+    <section class="reveal">
+      <h3 class="rail-h"><i class="ti ti-filter"></i>Filters <button class="help" data-help="One filter for the whole page. Category and family filter the numbers, the time strip and the hour scenes; the month and day scenes keep the whole year and highlight your family and dates instead."><i class="ti ti-info-circle"></i></button></h3>
+      <label class="hint" for="cat">Request category <button class="help" data-help="Filters every scene and number to one kind of endpoint: chat, completion, embeddings and others. The beads and cells recount for it."><i class="ti ti-info-circle"></i></button></label>
+      <select id="cat" data-help="Pick a request category; every scene and number follows it."></select>
+      <div class="hint" style="margin-top:8px">Model family <button class="help" data-help="Click a family to filter the numbers, the time strip and the hour scenes to it; the month and day scenes highlight it. Shift-click adds another family. You can also click a bead or cell on the stage."><i class="ti ti-info-circle"></i></button></div>
+      <div class="chips-fam" id="fams"></div>
+      <div class="hint" style="margin-top:8px">Dates · requests a day <button class="help" data-help="Requests per day for your category and family. Drag across it to pick dates; Play glides a 28-day window through the year. The month and day scenes dim what lies outside the window; the numbers and hour scenes count only the window."><i class="ti ti-info-circle"></i></button></div>
+      <svg id="strip" aria-label="Requests per day, drag to choose dates"></svg>
+      <div class="row">
+        <button class="btn" id="play" data-help="Play a 28-day window through the year (about 40 seconds). Click again to stop."><i class="ti ti-player-play-filled"></i><span>Play</span></button>
+        <button class="btn" id="reset" data-help="Clear every filter: category, family and dates."><i class="ti ti-restore"></i>Reset</button>
+        <button class="btn" id="motion" aria-pressed="false" data-help="Turn animation on or off. It starts from your system's reduced-motion setting and is remembered in this browser.">Motion: off</button>
+      </div>
+      <div class="hint" id="motion-hint"></div>
+      <div class="active-filters" id="active"><em>No filters: all data</em></div>
+    </section>
+    <section class="reveal">
+      <h3 class="rail-h"><i class="ti ti-list-numbers"></i>Scenes <button class="help" data-help="Ten scenes in four acts. The same marks move from scene to scene: beads, then family-by-month cells, then days, then hours. Arrow keys, swipe or click to move."><i class="ti ti-info-circle"></i></button></h3>
+      <ul class="scenes" id="scene-list"></ul>
+    </section>
+    <section class="reveal">
+      <button class="btn" id="notes-btn" aria-expanded="false" data-help="Data source, how the trace was aggregated, definitions and limitations."><i class="ti ti-notes"></i>About the data</button>
+    </section>
+  </aside>
+</div>
+<div class="drawer" id="drawer" role="dialog" aria-label="About the data">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2>About the data</h2><button class="btn" id="notes-close" aria-label="Close"><i class="ti ti-x"></i></button></div>
+  <h3>Source</h3>
+  <p>A production trace of the Chutes LLM inference platform: 6,122,413,756 requests over 367 days. Day 0 of the trace is 11 April 2025 (per the source paper, arXiv:2608.13573); data and code are at <a href="https://github.com/HarvardMadSys/chutes_workload" target="_blank" rel="noopener">github.com/HarvardMadSys/chutes_workload</a>.</p>
+  <h3>Aggregation</h3>
+  <ul>
+    <li>The public file rolls the requests up to one row per trace day × trace hour × model × endpoint function × streaming flag (1,337,094 rows), with request counts and sums with counts for input tokens, output tokens and time to first token.</li>
+    <li>This page embeds a smaller rollup, one row per day × hour × model family × request category (247,258 rows, about 4.8 MB), and computes everything in your browser with DuckDB.</li>
+    <li>Every average is a ratio of sums (for example total input tokens ÷ requests with an input-token count), so it stays correct under any filter.</li>
+    <li>Families: the five largest named families keep their own colour; the other nine (including models listed only by UUID and the long tail outside the top 200 models) are grouped as "Other families".</li>
+  </ul>
+  <h3>How to read the scenes</h3>
+  <ul>
+    <li>One bead = 10 million requests, rounded per month (largest remainders, so a month's beads add up to its rounded total). A family-month under 5 million requests can show no bead; every bead's tooltip gives the exact figure.</li>
+    <li>"Requests a day" divides a month's requests by the days present in the trace, so the partial first month (20 days) and last month (12 days) compare fairly. Partial months are marked on every month scene.</li>
+    <li>Scene titles describe all the data. With a filter on, the marks and numbers follow it; the titles do not.</li>
+    <li>Month and day scenes keep the whole year in view when you pick dates (they dim what lies outside); the KPI numbers, the time strip and the hour scenes count only your dates.</li>
+  </ul>
+  <h3>Limitations</h3>
+  <ul>
+    <li>Hour of day is the trace's own clock; the source states no time zone, so hour patterns are relative.</li>
+    <li>13 January 2026 has only 3 of 24 hours and 14 January 15 hours: incomplete logging, not a drop in demand.</li>
+    <li>Token counts exist only for text endpoints; time to first token only for streaming calls (about 92% of streaming requests report it).</li>
+    <li>The trace counts requests; it says nothing about users, prices or answer quality. Model-level detail (201 models) and the streaming split are not in this page's rollup.</li>
+    <li>Not drawn: reasoning-type models rose from 17.1% of requests in May 2025 to 44.7% in November 2025 and fell to 7.2% in March 2026.</li>
+  </ul>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script type="module">
+import * as vg from "https://cdn.jsdelivr.net/npm/@uwdata/vgplot@0.31.0/+esm";
+import { clausePoints, clauseInterval } from "https://cdn.jsdelivr.net/npm/@uwdata/mosaic-core@0.31.0/+esm";
+import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
+import { polygons3D } from "https://cdn.jsdelivr.net/npm/d3-3d@1.0.0/+esm";
+
+// ---------- motion settings (motion.md Setup + Motion switch) ----------
+const SYSTEM_REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let saved = null; try { saved = localStorage.getItem("motion"); } catch {}
+let REDUCED = saved ? saved === "off" : SYSTEM_REDUCED;
+const T = (ms) => (REDUCED ? 0 : ms);
+if (!REDUCED) document.documentElement.classList.add("motion-on");
+const TEMPO = 700;                       // seed tempo "brisk": 700 ms per change (show-reel.md §4)
+const EASE = d3.easeQuadInOut;           // seed easing "quadInOut"
+let easeNow = EASE;                      // filter updates and Play swap in their own easing (motion.md Timing)
+const STAGGER = 0.25;                    // whole stagger at most 25% of the duration (show-reel.md §4)
+let quick = false, quickTimer;
+const hurry = () => { quick = true; clearTimeout(quickTimer); quickTimer = setTimeout(() => (quick = false), 400); };
+let playing = false;
+const updDur = () => T(playing ? 260 : quick ? 160 : 500);
+const updEase = () => (playing || quick ? d3.easeLinear : d3.easeCubicOut);
+
+const motionBtn = document.getElementById("motion");
+const motionLabel = () => {
+  motionBtn.textContent = REDUCED ? "Motion: off" : "Motion: on";
+  motionBtn.setAttribute("aria-pressed", String(!REDUCED));
+  document.getElementById("motion-hint").textContent = REDUCED && SYSTEM_REDUCED ? "Animations are off: your system asks for reduced motion." : "";
+};
+motionBtn.addEventListener("click", () => { REDUCED = !REDUCED; try { localStorage.setItem("motion", REDUCED ? "off" : "on"); } catch {} motionLabel(); location.reload(); });
+motionLabel();
+
+// ---------- formats ----------
+const fmtC = (v) => (v == null || !isFinite(v) ? "–" : d3.format(".3~s")(v).replace("G", "B").replace("k", "K"));
+const fmtInt = d3.format(",.0f");
+const fmtS = (v) => (v == null || !isFinite(v) ? "–" : d3.format(".2f")(v) + " s");
+const fmtP = d3.format(".1%");
+const fmtMonth = d3.utcFormat("%b %Y");
+const fmtMon = d3.utcFormat("%b");
+const fmtDay = d3.utcFormat("%-d %b %Y");
+const fmtWd = d3.utcFormat("%A");
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const PALETTE = ["--c1", "--c2", "--c3", "--c4", "--c5", "--c6"].map(css);
+const MUTED = css("--muted"), INK = css("--ink"), RULE = css("--rule"), FOCUS = css("--focus"), BREACH = css("--breach");
+const SEQ = d3.interpolateLab(css("--seq-lo"), css("--seq-hi"));
+const BEAD = 1e7;                        // one bead = 10 million requests (plan: Bead unit)
+const DAY = 864e5;
+
+// ---------- DuckDB + data (mosaic-tech.md, loadTable) ----------
+const connector = vg.wasmConnector();
+vg.coordinator().databaseConnector(connector);
+async function loadTable(name, file) {
+  const tag = document.querySelector(`script[type="application/octet-stream"][data-file="${file}"]`);
+  if (!tag) return vg.coordinator().exec([vg.loadParquet(name, new URL(file, location.href).href)]);
+  const bytes = new Uint8Array(await (await fetch(`data:application/octet-stream;base64,${tag.textContent.trim()}`)).arrayBuffer());
+  await (await connector.getDuckDB()).registerFileBuffer(file, bytes);
+  await vg.coordinator().exec(`CREATE TABLE "${name}" AS SELECT * FROM read_parquet('${file}')`);
+}
+await loadTable("t", "chutes_daily_hourly.parquet");
+const rowsOf = async (sql) => (await vg.coordinator().query(sql)).toArray().map((r) => ({ ...r }));
+
+// Static facts from the data (nothing typed in): families and their order, the grouped family, categories, days per month, hours per day.
+const famRows = await rowsOf(`SELECT fam, sum(reqs)::DOUBLE AS reqs, bool_or(fam <> family) AS grouped FROM t GROUP BY fam ORDER BY reqs DESC`);
+const OTHER = (famRows.find((r) => r.grouped) || {}).fam;
+const FAMS_RANK = famRows.map((r) => r.fam);                       // heaps: ranked by the year's requests
+const FAMS = [...FAMS_RANK.filter((f) => f !== OTHER), ...(OTHER ? [OTHER] : [])]; // stacks: the grouped family last
+const famColor = new Map(); FAMS.filter((f) => f !== OTHER).forEach((f, i) => famColor.set(f, PALETTE[i % PALETTE.length])); if (OTHER) famColor.set(OTHER, MUTED);
+const catRows = await rowsOf(`SELECT category, sum(reqs)::DOUBLE AS reqs FROM t GROUP BY 1 ORDER BY 2 DESC`);
+const monthRows = await rowsOf(`SELECT epoch_ms(date_trunc('month', d)::TIMESTAMP)::DOUBLE AS m, count(DISTINCT d)::DOUBLE AS nd FROM t GROUP BY 1 ORDER BY 1`);
+const MONTHS = monthRows.map((r) => r.m);
+const monthDays = new Map(monthRows.map((r) => [r.m, r.nd]));
+const calDays = (m) => { const d = new Date(m); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate(); };
+const isPartial = (m) => monthDays.get(m) < calDays(m);
+const fullMonths = MONTHS.filter((m) => !isPartial(m));
+const dayHourRows = await rowsOf(`SELECT epoch_ms(d::TIMESTAMP)::DOUBLE AS d, count(DISTINCT hod)::DOUBLE AS nh FROM t GROUP BY 1 ORDER BY 1`);
+const hoursOfDay = new Map(dayHourRows.map((r) => [r.d, r.nh]));
+const HOURS_PER_DAY = d3.max(dayHourRows, (r) => r.nh);
+const DAY0 = dayHourRows[0].d, DAYN = dayHourRows[dayHourRows.length - 1].d;
+const monthIndex = new Map(MONTHS.map((m, i) => [m, i]));
+const monthOf = (dms) => { const d = new Date(dms); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); };
+
+// ---------- selections (mosaic-tech.md: own selections relayed into one page filter) ----------
+const $page = vg.Selection.crossfilter();
+const $ctx = vg.Selection.intersect();     // category only: for the context views (month and day scenes)
+const $cat = vg.Selection.single(); $cat._relay.add($page); $cat._relay.add($ctx);
+const $fam = vg.Selection.single(); $fam._relay.add($page);
+const $time = vg.Selection.single(); $time._relay.add($page);
+const catSrc = { name: "category menu" }, famSrc = { name: "family filter" };
+const state = { cat: null, fams: [], win: null };
+
+class Live extends vg.MosaicClient {
+  constructor(filterBy, q, r) { super(filterBy); this.q = q; this.r = r; this.ready = new Promise((res) => (this._res = res)); }
+  query(where = []) { return this.q(where); }
+  queryResult(data) { this.r(data.toArray().map((d) => ({ ...d }))); this._res(); return this; }
+  queryError(e) { console.error(e); this._res(); return this; }
+}
+const S = { mf: [], days: [], hours: [], kpi: null, kpiAll: null, strip: [] };
+
+// ---------- tooltip and help (interaction.md, Tooltips and help) ----------
+const tip = document.getElementById("tip");
+function showTip(html, x, y) {
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect(), pad = 14;
+  let left = x + pad, top = y + pad;
+  if (left + r.width > innerWidth - 8) left = x - r.width - pad;
+  if (top + r.height > innerHeight - 8) top = y - r.height - pad;
+  tip.style.left = Math.max(8, left) + "px"; tip.style.top = Math.max(8, top) + "px";
+}
+const hideTip = () => (tip.style.opacity = 0);
+document.addEventListener("pointerover", (e) => { const h = e.target.closest("[data-help]"); if (h && h.dataset.help) showTip(h.dataset.help, e.clientX, e.clientY); });
+document.addEventListener("pointerout", (e) => { if (e.target.closest("[data-help]")) hideTip(); });
+document.addEventListener("focusin", (e) => { const h = e.target.closest("[data-help]"); if (h && h.dataset.help) { const b = h.getBoundingClientRect(); showTip(h.dataset.help, b.left, b.bottom); } });
+document.addEventListener("focusout", hideTip);
+
+// ---------- polygon engine (show-reel.md §2): every mark is K points, top edge left→right, bottom edge right→left ----------
+const K = 24, H2 = K / 2;
+const lerp = (a, b, t) => a + (b - a) * t;
+function quad(tl, tr, br, bl) {
+  const o = [];
+  for (let i = 0; i < H2; i++) { const t = i / (H2 - 1); o.push([lerp(tl[0], tr[0], t), lerp(tl[1], tr[1], t)]); }
+  for (let i = 0; i < H2; i++) { const t = i / (H2 - 1); o.push([lerp(br[0], bl[0], t), lerp(br[1], bl[1], t)]); }
+  return o;
+}
+const rect = (x, y, w, h) => quad([x, y], [x + w, y], [x + w, y + h], [x, y + h]);
+function circle(cx, cy, r) {
+  const o = [];
+  for (let i = 0; i < H2; i++) { const a = Math.PI - (Math.PI * i) / (H2 - 1); o.push([cx + r * Math.cos(a), cy - r * Math.sin(a)]); }
+  for (let i = 0; i < H2; i++) { const a = -(Math.PI * i) / (H2 - 1); o.push([cx + r * Math.cos(a), cy - r * Math.sin(a)]); }
+  return o;
+}
+function wedge(cx, cy, r0, r1, a0, a1) {   // outer arc a0→a1 (the "top edge"), inner arc back; angles clockwise from 12 o'clock
+  const o = [];
+  for (let i = 0; i < H2; i++) { const a = lerp(a0, a1, i / (H2 - 1)); o.push([cx + r1 * Math.sin(a), cy - r1 * Math.cos(a)]); }
+  for (let i = 0; i < H2; i++) { const a = lerp(a1, a0, i / (H2 - 1)); o.push([cx + r0 * Math.sin(a), cy - r0 * Math.cos(a)]); }
+  return o;
+}
+const point = (x, y, w = 0) => rect(x - w / 2, y, w, 0);              // a collapsed mark: a flat line at a place
+const edgeTop = (f) => quad(f[0], f[H2 - 1], f[H2 - 1], f[0]);        // a collapsed 3D face on the front's top edge
+const toPath = (p) => "M" + p.map((q) => q[0].toFixed(1) + "," + q[1].toFixed(1)).join("L") + "Z";
+const centerOf = (p) => [d3.mean(p, (q) => q[0]), d3.mean(p, (q) => q[1])];
+
+function tweenFace(sel, to, ms, delay, fill, opacity) {
+  const node = sel.node();
+  if (!node.__pts) { node.__pts = to.map((q) => q.slice()); sel.attr("d", toPath(to)); }
+  if (!ms) { sel.interrupt("m").interrupt("c"); node.__pts = to; sel.attr("d", toPath(to)).attr("fill", fill).attr("opacity", opacity); return; }
+  sel.transition("m").duration(ms).delay(delay).ease(easeNow)
+    .attrTween("d", function () { const i = d3.interpolateArray(this.__pts, to); return (t) => toPath((this.__pts = i(t))); });
+  // colour overlaps the move: starts when it is under half done (show-reel.md §4)
+  sel.transition("c").duration(ms * 0.6).delay(delay + ms * 0.4).ease(EASE).attr("fill", fill).attr("opacity", opacity);
+}
+function styleFace(sel, fill, opacity, ms) {
+  if (!ms) { sel.interrupt("c").attr("fill", fill).attr("opacity", opacity); return; }
+  sel.transition("c").duration(ms).ease(d3.easeLinear).attr("fill", fill).attr("opacity", opacity);
+}
+
+// ---------- stage ----------
+const svg = d3.select("#stage");
+const gGuide = svg.append("g").attr("class", "guides");
+const gActs = { A: svg.append("g"), B: svg.append("g"), C: svg.append("g"), D: svg.append("g") };
+const gAnno = svg.append("g");
+let W = 900, H = 520;
+const M = { l: 78, r: 34, t: 26, b: 48 };
+const plot = () => ({ x0: M.l, y0: M.t, x1: W - M.r, y1: H - M.b, w: W - M.l - M.r, h: H - M.t - M.b });
+function measure() {
+  const el = document.getElementById("stage-wrap");
+  W = el.clientWidth || Math.min(window.innerWidth, 1400) - 380; H = el.clientHeight || 520;
+  W = Math.max(W, 320); H = Math.max(H, 240);
+  svg.attr("viewBox", [0, 0, W, H]);
+}
+measure();
+
+// ---------- derived mark data ----------
+function famOn(f) { return !state.fams.length || state.fams.includes(f); }
+function monthLit(m) {                                   // share of the month's days inside the chosen window (context views)
+  if (!state.win) return 1;
+  const lo = Math.max(state.win[0], m), hi = Math.min(state.win[1], monthOf(m + 32 * DAY));
+  return Math.max(0, (hi - lo) / DAY) / calDays(m);
+}
+const litOpacity = (lit, on) => (on ? 0.22 + 0.78 * Math.min(1, lit) : 0.14);
+function cells() {                                       // act B: one cell per family × month
+  const by = new Map(S.mf.map((r) => [r.m + "|" + r.fam, r]));
+  const out = [];
+  for (const m of MONTHS) {
+    const tot = d3.sum(FAMS, (f) => (by.get(m + "|" + f) || {}).reqs || 0);
+    for (const f of FAMS) {
+      const r = by.get(m + "|" + f) || { reqs: 0, st: 0, nt: 0 };
+      out.push({ id: m + "|" + f, m, fam: f, mi: monthIndex.get(m), fi: FAMS.indexOf(f), reqs: r.reqs, perDay: r.reqs / monthDays.get(m), share: tot ? r.reqs / tot : 0, monthTot: tot, tt: r.nt ? r.st / r.nt : null, nt: r.nt });
+    }
+  }
+  return out;
+}
+function beads() {                                       // act A: one bead per 10M requests, largest remainders per month
+  const cs = cells(), out = [];
+  for (const m of MONTHS) {
+    const row = cs.filter((c) => c.m === m), tot = d3.sum(row, (c) => c.reqs), n = Math.round(tot / BEAD);
+    const q = row.map((c) => ({ c, q: c.reqs / BEAD, k: Math.floor(c.reqs / BEAD) }));
+    let left = n - d3.sum(q, (x) => x.k);
+    [...q].sort((a, b) => (b.q - b.k) - (a.q - a.k)).forEach((x) => { if (left > 0) { x.k++; left--; } });
+    let k = 0;
+    for (const x of q) for (let j = 0; j < x.k; j++) out.push({ id: x.c.id + "|" + j, m, fam: x.c.fam, j, k: k++, nfam: x.k, cell: x.c, monthBeads: n });
+  }
+  return out;
+}
+
+// ---------- scene layouts ----------
+const xMonth = () => { const p = plot(); return d3.scaleBand().domain(MONTHS).range([p.x0, p.x1]).paddingInner(0.28).paddingOuter(0.1); };
+const xTime = () => { const p = plot(); return d3.scaleUtc().domain([DAY0, DAYN + DAY]).range([p.x0, p.x1]); };
+const famOpacity = (f, lit = 1) => litOpacity(lit, famOn(f));
+
+// Act A: beads
+function abacusGeom(bs) {
+  const p = plot(), xb = xMonth(), cols = 3;
+  const maxB = d3.max(MONTHS, (m) => bs.filter((b) => b.m === m).length) || 1;
+  const s = Math.min(xb.bandwidth() / cols, (p.h - 26) / Math.ceil(maxB / cols));
+  return { p, xb, cols, s, maxB };
+}
+function layAbacus(b, G) {
+  const { p, xb, cols, s } = G, row = Math.floor(b.k / cols), col = b.k % cols;
+  const cx = xb(b.m) + (xb.bandwidth() - cols * s) / 2 + (col + 0.5) * s, cy = p.y1 - (row + 0.5) * s;
+  return { front: circle(cx, cy, s * 0.42), fill: famColor.get(b.fam), opacity: famOpacity(b.fam, monthLit(b.m)) };
+}
+function heapGeom(bs) {
+  const p = plot(), R = 5, order = FAMS_RANK, counts = d3.rollup(bs, (v) => v.length, (b) => b.fam), labelW = 128;
+  const maxN = d3.max(order, (f) => counts.get(f) || 0) || 1;
+  const s = Math.min((p.h) / (order.length * (R + 1.4)), (p.w - labelW - 120) / Math.ceil(maxN / R));
+  const bandH = p.h / order.length;
+  const idx = new Map(); for (const f of order) idx.set(f, bs.filter((b) => b.fam === f).sort((a, b) => a.m - b.m || a.j - b.j).map((b) => b.id));
+  return { p, R, order, s, bandH, labelW, counts, idx };
+}
+function layHeap(b, G) {
+  const { p, R, order, s, bandH, labelW, idx } = G, fi = order.indexOf(b.fam), k = idx.get(b.fam).indexOf(b.id);
+  const col = Math.floor(k / R), row = k % R;
+  const cx = p.x0 + labelW + (col + 0.5) * s, cy = p.y0 + fi * bandH + (bandH - R * s) / 2 + (row + 0.5) * s;
+  return { front: circle(cx, cy, s * 0.42), fill: famColor.get(b.fam), opacity: famOpacity(b.fam, monthLit(b.m)) };
+}
+// Act B: cells
+function smGeom(cs) { const p = plot(), n = FAMS.length, ph = p.h / n, max = d3.max(cs, (c) => c.perDay) || 1; return { p, xb: xMonth(), ph, gap: Math.min(10, ph * 0.18), max }; }
+function laySM(c, G) {
+  const { p, xb, ph, gap, max } = G, base = p.y0 + (c.fi + 1) * ph - gap / 2, h = ((ph - gap) * c.perDay) / max;
+  return flat2D(rect(xb(c.m), base - h, xb.bandwidth(), h), famColor.get(c.fam), famOpacity(c.fam, monthLit(c.m)));
+}
+function layShare(c, G) {
+  const { p, xb } = G, below = d3.sum(FAMS.slice(0, c.fi), (f) => (G.cellBy.get(c.m + "|" + f) || {}).share || 0);
+  const y = d3.scaleLinear([0, 1], [p.y1, p.y0]);
+  return flat2D(rect(xb(c.m), y(below + c.share), xb.bandwidth(), y(below) - y(below + c.share)), famColor.get(c.fam), famOpacity(c.fam, monthLit(c.m)));
+}
+function heatGeom(cs) {
+  const p = plot(), xb = d3.scaleBand().domain(MONTHS).range([p.x0, p.x1]).padding(0.08), yb = d3.scaleBand().domain(FAMS).range([p.y0, p.y1 - 6]).padding(0.1);
+  const tts = cs.map((c) => c.tt).filter((v) => v != null);
+  return { p, xb, yb, col: d3.scaleSequential(SEQ).domain([0, d3.max(tts) || 1]) };
+}
+function layHeat(c, G) {
+  const { xb, yb, col } = G;
+  return flat2D(rect(xb(c.m), yb(c.fam), xb.bandwidth(), yb.bandwidth()), c.tt == null ? RULE : col(c.tt), famOn(c.fam) ? litOpacity(monthLit(c.m), true) : 0.14);
+}
+function flat2D(front, fill, opacity) { return { front, top: edgeTop(front), side: edgeTop(front), fill, opacity }; }
+
+// 3D skyline (show-reel.md §5): month × family × requests a day; orthographic d3-3d, fit once per stage size
+const view3d = { yaw: -0.62, pitch: 0.62, fit: null };
+const BOX = { w: 0.64, d: 0.64, hmax: 4.6 };
+const P3 = (x, y, z) => ({ x, y: -y, z });
+function fit3D() {
+  const p = plot(), nM = MONTHS.length, nF = FAMS.length, pts = [];
+  for (const x of [-nM / 2, nM / 2]) for (const z of [-nF / 2, nF / 2]) for (const y of [0, BOX.hmax]) pts.push(P3(x, y, z));
+  const pr = polygons3D().origin({ x: 0, y: 0 }).scale(1).rotateY(view3d.yaw).rotateX(view3d.pitch)([pts])[0];
+  const xs = d3.extent(pr, (q) => q.projected.x), ys = d3.extent(pr, (q) => q.projected.y);
+  const sc = 0.86 * Math.min(p.w / (xs[1] - xs[0]), (p.h - 20) / (ys[1] - ys[0]));
+  view3d.fit = { sc, ox: (p.x0 + p.x1) / 2 - sc * (xs[0] + xs[1]) / 2, oy: (p.y0 + p.y1) / 2 + 6 - sc * (ys[0] + ys[1]) / 2 };
+}
+const proj3 = () => polygons3D().origin({ x: view3d.fit.ox, y: view3d.fit.oy }).scale(view3d.fit.sc).rotateY(view3d.yaw).rotateX(view3d.pitch);
+function orient(pts) {                                    // reorder 4 projected corners: upper edge first, left→right (stable point order)
+  let best = null;
+  for (let r = 0; r < 4; r++) for (const dir of [1, -1]) {
+    const q = [0, 1, 2, 3].map((i) => pts[(r + dir * i + 8) % 4]);
+    if (q[0][0] > q[1][0] + 0.01) continue;
+    const ey = (q[0][1] + q[1][1]) / 2;
+    if (!best || ey < best.ey - 0.01) best = { q, ey };
+  }
+  return best ? best.q : pts;
+}
+function geom3D(cs) {
+  const nM = MONTHS.length, nF = FAMS.length, max = d3.max(cs, (c) => c.perDay) || 1, pr = proj3();
+  const probe = pr([[P3(0, 0, 1), P3(0, 0, -1), P3(1, 0, 0), P3(-1, 0, 0)]])[0];
+  const zNear = probe[0].rotated.z > probe[1].rotated.z ? 1 : 0, xNear = probe[2].rotated.z > probe[3].rotated.z ? 1 : 0;
+  const famZ = (fi) => nF / 2 - 1 - fi;                  // the largest family sits at the back, so the tall wall hides nothing
+  return { nM, nF, max, pr, zNear, xNear, famZ };
+}
+function lay3D(c, G) {
+  const { nM, max, pr, zNear, xNear, famZ } = G;
+  const x0 = c.mi - nM / 2 + (1 - BOX.w) / 2, z0 = famZ(c.fi) + (1 - BOX.d) / 2, h = Math.max((BOX.hmax * c.perDay) / max, 0.0001);
+  const w = BOX.w, d = BOX.d, zf = zNear ? z0 + d : z0, xs = xNear ? x0 + w : x0;
+  const faces = {
+    front: [P3(x0, h, zf), P3(x0 + w, h, zf), P3(x0 + w, 0, zf), P3(x0, 0, zf)],
+    top: [P3(x0, h, z0), P3(x0 + w, h, z0), P3(x0 + w, h, z0 + d), P3(x0, h, z0 + d)],
+    side: [P3(xs, h, z0 + d), P3(xs, h, z0), P3(xs, 0, z0), P3(xs, 0, z0 + d)],
+  };
+  const out = {}; let depth = 0;
+  for (const [k, qd] of Object.entries(faces)) {
+    const r = pr([qd])[0]; if (k === "front") depth = d3.mean(r, (v) => v.rotated.z);
+    const q = orient(r.map((v) => [v.projected.x, v.projected.y]));
+    out[k] = quad(q[0], q[1], q[2], q[3]);
+  }
+  const center = pr([[P3(x0 + w / 2, h / 2, z0 + d / 2)]])[0][0].rotated.z;
+  return { ...out, fill: famColor.get(c.fam), opacity: famOn(c.fam) ? litOpacity(monthLit(c.m), true) : 0.14, depth: center };
+}
+// Act C: days
+function stripGeom(ds) { const p = plot(); return { p, x: xTime(), y: d3.scaleLinear([0, d3.max(ds, (d) => d.reqs) || 1], [p.y1, p.y0 + 10]).nice() }; }
+const incomplete = (d) => (hoursOfDay.get(d.d) || 0) < HOURS_PER_DAY;
+function layStrip(d, G) {
+  const lit = !state.win || (d.d >= state.win[0] && d.d < state.win[1]);
+  return { front: circle(G.x(d.d + DAY / 2), G.y(d.reqs), incomplete(d) ? 4.2 : 2.6), fill: incomplete(d) ? BREACH : INK, opacity: lit ? 0.9 : 0.18 };
+}
+function spiralGeom(ds) {
+  const p = plot(), sun0 = DAY0 - new Date(DAY0).getUTCDay() * DAY, weeks = Math.ceil((DAYN + DAY - sun0) / (7 * DAY));
+  const R = Math.min(p.w, p.h) / 2 - 16, r0 = R * 0.14, cx = (p.x0 + p.x1) / 2, cy = (p.y0 + p.y1) / 2;
+  const step = (R - r0) / weeks, max = d3.max(ds, (d) => d.reqs) || 1;
+  return { p, sun0, weeks, R, r0, cx, cy, step, area: d3.scaleSqrt([0, max], [0, step * 0.62]), col: d3.scaleSequential(SEQ).domain([0, max]) };
+}
+function laySpiral(d, G) {
+  const t = (d.d - G.sun0) / (7 * DAY) + 0.5 / 7, a = (t % 1) * 2 * Math.PI, r = G.r0 + t * G.step;
+  const lit = !state.win || (d.d >= state.win[0] && d.d < state.win[1]);
+  return { front: circle(G.cx + r * Math.sin(a), G.cy - r * Math.cos(a), Math.max(0.6, G.area(d.reqs))), fill: incomplete(d) ? BREACH : G.col(d.reqs), opacity: lit ? 0.95 : 0.18 };
+}
+// Act D: hours
+function barsGeom(hs) { const p = plot(); return { p, x: d3.scaleBand().domain(d3.range(24)).range([p.x0, p.x1]).padding(0.18), y: d3.scaleLinear([0, d3.max(hs, (h) => h.reqs) || 1], [p.y1, p.y0 + 16]).nice() }; }
+function hourExtremes(hs, key) { const v = hs.filter((h) => h[key] != null); return { hi: d3.greatest(v, (h) => h[key]), lo: d3.least(v, (h) => h[key]) }; }
+function layBars(h, G) {
+  const ex = hourExtremes(S.hours, "reqs"), lit = h === ex.hi || h === ex.lo;
+  return { front: rect(G.x(h.hod), G.y(h.reqs), G.x.bandwidth(), G.y(0) - G.y(h.reqs)), fill: lit ? FOCUS : MUTED, opacity: 0.95 };
+}
+function radialGeom(hs) {
+  const p = plot(), R = Math.min(p.w, p.h) / 2 - 22, r0 = R * 0.3;
+  return { p, R, r0, cx: (p.x0 + p.x1) / 2, cy: (p.y0 + p.y1) / 2, len: d3.scaleLinear([0, d3.max(hs, (h) => h.tt || 0) || 1], [0, R - r0]) };
+}
+function layRadial(h, G) {
+  const ex = hourExtremes(S.hours, "tt"), lit = h === ex.hi || h === ex.lo, pad = 0.02;
+  const a0 = (h.hod / 24) * 2 * Math.PI + pad, a1 = ((h.hod + 1) / 24) * 2 * Math.PI - pad;
+  return { front: wedge(G.cx, G.cy, G.r0, G.r0 + G.len(h.tt || 0), a0, a1), fill: lit ? FOCUS : MUTED, opacity: 0.95 };
+}
+
+// ---------- scenes (titles, captions and annotation labels from plan.md) ----------
+const SCENES = [
+  { key: "abacus", name: "The bead abacus", act: "A", actName: "Beads", icon: "ti-abacus", title: "One bead per 10 million requests: DeepSeek served 84.4% of May 2025, Qwen 47.0% of March 2026",
+    caption: "Each month is a rod; its beads stack from the floor in family order, so height is volume and colour is the mix. Volume peaked in September 2025 at 27.4M requests a day, 2.45× May.",
+    help: "One bead = 10 million requests in that month and family, rounded so each month's beads add up to its rounded total. Rod height = the month's requests; the label above each rod is requests a day (÷ days in the trace that month). Follows the category filter; family and dates are highlighted, not filtered." },
+  { key: "heaps", name: "Beads heaped by family", act: "A", actName: "Beads", icon: "ti-stack-2", title: "DeepSeek carried 54.9% of the year's requests, more than the other 13 families combined",
+    caption: "The same beads roll off their rods into one heap per family.",
+    help: "Each heap holds a family's beads for the whole year (1 bead = 10M requests), ordered by month. Share = the family's requests ÷ all requests. Click a heap to filter the numbers and hour scenes to that family." },
+  { key: "multiples", name: "Requests a day per family", act: "B", actName: "Families × months", icon: "ti-layout-rows", title: "DeepSeek fell from 9.4M to 2.7M requests a day while Qwen rose from 0.6M to 5.1M (May 2025 → Mar 2026)",
+    caption: "Requests a day per family and month, one panel per family on a shared scale.",
+    help: "Bar height = the family's requests in the month ÷ days in the trace that month. Every panel uses the same scale. Partial months (fewer days in the trace) are marked." },
+  { key: "share", name: "The handover in shares", act: "B", actName: "Families × months", icon: "ti-chart-bar", title: "Qwen passed DeepSeek in March 2026: 47.0% of requests against 24.8%, after 5.3% against 84.4% in May 2025",
+    caption: "The same cells slide out of their panels and stack into each month's 100%.",
+    help: "Each column is one month's requests split by family, as a share of that month's total (0–100%). Labels give the share of each segment tall enough to hold one." },
+  { key: "latency", name: "Time to first token", act: "B", actName: "Families × months", icon: "ti-clock-bolt", title: "First tokens got faster, then slower: DeepSeek took 3.02 s in May 2025, 1.56 s in Sep, 3.34 s in Mar 2026",
+    caption: "Same family × month cells, re-coloured by a new measure: average time to first token (streaming calls only).",
+    help: "Cell colour = average time to first token in seconds: total time to first token ÷ streaming calls that report it, for that family and month. Lighter = slower. Grey cells have no streaming calls." },
+  { key: "skyline", name: "The 3D skyline", act: "B", actName: "Families × months", icon: "ti-building-skyscraper", title: "Seen as a skyline: DeepSeek's tallest month was Jun 2025 at 15.2M requests a day; Qwen's was Jan 2026 at 5.6M",
+    caption: "The heat cells rise into boxes: month × family × requests a day, three data axes; drag to turn it.",
+    help: "A box per family and month; its height is requests a day, linear from the floor. Colour repeats the family. Drag across the stage to turn the view; hover a box for its exact value." },
+  { key: "days", name: "Every day of the year", act: "C", actName: "Days", icon: "ti-calendar-dot", title: "The busiest day, 29 Oct 2025, had 34.9M requests; 13 Jan 2026 logged only 1.6M (3 of 24 hours recorded)",
+    caption: "One dot per day. The time strip in the rail is this chart's brush: drag it, or press Play.",
+    help: "One dot per day; height = requests that day, from zero. Yellow dots are days with fewer than 24 hours in the trace: incomplete logging, not a drop in demand." },
+  { key: "spiral", name: "The weekly spiral", act: "C", actName: "Days", icon: "ti-spiral", title: "No weekly rhythm to speak of: Wednesdays average only 7.2% more requests than Saturdays",
+    caption: "The same days wind into a spiral, one turn per week; dot area = requests that day.",
+    help: "Each turn of the spiral is one week, starting on Sunday at 12 o'clock and running clockwise; the year winds outward. Dot area and brightness = requests that day. Weekday averages around the ring use full weeks only." },
+  { key: "hours", name: "Requests by hour", act: "D", actName: "Hours", icon: "ti-clock-hour-4", title: "Traffic barely sleeps: the busiest trace hour (13) has only 1.19× the requests of the quietest (22)",
+    caption: "Requests by hour of the trace clock, summed over the selection.",
+    help: "Bar height = requests in that hour of the trace clock, summed over every day in your selection, from zero. The trace states no time zone. Follows every filter." },
+  { key: "clock", name: "The latency clock", act: "D", actName: "Hours", icon: "ti-clock", title: "Latency follows the clock: first tokens take 2.50 s at hour 11 and 2.08 s at hour 23",
+    caption: "The hour bars bend into a 24-hour ring and switch measure to average time to first token.",
+    help: "Each wedge is one hour of the trace clock; its length from the inner ring is the average time to first token (streaming calls only), linear from zero. Follows every filter." },
+];
+const ACTS = { A: ["abacus", "heaps"], B: ["multiples", "share", "latency", "skyline"], C: ["days", "spiral"], D: ["hours", "clock"] };
+let cur = -1;
+
+// ---------- act renderers: each returns targets for its marks in a scene, or collapsed anchors ----------
+const actData = { A: () => beads(), B: () => cells(), C: () => S.days, D: () => S.hours };
+const keyOf = { A: (b) => b.id, B: (c) => c.id, C: (d) => d.d, D: (h) => h.hod };
+const FACES = { A: ["front"], B: ["side", "top", "front"], C: ["front"], D: ["front"] };
+function targetsFor(act, key, data) {
+  if (act === "A") { const G = key === "abacus" ? abacusGeom(data) : heapGeom(data); return (b) => (key === "abacus" ? layAbacus(b, G) : layHeap(b, G)); }
+  if (act === "B") {
+    if (key === "multiples") { const G = smGeom(data); return (c) => laySM(c, G); }
+    if (key === "share") { const G = { ...smGeom(data), cellBy: new Map(data.map((c) => [c.id, c])) }; return (c) => layShare(c, G); }
+    if (key === "latency") { const G = heatGeom(data); return (c) => layHeat(c, G); }
+    if (!view3d.fit) fit3D(); const G = geom3D(data); return (c) => lay3D(c, G);
+  }
+  if (act === "C") { const G = key === "days" ? stripGeom(data) : spiralGeom(data); return (d) => (key === "days" ? layStrip(d, G) : laySpiral(d, G)); }
+  const G = key === "hours" ? barsGeom(data) : radialGeom(data); return (h) => (key === "hours" ? layBars(h, G) : layRadial(h, G));
+}
+// Where a hidden act's marks rest, and where entering marks grow from: next to where the other act's marks are (show-reel.md §4 bridges)
+function anchorFor(act, toward, data) {
+  const p = plot();
+  if (act === "A") { if (toward === "B") { const G = smGeom(cells()); return (b) => { const f = laySM(b.cell, G).front; return point(...[centerOf(f)[0], f[H2][1]], 2); }; } const xb = xMonth(); return (b) => point(xb(b.m) + xb.bandwidth() / 2, p.y1, 2); }
+  if (act === "B") {
+    if (toward === "C") { const x = xTime(); return (c) => flat2D(point(x(c.m + 15 * DAY), p.y1, 4), famColor.get(c.fam), 0); }
+    const G = smGeom(data); return (c) => { const f = laySM(c, G).front; return flat2D(rect(f[0][0], f[H2][1], f[H2 - 1][0] - f[0][0], 0), famColor.get(c.fam), 0); };
+  }
+  if (act === "C") { const x = xTime(); return (d) => point(x(d.d + DAY / 2), p.y1, 2); }
+  const G = barsGeom(data); return (h) => point(G.x(h.hod) + G.x.bandwidth() / 2, p.y1, G.x.bandwidth());
+}
+function staggerFn(targets, ms) {                         // seed stagger "centre-out"
+  const p = plot(), cx = (p.x0 + p.x1) / 2, xs = new Map([...targets].map(([k, v]) => [k, Math.abs(centerOf(v.front)[0] - cx)]));
+  const maxD = d3.max(xs.values()) || 1;
+  return (k) => (ms * STAGGER * (xs.get(k) || 0)) / maxD;
+}
+function renderAct(act, mode, sceneKey, ms, opts = {}) {
+  const data = actData[act](), key = keyOf[act], g = gActs[act];
+  let tgt, anchor = anchorFor(act, opts.toward, data);
+  const enterAnchor = anchorFor(act, null, data);
+  if (mode === "show") { const f = targetsFor(act, sceneKey, data); tgt = new Map(data.map((d) => [key(d), f(d)])); }
+  else tgt = new Map(data.map((d) => { const a = anchor(d); return [key(d), a.front ? { ...a, fill: a.fill || famColor.get(d.fam) || MUTED, opacity: 0 } : { front: a, fill: famColor.get(d.fam) || MUTED, opacity: 0 }]; }));
+  const delay = mode === "show" && ms ? staggerFn(tgt, ms) : () => 0;
+  const marks = g.selectAll("g.mark").data(data, key).join(
+    (enter) => { const e = enter.append("g").attr("class", "mark"); for (const f of FACES[act]) e.append("path").attr("class", f).attr("stroke", act === "B" ? "rgba(11,13,18,.55)" : "none").attr("stroke-width", 0.6); return e; },
+    (update) => update,
+    (exit) => { exit.each(function (d) { const a = enterAnchor(d), fr = a.front || a; d3.select(this).selectAll("path").each(function () { tweenFace(d3.select(this), fr, ms, 0, d3.select(this).attr("fill"), 0); }); }).transition("x").delay(ms + 30).remove(); return exit; },
+  );
+  marks.each(function (d) {
+    const k = key(d), t = tgt.get(k), el = d3.select(this);
+    for (const f of FACES[act]) {
+      const path = el.select("path." + f), node = path.node();
+      if (!node.__pts) { const a = enterAnchor(d); const s = a.front ? a[f] || a.front : a; node.__pts = s; path.attr("d", toPath(s)).attr("fill", t.fill).attr("opacity", 0); }
+      let to = t[f] || (act === "B" ? edgeTop(t.front) : t.front);
+      const fill = f === "top" ? d3.color(t.fill).brighter(0.7).formatHex() : f === "side" ? d3.color(t.fill).darker(0.8).formatHex() : t.fill;
+      tweenFace(path, to, ms, delay(k), fill, t.opacity);
+    }
+    el.attr("tabindex", mode === "show" ? 0 : -1).style("pointer-events", mode === "show" ? "all" : "none");
+  });
+  if (mode === "show" && act === "B" && sceneKey === "skyline") { marks.sort((a, b) => tgt.get(key(a)).depth - tgt.get(key(b)).depth); }
+  return marks;
+}
+// Re-style only (highlight by family or dates in the context views)
+function restyle(ms) {
+  const sc = SCENES[cur]; if (!sc || sc.act === "D") return;
+  const act = sc.act, data = actData[act](), f = targetsFor(act, sc.key, data), key = keyOf[act];
+  gActs[act].selectAll("g.mark").each(function (d) {
+    const t = f(d);
+    d3.select(this).selectAll("path").each(function () {
+      const c = this.getAttribute("class"); const fill = c === "top" ? d3.color(t.fill).brighter(0.7).formatHex() : c === "side" ? d3.color(t.fill).darker(0.8).formatHex() : t.fill;
+      styleFace(d3.select(this), fill, t.opacity, ms);
+    });
+  });
+}
+
+// ---------- guides per scene (crossfade: old out in the first third, new in the last third) ----------
+function swapGuides(ms) {
+  gGuide.selectAll("g.guide").interrupt().transition().duration(ms / 3).attr("opacity", 0).remove();
+  gAnno.selectAll("g.guide").interrupt().transition().duration(ms / 3).attr("opacity", 0).remove();
+  const g = gGuide.append("g").attr("class", "guide").attr("opacity", ms ? 0 : 1), a = gAnno.append("g").attr("class", "guide").attr("opacity", ms ? 0 : 1);
+  drawGuides(SCENES[cur].key, g, a);
+  if (ms) { g.transition().delay((ms * 2) / 3).duration(ms / 3).attr("opacity", 1); a.transition().delay((ms * 2) / 3).duration(ms / 3).attr("opacity", 1); }
+}
+function redrawGuides() { gGuide.selectAll("g.guide").interrupt().remove(); gAnno.selectAll("g.guide").interrupt().remove(); const g = gGuide.append("g").attr("class", "guide"), a = gAnno.append("g").attr("class", "guide"); drawGuides(SCENES[cur].key, g, a); }
+const txt = (g, x, y, s, o = {}) => g.append("text").attr("x", x).attr("y", y).text(s).attr("font-size", o.size || 12).attr("text-anchor", o.anchor || "start").attr("class", o.muted === false ? null : "g-muted").attr("font-weight", o.weight || null).style("fill", o.fill || null);
+const hline = (g, x1, x2, y, c = RULE, dash) => g.append("line").attr("x1", x1).attr("x2", x2).attr("y1", y).attr("y2", y).attr("stroke", c).attr("stroke-dasharray", dash || null);
+const vline = (g, x, y1, y2, c = RULE, dash) => g.append("line").attr("x1", x).attr("x2", x).attr("y1", y1).attr("y2", y2).attr("stroke", c).attr("stroke-dasharray", dash || null);
+function monthAxis(g, xb, y) {
+  for (const m of MONTHS) {
+    const x = xb(m) + xb.bandwidth() / 2, d = new Date(m);
+    txt(g, x, y + 16, fmtMon(m), { anchor: "middle" });
+    if (m === MONTHS[0] || d.getUTCMonth() === 0) txt(g, x, y + 30, String(d.getUTCFullYear()), { anchor: "middle", size: 11 });
+  }
+}
+function partialMarks(g, xb, y0, y1) {
+  for (const m of MONTHS.filter(isPartial)) {
+    const x = xb(m), w = xb.bandwidth();
+    g.append("rect").attr("x", x - 3).attr("y", y0).attr("width", w + 6).attr("height", y1 - y0).attr("fill", "url(#hatch)").attr("opacity", 0.5);
+    txt(g, x + w / 2, y0 - 6, `${monthDays.get(m)} days`, { anchor: "middle", size: 11, fill: BREACH });
+  }
+}
+function drawGuides(key, g, a) {
+  const p = plot();
+  if (key === "abacus") {
+    const bs = beads(), G = abacusGeom(bs), yv = (v) => p.y1 - (v / BEAD / G.cols) * G.s;
+    for (const v of d3.ticks(0, ((p.h - 26) / G.s) * G.cols * BEAD, 5)) { if (yv(v) < p.y0) continue; hline(g, p.x0 - 6, p.x1, yv(v), RULE, "2 4"); txt(g, p.x0 - 10, yv(v) + 4, fmtC(v), { anchor: "end" }); }
+    txt(g, p.x0 - 10, p.y0 - 8, "requests in the month", { anchor: "end", size: 11 });
+    const perMonth = d3.rollup(bs, (v) => v.length, (b) => b.m), cs = cells(), tot = d3.rollup(cs, (v) => d3.sum(v, (c) => c.reqs), (c) => c.m);
+    for (const m of MONTHS) {
+      const x = G.xb(m) + G.xb.bandwidth() / 2, n = perMonth.get(m) || 0, top = p.y1 - Math.ceil(n / G.cols) * G.s;
+      vline(g, x, p.y1, top - 6, isPartial(m) ? BREACH : "#3a4358", isPartial(m) ? "3 3" : null);
+      txt(g, x, top - 10, fmtC((tot.get(m) || 0) / monthDays.get(m)) + "/day", { anchor: "middle", size: 11, muted: false });
+      if (isPartial(m)) txt(g, x, p.y1 + 44, `partial: ${monthDays.get(m)} days`, { anchor: "middle", size: 10.5, fill: BREACH });
+    }
+    hline(g, p.x0, p.x1, p.y1, "#3a4358");
+    monthAxis(g, G.xb, p.y1);
+    const peak = d3.greatest(MONTHS, (m) => (tot.get(m) || 0) / monthDays.get(m));
+    if (peak != null) { const x = G.xb(peak) + G.xb.bandwidth() + 6, n = perMonth.get(peak) || 0, y = p.y1 - Math.ceil(n / G.cols) * G.s + 14; txt(a, x, y, `Peak month: ${fmtC(tot.get(peak) / monthDays.get(peak))} a day`, { size: 12, muted: false, fill: FOCUS }); }
+  }
+  if (key === "heaps") {
+    const bs = beads(), G = heapGeom(bs), all = bs.length;
+    G.order.forEach((f, i) => {
+      const y = p.y0 + i * G.bandH + G.bandH / 2, n = G.counts.get(f) || 0, cs = cells(), share = d3.sum(cs.filter((c) => c.fam === f), (c) => c.reqs) / (d3.sum(cs, (c) => c.reqs) || 1);
+      txt(g, p.x0 + G.labelW - 12, y + 4, f, { anchor: "end", size: 13, muted: false });
+      txt(g, p.x0 + G.labelW + Math.ceil(n / G.R) * G.s + 10, y + 4, `${fmtInt(n)} beads · ${fmtP(share)}`, { size: 12 });
+    });
+    txt(g, p.x0 + G.labelW, p.y1 + 30, `1 bead = 10M requests · ${fmtInt(all)} beads in all · beads ordered by month, left to right`, { size: 11.5 });
+  }
+  if (key === "multiples") {
+    const cs = cells(), G = smGeom(cs);
+    FAMS.forEach((f, i) => { const base = p.y0 + (i + 1) * G.ph - G.gap / 2; hline(g, p.x0, p.x1, base, "#3a4358"); txt(g, p.x0 - 10, base - 4, f, { anchor: "end", size: 12.5, muted: false }); });
+    txt(g, p.x1, p.y0 - 8, `Shared scale: a full panel = ${fmtC(G.max)} requests a day`, { anchor: "end", size: 11.5 });
+    partialMarks(g, G.xb, p.y0, p.y1);
+    monthAxis(g, G.xb, p.y1);
+  }
+  if (key === "share") {
+    const cs = cells(), G = { ...smGeom(cs), cellBy: new Map(cs.map((c) => [c.id, c])) }, y = d3.scaleLinear([0, 1], [p.y1, p.y0]);
+    for (const v of [0, 0.25, 0.5, 0.75, 1]) { hline(g, p.x0 - 6, p.x0, y(v), "#3a4358"); txt(g, p.x0 - 10, y(v) + 4, d3.format(".0%")(v), { anchor: "end" }); }
+    txt(g, p.x0 - 10, p.y0 - 8, "share of the month's requests", { anchor: "end", size: 11 });
+    for (const c of cs) { const r = layShare(c, G).front, hgt = r[H2][1] - r[0][1]; if (hgt >= 15 && G.xb.bandwidth() >= 26) txt(a, (r[0][0] + r[H2 - 1][0]) / 2, (r[0][1] + r[H2][1]) / 2 + 4, d3.format(G.xb.bandwidth() >= 40 ? ".1%" : ".0%")(c.share), { anchor: "middle", size: 11, muted: false, fill: c.fam === OTHER ? "#0b0d12" : "#0b0d12", weight: 600 }); }
+    partialMarks(g, G.xb, p.y0, p.y1);
+    monthAxis(g, G.xb, p.y1);
+    const lead = FAMS_RANK[0] === OTHER ? FAMS_RANK[1] : FAMS_RANK[0];
+    const pass = fullMonths.find((m) => FAMS.some((f) => f !== lead && f !== OTHER && (G.cellBy.get(m + "|" + f) || {}).share > (G.cellBy.get(m + "|" + lead) || {}).share));
+    if (pass != null) { const who = FAMS.find((f) => f !== lead && f !== OTHER && G.cellBy.get(pass + "|" + f).share > G.cellBy.get(pass + "|" + lead).share), x = G.xb(pass) + G.xb.bandwidth() / 2; vline(a, x, p.y0 - 2, p.y0 + 14, FOCUS); txt(a, x - 4, p.y0 - 8 + 0, `${fmtMonth(pass)}: ${who} passes ${lead}`, { anchor: "end", size: 12, muted: false, fill: FOCUS }); }
+  }
+  if (key === "latency") {
+    const cs = cells(), G = heatGeom(cs);
+    FAMS.forEach((f) => txt(g, p.x0 - 10, G.yb(f) + G.yb.bandwidth() / 2 + 4, f, { anchor: "end", size: 12.5, muted: false }));
+    for (const c of cs) if (c.tt != null && G.xb.bandwidth() >= 34 && G.yb.bandwidth() >= 18) txt(a, G.xb(c.m) + G.xb.bandwidth() / 2, G.yb(c.fam) + G.yb.bandwidth() / 2 + 4, d3.format(".1f")(c.tt), { anchor: "middle", size: 11, muted: false, fill: c.tt > G.col.domain()[1] * 0.55 ? "#0b0d12" : INK });
+    const lead = FAMS_RANK.find((f) => f !== OTHER);
+    a.append("rect").attr("x", G.xb(MONTHS[0]) - 3).attr("y", G.yb(lead) - 3).attr("width", G.xb(MONTHS[MONTHS.length - 1]) + G.xb.bandwidth() - G.xb(MONTHS[0]) + 6).attr("height", G.yb.bandwidth() + 6).attr("fill", "none").attr("stroke", FOCUS).attr("stroke-width", 2).attr("rx", 4);
+    for (const m of [fullMonths[0], d3.greatest(fullMonths, (m) => -((cs.find((c) => c.m === m && c.fam === lead) || {}).tt ?? Infinity)), fullMonths[fullMonths.length - 1]]) { const c = cs.find((x) => x.m === m && x.fam === lead); if (c && c.tt != null) txt(a, G.xb(m) + G.xb.bandwidth() / 2, G.yb(lead) - 7, fmtS(c.tt), { anchor: "middle", size: 11.5, muted: false, fill: FOCUS, weight: 600 }); }
+    partialMarks(g, G.xb, p.y0, p.y1 - 6);
+    monthAxis(g, G.xb, p.y1 - 6);
+  }
+  if (key === "skyline") {
+    const pr = proj3(), nM = MONTHS.length, nF = FAMS.length, G = geom3D(cells()), P = (x, y, z) => { const r = pr([[P3(x, y, z)]])[0][0].projected; return [r.x, r.y]; };
+    for (let i = 0; i <= nM; i++) { const [x1, y1] = P(i - nM / 2, 0, -nF / 2), [x2, y2] = P(i - nM / 2, 0, nF / 2); g.append("line").attr("x1", x1).attr("y1", y1).attr("x2", x2).attr("y2", y2).attr("stroke", RULE); }
+    for (let j = 0; j <= nF; j++) { const [x1, y1] = P(-nM / 2, 0, j - nF / 2), [x2, y2] = P(nM / 2, 0, j - nF / 2); g.append("line").attr("x1", x1).attr("y1", y1).attr("x2", x2).attr("y2", y2).attr("stroke", RULE); }
+    const zEdge = G.zNear ? nF / 2 + 0.35 : -nF / 2 - 0.35, xEdge = G.xNear ? nM / 2 + 0.3 : -nM / 2 - 0.3;
+    MONTHS.forEach((m, i) => { const [x, y] = P(i - nM / 2 + 0.5, 0, zEdge); txt(g, x, y + 12, fmtMon(m) + (isPartial(m) ? "*" : ""), { anchor: "middle", size: 11, fill: isPartial(m) ? BREACH : null }); });
+    FAMS.forEach((f, fi) => { const [x, y] = P(xEdge, 0, G.famZ(fi) + 0.5); txt(g, x, y + 4, f, { anchor: G.xNear ? "start" : "end", size: 11.5, muted: false }); });
+    const [hx, hy] = P(-nM / 2, BOX.hmax, -nF / 2), [bx, by] = P(-nM / 2, 0, -nF / 2);
+    g.append("line").attr("x1", bx).attr("y1", by).attr("x2", hx).attr("y2", hy).attr("stroke", "#3a4358");
+    txt(g, hx, hy - 8, `${fmtC(G.max)} requests a day`, { anchor: "middle", size: 11 });
+    txt(g, p.x0, p.y1 + 30, "Height is linear from the floor. * partial month. Drag to turn.", { size: 11.5 });
+  }
+  if (key === "days") {
+    const G = stripGeom(S.days);
+    for (const v of G.y.ticks(5)) { hline(g, p.x0, p.x1, G.y(v), RULE, "2 4"); txt(g, p.x0 - 10, G.y(v) + 4, fmtC(v), { anchor: "end" }); }
+    txt(g, p.x0 - 10, p.y0 - 2, "requests that day", { anchor: "end", size: 11 });
+    for (const m of MONTHS) { const x = G.x(m < DAY0 ? DAY0 : m); vline(g, x, p.y1, p.y1 + 5, "#3a4358"); txt(g, x + 3, p.y1 + 18, fmtMon(m), { size: 11.5 }); if (new Date(m).getUTCMonth() === 0 || m === MONTHS[0]) txt(g, x + 3, p.y1 + 32, String(new Date(m).getUTCFullYear()), { size: 11 }); }
+    hline(g, p.x0, p.x1, p.y1, "#3a4358");
+    const peak = d3.greatest(S.days, (d) => d.reqs), gaps = S.days.filter(incomplete);
+    if (peak) txt(a, G.x(peak.d + DAY / 2), G.y(peak.reqs) - 10, `${fmtDay(peak.d)}: ${fmtC(peak.reqs)}`, { anchor: "middle", size: 12, muted: false, fill: FOCUS });
+    const worst = d3.least(gaps, (d) => hoursOfDay.get(d.d));
+    if (worst) { const x = G.x(worst.d + DAY / 2), y = G.y(worst.reqs); a.append("line").attr("x1", x).attr("x2", x).attr("y1", y + 6).attr("y2", y + 22).attr("stroke", BREACH); txt(a, x, y + 36, `${fmtDay(worst.d)}: only ${hoursOfDay.get(worst.d)} of ${HOURS_PER_DAY} hours recorded`, { anchor: "middle", size: 12, muted: false, fill: BREACH }); }
+  }
+  if (key === "spiral") {
+    const G = spiralGeom(S.days);
+    const full = S.days.filter((d) => d.d >= G.sun0 + 7 * DAY && d.d < G.sun0 + (G.weeks - 1) * 7 * DAY);
+    const wd = d3.rollup(full, (v) => d3.mean(v, (d) => d.reqs), (d) => new Date(d.d).getUTCDay());
+    const hi = d3.greatest([...wd], (e) => e[1]), lo = d3.least([...wd], (e) => e[1]);
+    for (let i = 0; i < 7; i++) {
+      const ang = ((i + 0.5) / 7) * 2 * Math.PI, x2 = G.cx + (G.R + 4) * Math.sin(ang), y2 = G.cy - (G.R + 4) * Math.cos(ang);
+      g.append("line").attr("x1", G.cx + G.r0 * 0.7 * Math.sin(ang)).attr("y1", G.cy - G.r0 * 0.7 * Math.cos(ang)).attr("x2", x2).attr("y2", y2).attr("stroke", RULE).attr("stroke-dasharray", "2 4");
+      const name = fmtWd(new Date(G.sun0 + i * DAY)).slice(0, 3), lx = G.cx + (G.R + 14) * Math.sin(ang), ly = G.cy - (G.R + 14) * Math.cos(ang);
+      const isX = (hi && hi[0] === i) || (lo && lo[0] === i);
+      txt(isX ? a : g, lx, ly + 4, `${name} ${fmtC(wd.get(i))}`, { anchor: Math.sin(ang) > 0.2 ? "start" : Math.sin(ang) < -0.2 ? "end" : "middle", size: 12, muted: !isX, fill: isX ? FOCUS : null });
+    }
+    const spiralPts = d3.range(0, G.weeks * 7 + 1).map((k) => { const t = k / 7 + 0.5 / 7 + (DAY0 - G.sun0) / (7 * DAY), r = G.r0 + t * G.step, an = (t % 1) * 2 * Math.PI; return [G.cx + r * Math.sin(an), G.cy - r * Math.cos(an)]; }).filter((q, k) => G.sun0 + (k + (DAY0 - G.sun0) / DAY) * DAY <= DAYN);
+    g.append("polyline").attr("points", spiralPts.map((q) => q.join(",")).join(" ")).attr("fill", "none").attr("stroke", "#2c3446").attr("stroke-width", 0.8);
+    txt(g, G.cx, G.cy + 4, fmtMonth(DAY0), { anchor: "middle", size: 10.5 });
+    txt(g, p.x0 - 60, p.y1 + 30, "Weekday labels: average requests a day over full weeks. Area = requests that day.", { size: 11.5 });
+  }
+  if (key === "hours") {
+    const G = barsGeom(S.hours), ex = hourExtremes(S.hours, "reqs");
+    for (const v of G.y.ticks(5)) { hline(g, p.x0, p.x1, G.y(v), RULE, "2 4"); txt(g, p.x0 - 10, G.y(v) + 4, fmtC(v), { anchor: "end" }); }
+    txt(g, p.x0 - 10, p.y0 + 6, "requests in the hour", { anchor: "end", size: 11 });
+    for (let h = 0; h < 24; h++) txt(g, G.x(h) + G.x.bandwidth() / 2, p.y1 + 16, String(h), { anchor: "middle", size: 11.5 });
+    txt(g, (p.x0 + p.x1) / 2, p.y1 + 34, "hour of the trace clock (no time zone given)", { anchor: "middle", size: 11 });
+    for (const [h, lab] of [[ex.hi, "busiest"], [ex.lo, "quietest"]]) if (h) txt(a, G.x(h.hod) + G.x.bandwidth() / 2, G.y(h.reqs) - 8, `${lab}: ${fmtC(h.reqs)}`, { anchor: "middle", size: 12, muted: false, fill: FOCUS });
+  }
+  if (key === "clock") {
+    const G = radialGeom(S.hours), ex = hourExtremes(S.hours, "tt");
+    for (const v of G.len.ticks(4).filter((v) => v > 0)) { g.append("circle").attr("cx", G.cx).attr("cy", G.cy).attr("r", G.r0 + G.len(v)).attr("fill", "none").attr("stroke", RULE).attr("stroke-dasharray", "2 4"); txt(g, G.cx + 3, G.cy - G.r0 - G.len(v) - 3, `${v} s`, { size: 10.5 }); }
+    g.append("circle").attr("cx", G.cx).attr("cy", G.cy).attr("r", G.r0).attr("fill", "none").attr("stroke", "#3a4358");
+    for (let h = 0; h < 24; h += 3) { const ang = ((h + 0.5) / 24) * 2 * Math.PI; txt(g, G.cx + (G.r0 - 12) * Math.sin(ang), G.cy - (G.r0 - 12) * Math.cos(ang) + 4, String(h), { anchor: "middle", size: 11 }); }
+    txt(g, G.cx, G.cy + 4, "trace hour", { anchor: "middle", size: 10.5 });
+    for (const [h, lab] of [[ex.hi, "slowest"], [ex.lo, "fastest"]]) if (h) { const ang = ((h.hod + 0.5) / 24) * 2 * Math.PI, r = G.r0 + G.len(h.tt) + 14; txt(a, G.cx + r * Math.sin(ang), G.cy - r * Math.cos(ang) + 4, `${lab}: hour ${h.hod}, ${fmtS(h.tt)}`, { anchor: Math.sin(ang) >= 0 ? "start" : "end", size: 12, muted: false, fill: FOCUS }); }
+  }
+}
+svg.append("defs").html(`<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="${BREACH}" stroke-opacity=".35" stroke-width="1.4"/></pattern>`);
+
+// ---------- legend ----------
+function legend(key) {
+  const el = document.getElementById("legend");
+  const famSw = FAMS.map((f) => `<span><span class="sw" style="background:${famColor.get(f)}"></span>${f}</span>`).join("");
+  const help = (h) => `<button class="help" data-help="${h}" aria-label="About this legend"><i class="ti ti-info-circle"></i></button>`;
+  let html = "";
+  if (["abacus", "heaps", "multiples", "share", "skyline"].includes(key)) html = famSw + help("Colour = model family. The five largest named families have their own colour; the other nine are grouped in grey. Click a family chip or a mark to filter.");
+  if (key === "latency") { const cs = cells(), mx = d3.max(cs, (c) => c.tt) || 0; html = `Avg time to first token: 0 s<span class="grad"></span>${fmtS(mx)} · <span><span class="sw" style="background:${RULE}"></span>no streaming calls</span>` + help("Sequential colour from 0 s (dark) to the slowest cell (light). Streaming calls only."); }
+  if (key === "days" || key === "spiral") html = `<span><span class="sw" style="background:${key === "days" ? INK : css("--seq-hi")}"></span>a day</span><span><span class="sw" style="background:${BREACH}"></span>incomplete day (fewer than ${HOURS_PER_DAY} hours)</span>` + help("One mark per day of the trace. Incomplete days are logging gaps, not falls in demand.");
+  if (key === "hours" || key === "clock") html = `<span><span class="sw" style="background:${FOCUS}"></span>${key === "hours" ? "busiest and quietest hour" : "slowest and fastest hour"}</span><span><span class="sw" style="background:${MUTED}"></span>other hours</span>` + help("Orange marks the two hours the title is about; every other hour is grey.");
+  el.style.opacity = 0; setTimeout(() => { el.innerHTML = html; el.style.opacity = 1; }, T(200));
+}
+
+// ---------- tooltips for marks ----------
+function markTip(act, d) {
+  const part = (m) => (isPartial(m) ? ` <span class="m">(partial month: ${monthDays.get(m)} days)</span>` : "");
+  const filt = () => { const f = activeText(); return f ? `<div class="m">Reflects: ${f}</div>` : ""; };
+  if (act === "A") { const c = d.cell; return `<b>1 bead = 10M requests</b><br>${c.fam} · ${fmtMonth(d.m)}${part(d.m)}<br>${c.fam} that month: ${fmtC(c.reqs)} requests (${fmtInt(c.reqs)}) = ${d.nfam} bead${d.nfam === 1 ? "" : "s"}, rounded<br>Month: ${fmtC(c.monthTot)} requests, ${fmtC(c.monthTot / monthDays.get(d.m))} a day · ${fmtP(c.share)} ${c.fam}${filt()}`; }
+  if (act === "B") return `<b>${d.fam} · ${fmtMonth(d.m)}</b>${part(d.m)}<br>Requests: ${fmtInt(d.reqs)} (${fmtC(d.perDay)} a day)<br>Share of the month: ${fmtP(d.share)}<br>Avg time to first token: ${fmtS(d.tt)} <span class="m">over ${fmtC(d.nt)} streaming calls</span>${filt()}`;
+  if (act === "C") { const nh = hoursOfDay.get(d.d); return `<b>${fmtWd(d.d)}, ${fmtDay(d.d)}</b><br>Requests: ${fmtInt(d.reqs)}<br>Hours in the trace: ${nh} of ${HOURS_PER_DAY}${nh < HOURS_PER_DAY ? " <span class='m'>(incomplete day)</span>" : ""}${filt()}`; }
+  const tot = d3.sum(S.hours, (h) => h.reqs);
+  return `<b>Trace hour ${d.hod}</b><br>Requests: ${fmtInt(d.reqs)} (${fmtP(d.reqs / (tot || 1))} of the selection)<br>Avg time to first token: ${fmtS(d.tt)} <span class="m">over ${fmtC(d.nt)} streaming calls</span>${filt()}`;
+}
+for (const act of "ABCD") {
+  gActs[act].on("pointermove", (e) => { const m = e.target.closest("g.mark"); if (m) showTip(markTip(act, d3.select(m).datum()), e.clientX, e.clientY); })
+    .on("pointerleave", hideTip)
+    .on("focusin", (e) => { const m = e.target.closest("g.mark"); if (m) { const b = m.getBoundingClientRect(); showTip(markTip(act, d3.select(m).datum()), b.right, b.top); } })
+    .on("focusout", hideTip)
+    .on("click", (e) => { const m = e.target.closest("g.mark"); if (!m || act === "C" || act === "D") return; const d = d3.select(m).datum(); toggleFam(d.fam, e.shiftKey); })
+    .on("keydown", (e) => { if (e.key === "Enter" && (act === "A" || act === "B")) { const m = e.target.closest("g.mark"); if (m) toggleFam(d3.select(m).datum().fam, e.shiftKey); } });
+}
+
+// ---------- show a scene ----------
+function showScene(i, opts = {}) {
+  i = Math.max(0, Math.min(SCENES.length - 1, i));
+  const prev = cur >= 0 ? SCENES[cur] : null, sc = SCENES[i], first = cur < 0;
+  const ms = opts.instant ? 0 : T(prev && prev.act !== sc.act ? TEMPO * 1.6 : TEMPO)   // a bridge between acts gets more time: marks travel further;
+  cur = i;
+  if (sc.key === "skyline") fit3D();
+  for (const act of "ABCD") {
+    if (act === sc.act) renderAct(act, "show", sc.key, prev && prev.act !== act ? ms * 0.8 : ms, {});
+    else if (prev && prev.act === act) renderAct(act, "hide", null, ms * 0.85, { toward: sc.act });
+    else if (first) renderAct(act, "hide", null, 0, {});
+  }
+  hideTip(); swapGuides(ms);
+  document.getElementById("scene-title").textContent = sc.title;
+  document.getElementById("scene-caption").textContent = sc.caption;
+  document.getElementById("scene-help").dataset.help = sc.help;
+  document.getElementById("scene-icon").className = "ti " + sc.icon + "";
+  document.getElementById("scene-act").textContent = `Act ${"ABCD".indexOf(sc.act) + 1}: ${sc.actName}`;
+  document.getElementById("scene-n").textContent = i + 1;
+  document.querySelectorAll("#scene-list button[data-i]").forEach((b) => b.classList.toggle("on", +b.dataset.i === i));
+  document.querySelectorAll("#dots button").forEach((b, j) => b.classList.toggle("on", j === i));
+  document.getElementById("stage").classList.toggle("rotatable", sc.key === "skyline");
+  legend(sc.key);
+  try { history.replaceState(null, "", "#" + sc.key); } catch {}
+  if (autoOn) scheduleAuto();
+}
+
+// ---------- 3D drag rotation ----------
+svg.call(d3.drag().filter((e) => SCENES[cur] && SCENES[cur].key === "skyline" && !e.button)
+  .on("drag", (e) => {
+    view3d.yaw = Math.max(-1.45, Math.min(1.45, view3d.yaw + e.dx * 0.01));
+    view3d.pitch = Math.max(0.18, Math.min(1.2, view3d.pitch + e.dy * 0.006));     // keeps the floor visible
+    renderAct("B", "show", "skyline", 0); redrawGuides();
+  }));
+
+// ---------- clients ----------
+const sel = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, typeof v === "string" && /\(/.test(v) ? vg.sql([v]) : v]));
+const qMF = (where) => vg.Query.from("t").select(sel({ m: "epoch_ms(date_trunc('month', d)::TIMESTAMP)::DOUBLE", fam: "fam", reqs: "sum(reqs)::DOUBLE", st: "coalesce(sum(sum_ttft), 0)::DOUBLE", nt: "sum(n_ttft)::DOUBLE" })).where(where).groupby("m", "fam");
+const qDays = (where) => vg.Query.from("t").select(sel({ d: "epoch_ms(d::TIMESTAMP)::DOUBLE", reqs: "sum(reqs)::DOUBLE" })).where(where).groupby("d").orderby("d");
+const qHours = (where) => vg.Query.from("t").select(sel({ hod: "hod", reqs: "sum(reqs)::DOUBLE", st: "coalesce(sum(sum_ttft), 0)::DOUBLE", nt: "sum(n_ttft)::DOUBLE" })).where(where).groupby("hod").orderby("hod");
+const qKPI = (where) => vg.Query.from("t").select(sel({ reqs: "sum(reqs)::DOUBLE", it: "(sum(sum_it) / nullif(sum(n_it), 0))::DOUBLE", ot: "(sum(sum_ot) / nullif(sum(n_ot), 0))::DOUBLE", tt: "(sum(sum_ttft) / nullif(sum(n_ttft), 0))::DOUBLE" })).where(where);
+
+let started = false;
+const mfClient = new Live($ctx, qMF, (rows) => { S.mf = rows; if (started) rerender("AB"); });
+const dayClient = new Live($ctx, qDays, (rows) => { S.days = rows.filter((r) => r.reqs > 0); if (started) rerender("C"); });
+const hourClient = new Live($page, qHours, (rows) => { const by = new Map(rows.map((r) => [r.hod, r])); S.hours = d3.range(24).map((h) => { const r = by.get(h) || { reqs: 0, st: 0, nt: 0 }; return { hod: h, reqs: r.reqs, nt: r.nt, tt: r.nt ? r.st / r.nt : null }; }); if (started) rerender("D"); });
+let busy = false;
+const kpiClient = new Live($page, qKPI, ([r]) => { S.kpi = r; busy = false; if (started) kpis(); });
+const kpiAll = new Live(undefined, qKPI, ([r]) => { S.kpiAll = r; if (started) kpis(); });
+
+function rerender(acts) {
+  const sc = SCENES[cur]; if (!sc) return;
+  const ms = updDur();
+  if (acts.includes(sc.act)) {
+    for (const act of acts) if (act !== sc.act) renderAct(act, "hide", null, 0, {});
+    easeNow = updEase(); renderAct(sc.act, "show", sc.key, ms); easeNow = EASE;
+    redrawGuides();
+  } else for (const act of acts) renderAct(act, "hide", null, 0, {});
+}
+
+// KPIs with count-up (motion.md §4)
+function tweenNumber(el, to, fmt) {
+  const from = el.__v ?? 0; el.__v = to;
+  if (!T(1) || to == null || !isFinite(to)) { el.innerHTML = fmt(to); return; }
+  d3.select(el).transition().duration(T(700)).ease(d3.easeCubicOut).tween("text", () => { const i = d3.interpolateNumber(from, to); return (t) => (el.innerHTML = fmt(i(t))); });
+}
+function kpis() {
+  const k = S.kpi || {}, a = S.kpiAll || {}, filtered = !!activeText();
+  tweenNumber(document.getElementById("k-reqs"), k.reqs, fmtC);
+  tweenNumber(document.getElementById("k-in"), k.it, fmtInt);
+  tweenNumber(document.getElementById("k-out"), k.ot, fmtInt);
+  tweenNumber(document.getElementById("k-tt"), k.tt, (v) => (v == null || !isFinite(v) ? "–" : d3.format(".2f")(v) + "<small> s</small>"));
+  const lab = filtered ? "all data: " : "whole year · ";
+  document.getElementById("t-reqs").textContent = filtered ? `${fmtP((k.reqs || 0) / a.reqs)} of ${fmtC(a.reqs)}` : `whole year · ${fmtInt(a.reqs || 0)}`;
+  document.getElementById("t-in").textContent = lab + fmtInt(a.it || 0);
+  document.getElementById("t-out").textContent = lab + fmtInt(a.ot || 0);
+  document.getElementById("t-tt").textContent = lab + fmtS(a.tt);
+}
+
+// Time strip with brush and Play (motion.md §5, Glide)
+const strip = d3.select("#strip"), SW = 300, SH = 86, SM = { l: 4, r: 4, t: 6, b: 18 };
+strip.attr("viewBox", [0, 0, SW, SH]).attr("preserveAspectRatio", "none");
+const sx = d3.scaleUtc().domain([DAY0, DAYN + DAY]).range([SM.l, SW - SM.r]);
+const sy = d3.scaleLinear().range([SH - SM.b, SM.t]);
+const sArea = strip.append("path").attr("fill", css("--c5")).attr("fill-opacity", 0.55);
+const sAxis = strip.append("g").attr("transform", `translate(0,${SH - SM.b})`);
+sAxis.call(d3.axisBottom(sx).ticks(4).tickFormat(d3.utcFormat("%b %y")).tickSize(3)).call((g) => g.selectAll("text").attr("fill", MUTED).attr("font-size", 9.5)).call((g) => g.selectAll("line,path").attr("stroke", RULE));
+const stripClient = new Live($page, qDays, (rows) => {
+  S.strip = rows; sy.domain([0, d3.max(rows, (r) => r.reqs) || 1]);
+  const area = d3.area().x((r) => sx(r.d + DAY / 2)).y0(sy(0)).y1((r) => sy(r.reqs)).defined((r) => r.reqs > 0);
+  const byDay = new Map(rows.map((r) => [r.d, r])), full = dayHourRows.map((r) => byDay.get(r.d) || { d: r.d, reqs: 0 });
+  sArea.interrupt().transition().duration(updDur()).ease(updEase()).attr("d", area(full));
+});
+const timeSrc = { source: stripClient, clients: new Set([stripClient]) };
+let brushByCode = false;
+const brush = d3.brushX().extent([[SM.l, SM.t], [SW - SM.r, SH - SM.b]]).on("brush end", ({ selection, sourceEvent }) => {
+  if (brushByCode) return;
+  if (sourceEvent) { hurry(); stopPlay(); }
+  setWindow(selection ? selection.map((px) => +d3.utcDay.round(sx.invert(px))) : null);
+});
+const gBrush = strip.append("g").call(brush);
+gBrush.selectAll(".selection").attr("fill", css("--focus")).attr("fill-opacity", 0.25).attr("stroke", css("--focus"));
+function setWindow(win) {
+  state.win = win && win[1] > win[0] ? win : null;
+  $time.update(clauseInterval("d", state.win ? [new Date(state.win[0]), new Date(state.win[1] - DAY)] : null, timeSrc));
+  restyle(updDur()); chips();
+}
+let playTimer = null;
+function stopPlay() { if (playTimer) playTimer.stop(); playTimer = null; playing = false; document.querySelector("#play span").textContent = "Play"; document.querySelector("#play i").className = "ti ti-player-play-filled"; }
+function play() {
+  if (playTimer) return stopPlay();
+  playing = true; document.querySelector("#play span").textContent = "Stop"; document.querySelector("#play i").className = "ti ti-player-stop-filled";
+  const width = 28 * DAY, speed = 9, t0 = performance.now(); let lastSent = 0;
+  playTimer = d3.timer(() => {
+    const lo = DAY0 + ((performance.now() - t0) / 1000) * speed * DAY;
+    if (lo + width > DAYN + DAY) { stopPlay(); return; }
+    brushByCode = true; gBrush.call(brush.move, [sx(lo), sx(lo + width)]); brushByCode = false;
+    const now = performance.now();
+    if (!busy && now - lastSent > 120) { busy = true; lastSent = now; setWindow([+d3.utcDay.floor(lo), +d3.utcDay.floor(lo) + width]); }
+  });
+}
+document.getElementById("play").addEventListener("click", play);
+
+// Category menu and family chips (options from the data)
+const catSel = document.getElementById("cat");
+catSel.innerHTML = `<option value="">All categories</option>` + catRows.map((r) => `<option value="${r.category}">${r.category} (${fmtC(r.reqs)})</option>`).join("");
+catSel.addEventListener("change", () => { state.cat = catSel.value || null; $cat.update(clausePoints(["category"], state.cat ? [[state.cat]] : null, { source: catSrc })); chips(); });
+const famBox = document.getElementById("fams");
+famBox.innerHTML = FAMS.map((f) => `<button class="chip" aria-pressed="false" data-fam="${f}" data-help="${f}: ${fmtP((famRows.find((r) => r.fam === f) || {}).reqs / d3.sum(famRows, (r) => r.reqs))} of the year's requests. Click to filter; shift-click adds."><span class="sw" style="background:${famColor.get(f)}"></span>${f}</button>`).join("");
+famBox.addEventListener("click", (e) => { const b = e.target.closest("[data-fam]"); if (b) toggleFam(b.dataset.fam, e.shiftKey); });
+function toggleFam(f, add) {
+  const p = state.fams;
+  state.fams = add ? (p.includes(f) ? p.filter((x) => x !== f) : [...p, f]) : p.length === 1 && p[0] === f ? [] : [f];
+  $fam.update(clausePoints(["fam"], state.fams.length ? state.fams.map((x) => [x]) : null, { source: famSrc }));
+  famBox.querySelectorAll("[data-fam]").forEach((b) => { const on = state.fams.includes(b.dataset.fam); b.setAttribute("aria-pressed", String(on)); b.classList.toggle("dim", state.fams.length > 0 && !on); });
+  restyle(T(350)); chips();
+}
+function activeText() {
+  const parts = [];
+  if (state.cat) parts.push(`Category: ${state.cat}`);
+  if (state.fams.length) parts.push(`Family: ${state.fams.join(", ")}`);
+  if (state.win) parts.push(`Dates: ${fmtDay(state.win[0])} – ${fmtDay(state.win[1] - DAY)}`);
+  return parts.join(" · ");
+}
+function chips() {
+  const t = activeText();
+  document.getElementById("active").innerHTML = t ? t : "<em>No filters: all data</em>";
+  document.getElementById("filter-note").textContent = t ? "The title describes all the data; the marks and the numbers follow your filters." : "";
+}
+document.getElementById("reset").addEventListener("click", () => {
+  stopPlay(); brushByCode = true; gBrush.call(brush.move, null); brushByCode = false;
+  state.cat = null; catSel.value = ""; $cat.update(clausePoints(["category"], null, { source: catSrc }));
+  state.fams = []; $fam.update(clausePoints(["fam"], null, { source: famSrc }));
+  famBox.querySelectorAll("[data-fam]").forEach((b) => { b.setAttribute("aria-pressed", "false"); b.classList.remove("dim"); });
+  setWindow(null);
+});
+
+// ---------- navigation ----------
+const list = document.getElementById("scene-list"); let lastAct = null;
+list.innerHTML = SCENES.map((s, i) => { const h = s.act !== lastAct ? `<li class="act">Act ${"ABCD".indexOf(s.act) + 1} · ${s.actName}</li>` : ""; lastAct = s.act; return `${h}<li><button data-i="${i}" data-help="${s.title}"><i class="ti ${s.icon}"></i>${i + 1}. ${s.name}</button></li>`; }).join("");
+list.addEventListener("click", (e) => { const b = e.target.closest("button[data-i]"); if (b) { pauseAuto(); showScene(+b.dataset.i); } });
+document.getElementById("dots").innerHTML = SCENES.map((s, i) => `<button aria-label="Scene ${i + 1}" data-help="Scene ${i + 1}: ${s.title}"></button>`).join("");
+document.getElementById("dots").addEventListener("click", (e) => { const i = [...e.currentTarget.children].indexOf(e.target); if (i >= 0) { pauseAuto(); showScene(i); } });
+document.getElementById("scene-of").textContent = SCENES.length;
+document.getElementById("prev").addEventListener("click", () => { pauseAuto(); showScene(cur - 1); });
+document.getElementById("next").addEventListener("click", () => { pauseAuto(); showScene(cur + 1); });
+let autoOn = false, autoT = null;
+const autoBtn = document.getElementById("auto");
+function scheduleAuto() { clearTimeout(autoT); const words = SCENES[cur].caption.split(/\s+/).length + SCENES[cur].title.split(/\s+/).length; autoT = setTimeout(() => { if (cur < SCENES.length - 1) showScene(cur + 1); else pauseAuto(); }, 4000 + 300 * words); }
+function pauseAuto() { autoOn = false; clearTimeout(autoT); autoBtn.setAttribute("aria-pressed", "false"); autoBtn.querySelector("span").textContent = "Autoplay"; }
+autoBtn.addEventListener("click", () => { if (autoOn) return pauseAuto(); autoOn = true; autoBtn.setAttribute("aria-pressed", "true"); autoBtn.querySelector("span").textContent = "Pause"; scheduleAuto(); });
+addEventListener("keydown", (e) => {
+  if (e.target.closest("select, input")) return;
+  if (e.key === "ArrowRight") { pauseAuto(); showScene(cur + 1); }
+  if (e.key === "ArrowLeft") { pauseAuto(); showScene(cur - 1); }
+  if (e.key === " " && !e.target.closest("button")) { e.preventDefault(); autoBtn.click(); }
+});
+let swipeX = null;
+document.getElementById("stage").addEventListener("pointerdown", (e) => { if (e.pointerType === "touch") swipeX = e.clientX; });
+document.getElementById("stage").addEventListener("pointerup", (e) => { if (swipeX != null && SCENES[cur].key !== "skyline") { const dx = e.clientX - swipeX; if (Math.abs(dx) > 50) showScene(cur + (dx < 0 ? 1 : -1)); } swipeX = null; });
+const drawer = document.getElementById("drawer"), notesBtn = document.getElementById("notes-btn");
+notesBtn.addEventListener("click", () => { const o = drawer.classList.toggle("open"); notesBtn.setAttribute("aria-expanded", String(o)); });
+document.getElementById("notes-close").addEventListener("click", () => { drawer.classList.remove("open"); notesBtn.setAttribute("aria-expanded", "false"); });
+let rT; addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(() => { measure(); view3d.fit = null; if (cur >= 0) { fit3D(); for (const act of "ABCD") renderAct(act, act === SCENES[cur].act ? "show" : "hide", SCENES[cur].key, 0); redrawGuides(); } }, 150); });
+
+// ---------- start: connect every client, wait for each one's first data, then open the first scene (motion.md Pitfalls) ----------
+const clients = [mfClient, dayClient, hourClient, kpiClient, kpiAll, stripClient];
+for (const c of clients) vg.coordinator().connect(c);
+await Promise.all(clients.map((c) => c.ready));
+document.getElementById("loading").remove();
+started = true;
+const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: 0.05 });
+document.querySelectorAll(".reveal").forEach((el, i) => setTimeout(() => io.observe(el), T(80 * i)));
+kpis(); chips();
+const fromHash = SCENES.findIndex((s) => "#" + s.key === location.hash);
+showScene(fromHash >= 0 ? fromHash : 0);
+window.__dash = { showScene, SCENES };
+</script>
+</body>
+</html>

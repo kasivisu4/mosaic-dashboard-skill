@@ -13,10 +13,11 @@ The person picks one or two; the first one sets the top of the page.
 | `explore` | Explore my data · "Show me what's interesting" · `ti-compass` | data with no question, what's interesting, dig into, slice |
 | `monitor` | Keep an eye on it · "Spot issues early" · `ti-activity` | track, daily, keep an eye on, alert, are we on target |
 | `present` | Make a case · "Tell a clear story" · `ti-presentation` | for leadership, board, client, show X how, presentation, story |
+| `impact` | Make it striking · "Visuals that stop people" · `ti-sparkles` | stunning, eye-catching, wow, visual impact, animated, engaging, blog, showcase, social |
 
 ## Page blocks per goal
 
-Used for the layout preview on the confirmation card and for the plan's Story. Stack one block per goal, in goal order, except `monitor` (always on top) and `present` (always at the bottom).
+Used for the plan's Story. Stack one block per goal, in goal order, except `monitor` (always on top) and `present` (always at the bottom). `impact` changes how every block is drawn rather than adding one: with it, no chart on the page uses its conventional form.
 
 | Goal | Block | Plan lines |
 |---|---|---|
@@ -25,6 +26,7 @@ Used for the layout preview on the confirmation card and for the plan's Story. S
 | `explore` | filter bar, dense grid of distributions, detail table | `Menus`, several `histogram`/`bar`/`scatter`, `Detail table: yes` |
 | `present` | annotated story section | charts with `> narrative` and `@ annotation` lines |
 | `spec` | exactly the charts asked for, nothing else | one line per requested chart |
+| `impact` | an animated hero visual, then each angle in an unconventional form with its own motion, at least one chart that morphs between two honest views | a `~ draw:` line on every chart (none of them the conventional form; a morph says so, e.g. `morphs to a ranked unit bar`), `@` annotations at the key moments, `motion: reveal` |
 
 ## Audiences
 
@@ -46,6 +48,16 @@ Used for the layout preview on the confirmation card and for the plan's Story. S
 | `daily` | Daily check | sparse, glanceable (at most 4 charts) | status vs target, exceptions list, last-updated stamp; few or no dense tables |
 
 When cadence and goal pull in different directions (daily + explore), keep the goal's blocks and apply the cadence's density.
+
+## Page format
+
+How the page tells its story. Asked on the intake form; it sets the plan's Style `surface` (`references/style-system.md`).
+
+| id | Form card (title, subtitle, icon) | Surface |
+|---|---|---|
+| `story` | One-page story · "Charts morph scene by scene" · `ti-movie` | `stage` |
+| `grid` | Dashboard grid · "Every chart at once" · `ti-layout-dashboard` | from the goal |
+| `scroll` | Scrolling report · "Sections read top to bottom" · `ti-file-text` | `narrative` |
 
 ## Review depth
 

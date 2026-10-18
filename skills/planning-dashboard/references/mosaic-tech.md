@@ -28,13 +28,23 @@ vgplot and mosaic-core share one module instance (same coordinator, same `Select
 
 ## Start DuckDB and load data
 
+Load every table with `loadTable()`. Over http it fetches the file next to the page; in the shared single-file report (`scripts/bundle_report.py`) it reads the copy embedded in a `<script type="application/octet-stream" data-file>` tag, so the report opens by double-click with no server. Never block a page opened from `file://`.
+
 ```js
-vg.coordinator().databaseConnector(vg.wasmConnector());
-await vg.coordinator().exec([
-  vg.loadParquet("t", new URL("data.parquet", location.href).href),   // DuckDB-WASM needs absolute URLs
-]);                                                                  // also vg.loadCSV, vg.loadJSON
-const rows = (await vg.coordinator().query("SELECT max(d) AS last FROM t")).toArray(); // one-off values for titles, stamps
+const connector = vg.wasmConnector();
+vg.coordinator().databaseConnector(connector);
+async function loadTable(name, file) {
+  const tag = document.querySelector(`script[type="application/octet-stream"][data-file="${file}"]`);
+  if (!tag) return vg.coordinator().exec([vg.loadParquet(name, new URL(file, location.href).href)]);  // DuckDB-WASM needs absolute URLs
+  const bytes = new Uint8Array(await (await fetch(`data:application/octet-stream;base64,${tag.textContent.trim()}`)).arrayBuffer());
+  await (await connector.getDuckDB()).registerFileBuffer(file, bytes);
+  await vg.coordinator().exec(`CREATE TABLE "${name}" AS SELECT * FROM read_parquet('${file}')`);
+}
+await loadTable("t", "data.parquet");
+const rows = (await vg.coordinator().query("SELECT max(d) AS last FROM t")).toArray(); // an Arrow table: toArray() for rows
 ```
+
+DuckDB `DATE` values arrive as UTC midnight: format them with `d3.utcFormat` (or `timeZone: "UTC"`), or labels shift by a day west of Greenwich.
 
 Load the full row-level file the plan exported, not pre-aggregated JSON: cross-filtering needs rows.
 
@@ -88,6 +98,8 @@ Inputs (all take `from`, `as` an own selection, and `filterBy: $page` so their o
 
 ## Your own clients: HTML numbers, lists, D3 charts
 
+For animated D3 charts (keyed transitions, reveals, count-ups, a time player), see [motion.md](motion.md); the client pattern below is its base.
+
 Anything not drawn by Plot (a headline number, a sentence that updates, a ranked list, a D3 chart) is a Mosaic client: it says what query it needs and redraws when the filter changes.
 
 ```js
@@ -121,6 +133,8 @@ $mine.update(clauseInterval("d", [lo, hi], opts));             // brush: range (
 - **Arrow values:** dates from `date_trunc` arrive as epoch milliseconds; wrap with `new Date(v)` for formatting. Wrap rows with `{ ...row }` before keeping them.
 - **Don't pre-aggregate into the HTML** or embed JSON: it kills cross-filtering. Load the exported file.
 - **Plotly or Chart.js** report a drag only on release and have no link to DuckDB; they can't do live crossfilter. Use Plot, or D3 through a client.
+- **`highlight` styles the *unselected* marks.** Leave it as `highlight({ by })` (dims the rest); passing a color such as `fill` repaints everything not selected and logged "negative width" errors on a `barX`.
+- **Zero width in a background tab:** a page opened in a tab that isn't visible can report `clientWidth` 0, so every chart draws 0 px wide. Fall back to `window.innerWidth` (and a fixed max) when the container reports 0.
 - **Width:** Plot doesn't resize itself; pass `vg.width(container.clientWidth)` and rebuild on resize if the layout is fluid.
 
 ## Check before sharing

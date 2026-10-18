@@ -12,9 +12,9 @@
 
 ## Rules that keep the first dashboard fast
 
-- **Nothing before the form but `start_run.py`.** On the first turn, run it and show the form it prints. Its quick look (well under a second) is the only data read before the form; don't run other queries or read other references first.
+- **Nothing before the form but `start_run.py`.** On the first turn, run it and show the form it prints. Its quick look (well under a second; about 2 s for billions of rows) is the only data read before the form. Don't list folders, check file sizes, read schemas or metadata, run other queries, or read other references first: the script handles any file size (see SKILL.md).
 - **Profile while the person fills in the form.** `scripts/start_run.py` starts the full profile in the background as it prints the form, so the profile is ready by the time the answers arrive.
 - **No separate data round.** Questions about the data (definitions, exclusions) go on the confirmation card as assumptions with Change buttons, not in a round of their own.
-- **Quick depth builds first.** No card before building; the card comes after, as "here's what I assumed".
+- **Quick depth builds first.** No card at all; what was assumed goes in the plan's Assumptions section.
 - **Link before review.** Give the person the dashboard link as soon as the page is built; run the browser review after, and report anything it finds as a follow-up.
 - **Scripts, not prose.** Generate the form, card, plan checks, and page with the scripts; don't hand-write what a script produces.

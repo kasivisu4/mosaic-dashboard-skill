@@ -25,7 +25,7 @@ Style isn't a palette. For every dashboard the planner derives a **Style Profile
 5. **Exact beats smooth in formal registers.** Where numbers are reconciled or audited, no curve interpolation, no rounding that hides a threshold crossing, no truncated axes on bars.
 6. **Anomalies are explained or flagged, never smoothed away.** An outlier is either the story (spotlight it), noise you've ruled out (footnote it), or unknown (flag it). It's never silently averaged into a trend.
 7. **Trust scales with the audience.** The more formal the reader, the more visible the provenance: from hidden (me), to footnoted (leadership), to a definition and source beside every number (regulators).
-8. **Motion explains change or doesn't happen.** Animate only a transition the reader caused (a filter) or a change worth seeing (before/after). Never on load for its own sake; never for regulators.
+8. **Motion explains change and order.** Animate a transition the reader caused (a filter), a change worth seeing (before/after, play through time), or the reading order as the page opens (`reveal`). Never decoration, never a tween that shows values the data doesn't have, never for regulators. Patterns: [motion.md](motion.md).
 9. **The executor doesn't improvise.** Everything the page needs to look right is in the profile. If something is missing, the executor asks the planner; it doesn't fill the gap with defaults.
 
 ## The Style Profile
@@ -36,7 +36,7 @@ Written as bullets in the plan's `## Style` section (`- field: value`). Every fi
 |---|---|---|
 | `register` | `analytic`, `operational`, `editorial`, `formal`, `evidentiary` | overall voice: how declarative, how much provenance |
 | `density` | `sparse`, `balanced`, `dense` | number of blocks and charts on the first screen (caps below) |
-| `surface` | `headline`, `status`, `grid`, `narrative`, `ledger`, `exact` | the primary surface: what sits at the top and takes the most space |
+| `surface` | `headline`, `status`, `grid`, `narrative`, `ledger`, `exact`, `stage` | the primary surface: what sits at the top and takes the most space; `stage` is a one-screen page that morphs through scenes ([stage.md](stage.md)) |
 | `focus` | free text, one phrase | what the focus color marks, e.g. `the driver category`, `off-target stores`, `selected series` |
 | `color_mode` | `focus`, `status`, `categorical`, `sequential`, `diverging` | how color is used on the page (see Color system) |
 | `direction` | `up-good`, `down-good`, `none` | whether increases are good; required for status and diverging color |
@@ -72,29 +72,30 @@ Written as bullets in the plan's `## Style` section (`- field: value`). Every fi
 Apply in this order; a later layer overrides an earlier one only where stated:
 
 1. **Goal base** sets every field.
+1b. **Page format** from the intake (`format`) replaces the goal base's `surface` (Page format table in `guidelines/goals.md`); the rest of the base stays.
 2. **Audience overrides** apply next. They are **hard constraints**: nothing after them may loosen them.
 3. **Data-character modifiers** adjust what the audience still allows (they can tighten, add, or swap within the allowed set; they never loosen an audience constraint).
-4. **Two goals:** take the base of the first goal; from the second goal take only `narrative` (if heavier) and its blocks. Monitor always contributes its status row on top; present always contributes its story at the bottom.
+4. **Two goals:** take the base of the first goal; from the second goal take only `narrative` (if heavier) and its blocks (and, for `impact`, its `type_scale` and `motion`). Monitor always contributes its status row on top; present always contributes its story at the bottom.
 5. **Spec goal:** the person's request wins over the base for layout and chart forms; audience overrides still apply to provenance, numbers and SQL.
 
 Record the result in the plan, then check it against any stricter limits in `guidelines/dashboard.md`. `scripts/validate_plan.py` enforces the hard constraints.
 
 ## Goal bases
 
-| Field | answer | explore | monitor | present | spec |
-|---|---|---|---|---|---|
-| register | analytic | analytic | operational | editorial | analytic |
-| density | balanced | dense | sparse | sparse | as asked |
-| surface | headline | grid | status | narrative | exact |
-| color_mode | focus | categorical | status | focus | focus |
-| type_scale | standard | compact | standard | display | standard |
-| interaction | light | full | light | none | as asked |
-| motion | transitions | transitions | none | reveal | none |
-| chart_set | bar, trend, KPIs | bar, trend, histogram, scatter | KPIs, exceptions, trend | bar, trend, KPIs | as asked |
-| anomalies | explain | flag | spotlight | explain | flag |
-| narrative | captions | none | none | story | none |
-| provenance | footnote | hidden | footnote | footnote | footnote |
-| numbers | rounded | precise | precise | rounded | precise |
+| Field | answer | explore | monitor | present | spec | impact |
+|---|---|---|---|---|---|---|
+| register | analytic | analytic | operational | editorial | analytic | editorial |
+| density | balanced | dense | sparse | sparse | as asked | balanced |
+| surface | headline | grid | status | narrative | exact | headline |
+| color_mode | focus | categorical | status | focus | focus | categorical |
+| type_scale | standard | compact | standard | display | standard | display |
+| interaction | light | full | light | none | as asked | light |
+| motion | transitions | reveal | none | reveal | none | reveal |
+| chart_set | bar, trend, KPIs | bar, trend, histogram, scatter | KPIs, exceptions, trend | bar, trend, KPIs | as asked | KPIs, bar, trend, histogram, scatter |
+| anomalies | explain | flag | spotlight | explain | flag | spotlight |
+| narrative | captions | none | none | story | none | annotated |
+| provenance | footnote | hidden | footnote | footnote | footnote | footnote |
+| numbers | rounded | precise | precise | rounded | precise | rounded |
 
 What each base means in practice:
 - **answer:** a headline sentence with the answer and its number on top; the driver chart before the trend; the focus color marks only the driver.
@@ -102,6 +103,9 @@ What each base means in practice:
 - **monitor:** a status row first (on/off target per KPI), then the exceptions list; color appears only where something is off target; a last-updated stamp is mandatory.
 - **present:** one finding per section, top to bottom; each chart has one annotated moment and a sentence that says why it matters; large type; little or no interaction.
 - **spec:** draw exactly what was asked; style decides only how, never what.
+- **impact:** the page has to earn a second look. One animated hero (the brief's hook) fills the first screen; every chart under it is an unconventional form from `visual-language.md` with its own motion (`motion.md`); KPIs count up and carry their trajectory. Impact never buys a broken honesty rule.
+
+As a second goal, `impact` contributes its `type_scale`, `motion` and `narrative` when heavier, and its rule that no chart uses the conventional form.
 
 ## Audience overrides
 
@@ -113,7 +117,7 @@ Hard constraints. The organization can tighten these in `guidelines/dashboard.md
 | SQL on page | yes | yes | no | no | no |
 | density (max) | dense | dense | balanced | balanced | balanced |
 | interaction (max) | full | full | light | light | light |
-| motion (max) | transitions | transitions | transitions | reveal | none |
+| motion (max) | reveal | reveal | reveal | reveal | none |
 | register | (goal) | (goal) | declarative: analytic→editorial | formal | evidentiary |
 | type_scale (min) | compact | compact | standard | standard | standard |
 | labels | column names OK | short names | plain language only | plain language, no jargon | defined terms only, each with its definition |
@@ -186,8 +190,8 @@ All numbers use tabular figures. Units live in labels, not in every value.
 
 ## Chart vocabulary
 
-The plan may only use forms in `chart_set`. Beyond the audience removals above:
-- **Never:** pie or donut with > 5 slices, 3D, dual axes, radar, gauges, word clouds.
+The plan may only use forms in `chart_set`. How each form is *drawn* is chosen with [visual-language.md](visual-language.md): the conventional form is known and set aside, and its honesty rules always hold. Beyond the audience removals above:
+- **Never:** pie or donut with > 5 slices, decorative 3D (3D bars, pies, extruded single measures), dual axes, radar, gauges, word clouds. 3D is allowed only when all three axes are data ([stage.md](stage.md) §5).
 - **Bars** start at zero, sorted by value unless the categories have an order.
 - **Lines** are drawn point to point; smoothing only for `register: editorial` and never on a line a number is read from.
 - **Histograms** only when the spread is the point; otherwise a box or strip.
