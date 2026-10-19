@@ -51,6 +51,7 @@ def main():
         i = rest.index("--columns")
         rest = rest[:i] + rest[i + 2:]
     skip, hints, _ = parse_args(rest)
+    skip.add("data")  # the data file is this command's own argument, so the form never asks for it
     columns = None
     if "--columns" in args:
         i = args.index("--columns")

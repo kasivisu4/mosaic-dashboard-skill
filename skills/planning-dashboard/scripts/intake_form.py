@@ -64,7 +64,28 @@ def ask_options(look):
         asks.append(f"How has {'% ' + flag if flag else measure} moved over time?")
     elif measure and dims:
         asks.append(f"Which {dims[-1]} has the highest {measure}?")
+    if not asks:  # all-numeric data: no date, flag or dimension to build on
+        asks = numeric_asks(look)
     return list(dict.fromkeys(asks))[:3]
+
+
+def numeric_asks(look):
+    """Asks for data that is all measures: relationships, spreads, and x/y pairs read as positions."""
+    names = [c["name"] for c in look.get("columns", []) if c.get("class") == "measure"]
+    pairs = {}
+    for n in names:   # 'px'/'py', 'pickup_x'/'pickup_y': same prefix, ending in x and y
+        if n[-1:].lower() == "x" and (n[:-1] + ("Y" if n[-1] == "X" else "y")) in names:
+            pairs[n[:-1].rstrip("_") or n] = (n, n[:-1] + ("Y" if n[-1] == "X" else "y"))
+    in_pair = {c for pr in pairs.values() for c in pr}
+    plain = [n for n in names if n not in in_pair]
+    asks = []
+    if len(plain) >= 2:
+        asks.append(f"How does {plain[-2]} relate to {plain[-3] if len(plain) > 2 else plain[0]}?")
+    for prefix in list(pairs)[:1]:
+        asks.append(f"Where do the {prefix} points cluster?")
+    if plain:
+        asks.append(f"What does the spread of {plain[-2] if len(plain) > 1 else plain[0]} look like?")
+    return asks
 
 
 def data_text(look):
