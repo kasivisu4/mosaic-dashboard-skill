@@ -105,23 +105,67 @@ SCRIPT = """<script>
     order.forEach((c) => grid.append(c));
     document.getElementById("count").textContent = `${shown} of ${cards.length} dashboards`;
   }
-  // Live thumbnails: each card's real dashboard, scaled down. Loaded on hover, focus or tap; at most two alive,
-  // since every preview starts its own DuckDB engine and loads its data.
-  const LIVE_MAX = 2, live = [];
-  function preview(box) {
-    if (box.querySelector("iframe")) return;
-    while (live.length >= LIVE_MAX) { const old = live.shift(); old.querySelector("iframe")?.remove(); old.querySelector(".ph").hidden = false; }
-    const f = document.createElement("iframe"); f.src = box.dataset.src; f.title = "Live preview"; f.loading = "eager"; f.tabIndex = -1;
+  // Animations: every dashboard here shares this site's storage, so one switch sets motion for all of them
+  // (they read localStorage "motion" = "on" | "off"). It starts from the system's reduced-motion setting.
+  const SYSTEM_REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const motionOn = () => { let v = null; try { v = localStorage.getItem("motion"); } catch {} return v ? v === "on" : !SYSTEM_REDUCED; };
+  const animBtn = document.getElementById("anim"), animHint = document.getElementById("anim-hint");
+  const showAnim = () => { animBtn.textContent = motionOn() ? "Animations: on" : "Animations: off"; animBtn.setAttribute("aria-pressed", String(motionOn()));
+    animHint.hidden = !(SYSTEM_REDUCED && !motionOn()); };
+  animBtn.onclick = () => { try { localStorage.setItem("motion", motionOn() ? "off" : "on"); } catch {} showAnim(); reloadAll(); };
+  showAnim();
+
+  // Live thumbnails: every card shows its real dashboard, scaled down, loaded as it scrolls into view.
+  // They load one at a time (each starts its own DuckDB engine) and at most LIVE_MAX stay alive; the ones
+  // furthest off screen are unloaded first. Each live preview steps through its scenes every SCENE_MS.
+  const LIVE_MAX = 6, SCENE_MS = 6000, live = new Set(), queue = [];
+  let loading = false;
+  function load(box) {
+    if (box.querySelector("iframe") || queue.includes(box)) return;
+    queue.push(box); next();
+  }
+  function next() {
+    if (loading || !queue.length) return;
+    const box = queue.shift();
+    if (live.size >= LIVE_MAX) {
+      const far = [...live].sort((a, b) => Math.abs(b.getBoundingClientRect().top) - Math.abs(a.getBoundingClientRect().top))[0];
+      unload(far);
+    }
+    loading = true;
+    const f = document.createElement("iframe"); f.src = box.dataset.src; f.title = "Live preview"; f.tabIndex = -1;
     const fit = () => { f.style.transform = `scale(${box.clientWidth / 1280})`; };
     fit(); new ResizeObserver(fit).observe(box);
-    f.onload = () => setTimeout(() => { f.classList.add("ready"); box.querySelector(".ph").hidden = true; }, 1500);
-    box.append(f); live.push(box);
+    // Ready means the dashboard has its data and scenes (its window.__dash appears), not just that the page loaded;
+    // only then does the next preview start, so the DuckDB engines start one by one. READY_MAX_MS caps the wait
+    // for pages without the hook.
+    const READY_MAX_MS = 25000, t0 = performance.now();
+    const done = () => { f.classList.add("ready"); box.querySelector(".ph").hidden = true; loading = false; next(); };
+    const poll = setInterval(() => {
+      let ok = false; try { ok = !!f.contentWindow.__dash; } catch {}
+      if (ok || performance.now() - t0 > READY_MAX_MS) { clearInterval(poll); setTimeout(done, 400); }
+    }, 300);
+    f.onerror = () => { clearInterval(poll); loading = false; next(); };
+    box.append(f); live.add(box);
   }
+  function unload(box) { if (!box) return; box.querySelector("iframe")?.remove(); box.querySelector(".ph").hidden = false; live.delete(box); box.__scene = 0; }
+  function reloadAll() { const boxes = [...live]; boxes.forEach(unload); boxes.forEach(load); }
+  const io = new IntersectionObserver((entries) => entries.forEach((e) => e.isIntersecting && load(e.target)), { rootMargin: "200px" });
   document.querySelectorAll(".thumb").forEach((box) => {
-    box.addEventListener("mouseenter", () => preview(box));
-    box.addEventListener("focus", () => preview(box));
-    box.addEventListener("click", () => box.querySelector("iframe.ready") ? location.assign(box.dataset.src) : preview(box));
+    io.observe(box);
+    box.addEventListener("click", () => location.assign(box.dataset.src));
+    box.addEventListener("keydown", (e) => { if (e.key === "Enter") location.assign(box.dataset.src); });
   });
+  // Also load by position on start and on scroll, in case visibility callbacks are delayed or throttled.
+  const kick = () => document.querySelectorAll(".thumb").forEach((b) => { const r = b.getBoundingClientRect(); if (r.top < innerHeight + 200 && r.bottom > -200) load(b); });
+  kick(); addEventListener("scroll", kick, { passive: true }); addEventListener("resize", kick);
+  // Step each visible live preview to its next scene, through the page's own scene hook (window.__dash).
+  setInterval(() => {
+    for (const box of live) {
+      const f = box.querySelector("iframe.ready"), r = box.getBoundingClientRect();
+      if (!f || r.bottom < 0 || r.top > innerHeight) continue;
+      try { const d = f.contentWindow.__dash; if (!d) continue; box.__scene = ((box.__scene || 0) + 1) % d.SCENES.length; d.showScene(box.__scene); } catch {}
+    }
+  }, SCENE_MS);
   document.getElementById("q").oninput = apply; document.getElementById("sort").onchange = apply; apply();
 </script>"""
 
@@ -148,7 +192,7 @@ def page(runs):
         model = r.get("model", "")
         cards.append(f"""<article class="card" data-model="{e(model)}" data-concept="{e(r['concept'])}" data-version="{e(r.get('skill_version',''))}" data-cost="{r.get('cost_usd') or ''}" data-tokens="{r.get('tokens') or ''}" data-scenes="{r['scenes']}" data-text="{e((r['title'] + ' ' + r['takeaway']).lower())}">
   <div class="thumb" tabindex="0" data-src="{e(r["name"])}/index.html" aria-label="Live preview of {e(r["title"])}: hover or focus to load">
-    <div class="ph"><div class="swatches">{sw}</div><span>Hover for a live preview</span></div>
+    <div class="ph"><div class="swatches">{sw}</div><span>Loading live preview…</span></div>
   </div>
   <h2>{e(r["title"])}</h2>
   <p class="meta">{e(meta)}</p>
@@ -172,7 +216,7 @@ def page(runs):
   .grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px; }}
   .card {{ background:var(--card); border:1px solid var(--rule); border-radius:16px; padding:18px; display:flex; flex-direction:column; gap:8px; }}
   .swatches {{ display:flex; gap:4px; width:70%; }} .swatches i {{ flex:1; height:10px; border-radius:5px; }}
-  .thumb {{ position:relative; aspect-ratio:16/10; border-radius:10px; overflow:hidden; border:1px solid var(--rule); background:var(--bg); cursor:zoom-in; }}
+  .thumb {{ position:relative; aspect-ratio:16/10; border-radius:10px; overflow:hidden; border:1px solid var(--rule); background:var(--bg); cursor:pointer; }}
   .thumb .ph {{ position:absolute; inset:0; display:flex; flex-direction:column; gap:10px; align-items:center; justify-content:center; color:var(--muted); font-size:12.5px; }}
   .thumb iframe {{ position:absolute; left:0; top:0; width:1280px; height:800px; border:0; transform-origin:0 0; pointer-events:none; opacity:0; transition:opacity .4s; }}
   .thumb iframe.ready {{ opacity:1; }}
@@ -185,6 +229,10 @@ def page(runs):
   nav a.primary {{ background:var(--accent); border-color:var(--accent); color:#fff; }}
   nav a:hover {{ border-color:var(--accent); }}
   footer {{ color:var(--muted); font-size:13px; margin-top:28px; }}
+  .head {{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }}
+  .anim {{ font:inherit; font-size:13px; color:var(--ink); background:var(--card); border:1px solid var(--rule); border-radius:999px; padding:6px 14px; cursor:pointer; }}
+  .anim[aria-pressed="true"] {{ background:var(--accent); border-color:var(--accent); color:#fff; }}
+  .hint {{ margin:0 0 16px; font-size:13px; color:var(--muted); }}
   .usage {{ margin:0; font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; }}
   .filters {{ display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; margin:0 0 18px; }}
   .filters input, .filters select {{ font:inherit; font-size:13px; color:var(--ink); background:var(--card); border:1px solid var(--rule); border-radius:8px; padding:6px 10px; }}
@@ -196,7 +244,8 @@ def page(runs):
   .card[hidden] {{ display:none; }}
 </style></head>
 <body><main>
-<h1>Dashboard gallery</h1>
+<div class="head"><h1>Dashboard gallery</h1><button type="button" id="anim" class="anim" aria-pressed="false">Animations</button></div>
+<p class="hint" id="anim-hint" hidden>Your system asks for reduced motion, so the dashboards start with animations off. Turn them on here and every dashboard (and every preview) will animate.</p>
 <p class="lede">Dashboards generated by the planning-dashboard skill, each designed from scratch from a fresh design seed: its own layout, chart forms, palette and motion. Every page runs in your browser with DuckDB-WASM, Mosaic and D3; the plan and brief show how each one was decided.</p>
 <div class="filters" id="filters">
   <input type="search" id="q" placeholder="Search titles and findings" aria-label="Search dashboards">

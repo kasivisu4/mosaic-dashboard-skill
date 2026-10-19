@@ -732,6 +732,7 @@ FROM chutes.parquet GROUP BY ALL</pre>
   // First scene waits for its data so the entrance is drawn from real values.
   const waitData = () => new Promise((r) => { const t = d3.interval(() => { if (cpRows.size && gRows.size && hRows.size) { t.stop(); r(); } }, 50); });
   await waitData();
+  window.__dash = { showScene: go, SCENES };   // for tests and the gallery's live previews
   go(startAt);
 </script>
 </body>
