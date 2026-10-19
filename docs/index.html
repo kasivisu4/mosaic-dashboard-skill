@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mosaic Dashboard Skill</title>
+<meta name="description" content="A Claude skill that turns any table into an out-of-the-box, animated, honest one-page dashboard.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.35.0/dist/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #fbfaf7; --panel: #f2f0ea; --card: #ffffff; --ink: #16181d; --muted: #5d636d; --rule: #e3e0d8;
+    --accent: #2f5bd3; --accent-ink: #ffffff; --code: #f1efe9; --ok: #1f8a4c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #0e1014; --panel: #151820; --card: #171a21; --ink: #eceef2; --muted: #9aa2ad; --rule: #262a33; --accent: #7aa2ff; --accent-ink: #0e1014; --code: #1b1f27; --ok: #5fd08e; }
+  }
+  :root[data-theme="dark"] { --bg: #0e1014; --panel: #151820; --card: #171a21; --ink: #eceef2; --muted: #9aa2ad; --rule: #262a33; --accent: #7aa2ff; --accent-ink: #0e1014; --code: #1b1f27; --ok: #5fd08e; }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: 72px; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  a { color: var(--accent); }
+  code, pre { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 13.5px; }
+  code { background: var(--code); padding: 1px 6px; border-radius: 5px; }
+  pre { background: var(--code); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; overflow-x: auto; position: relative; margin: 12px 0; }
+  pre code { background: none; padding: 0; }
+  .copy { position: absolute; top: 8px; right: 8px; font: inherit; font-size: 12px; color: var(--muted); background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 2px 8px; cursor: pointer; }
+  /* top nav */
+  .nav { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--rule); }
+  .nav .in { max-width: 1240px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 20px; }
+  .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--ink); text-decoration: none; white-space: nowrap; }
+  .logo i { font-size: 22px; color: var(--accent); }
+  .badge { font-size: 11.5px; font-weight: 600; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0 8px; }
+  .nav .links { display: flex; gap: 18px; margin-left: auto; align-items: center; }
+  .nav .links a { color: var(--muted); text-decoration: none; font-size: 14.5px; display: inline-flex; gap: 6px; align-items: center; }
+  .nav .links a:hover { color: var(--ink); }
+  /* layout */
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px; }
+  aside { position: sticky; top: 72px; align-self: start; padding: 28px 0; max-height: calc(100vh - 72px); overflow-y: auto; }
+  aside h4 { font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 18px 0 6px; }
+  aside a { display: block; color: var(--muted); text-decoration: none; font-size: 14px; padding: 3px 0 3px 10px; border-left: 2px solid transparent; }
+  aside a:hover { color: var(--ink); }
+  aside a.on { color: var(--ink); border-left-color: var(--accent); font-weight: 600; }
+  main { padding: 28px 0 80px; min-width: 0; max-width: 860px; }
+  section { padding-top: 12px; margin-bottom: 40px; }
+  h1 { font-size: 46px; line-height: 1.05; letter-spacing: -.025em; margin: 8px 0 14px; }
+  h2 { font-size: 26px; letter-spacing: -.01em; margin: 0 0 10px; padding-top: 8px; border-top: 1px solid var(--rule); }
+  h3 { font-size: 18px; margin: 20px 0 6px; }
+  .lede { font-size: 19px; color: var(--muted); max-width: 62ch; margin: 0 0 22px; }
+  .cta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 26px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 10px; padding: 9px 16px; border: 1px solid var(--rule); color: var(--ink); background: var(--card); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .hero-frame { position: relative; aspect-ratio: 16/10; border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; background: var(--panel); }
+  .hero-frame iframe { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; border: 0; transform-origin: 0 0; pointer-events: none; }
+  .hero-frame .ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
+  .hero-cap { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-top: 14px; }
+  .card { background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 16px; }
+  .card i { font-size: 22px; color: var(--accent); }
+  .card h3 { margin: 8px 0 4px; font-size: 16px; }
+  .card p { margin: 0; font-size: 14.5px; color: var(--muted); }
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 10px; }
+  .steps li { counter-increment: s; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 12px 14px 12px 52px; position: relative; }
+  .steps li::before { content: counter(s); position: absolute; left: 14px; top: 12px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 14px; display: grid; place-items: center; }
+  .steps b { display: block; }
+  .steps span { color: var(--muted); font-size: 14.5px; }
+  .steps code { font-size: 12.5px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; margin: 12px 0; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  .note { border-left: 3px solid var(--accent); background: var(--panel); padding: 10px 14px; border-radius: 0 10px 10px 0; font-size: 14.5px; margin: 14px 0; }
+  .gal { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
+  .gal a { display: block; text-decoration: none; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 12px; }
+  .gal .sw { display: flex; gap: 3px; margin-bottom: 8px; } .gal .sw i { flex: 1; height: 8px; border-radius: 4px; }
+  .gal b { display: block; font-size: 14px; line-height: 1.3; }
+  .gal span { font-size: 12.5px; color: var(--muted); }
+  footer { border-top: 1px solid var(--rule); color: var(--muted); font-size: 13.5px; padding: 22px 0; }
+  .theme { font: inherit; font-size: 13px; background: none; border: 1px solid var(--rule); color: var(--muted); border-radius: 8px; padding: 3px 8px; cursor: pointer; }
+  @media (max-width: 900px) {
+    .wrap { grid-template-columns: 1fr; gap: 0; }
+    aside { display: none; }
+    h1 { font-size: 34px; }
+    .nav .links a span { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="nav"><div class="in">
+  <a class="logo" href="#top"><i class="ti ti-chart-dots-3" aria-hidden="true"></i>Mosaic Dashboard Skill <span class="badge" id="ver">v0.2.0</span></a>
+  <nav class="links" aria-label="Site">
+    <a href="#quick-start"><i class="ti ti-rocket" aria-hidden="true"></i><span>Docs</span></a>
+    <a href="gallery/"><i class="ti ti-layout-grid" aria-hidden="true"></i><span>Gallery</span></a>
+    <a href="https://github.com/kasivisu4/mosaic-dashboard-skill/blob/main/CHANGELOG.md"><i class="ti ti-history" aria-hidden="true"></i><span>Changelog</span></a>
+    <a href="https://github.com/kasivisu4/mosaic-dashboard-skill"><i class="ti ti-brand-github" aria-hidden="true"></i><span>GitHub</span></a>
+    <button class="theme" id="theme" type="button" aria-label="Toggle light or dark theme"><i class="ti ti-contrast" aria-hidden="true"></i></button>
+  </nav>
+</div></header>
+
+<div class="wrap">
+<aside aria-label="On this page">
+  <h4>Getting started</h4>
+  <a href="#top">Overview</a>
+  <a href="#quick-start">Quick start</a>
+  <a href="#how-it-works">How it works</a>
+  <h4>Concepts</h4>
+  <a href="#features">What makes it different</a>
+  <a href="#honesty">Honest by rule</a>
+  <a href="#run-folder">The run folder</a>
+  <h4>Guides</h4>
+  <a href="#sharing">Sharing a dashboard</a>
+  <a href="#customizing">Customizing</a>
+  <a href="#costs">Costs and versions</a>
+  <h4>Reference</h4>
+  <a href="#references">Method references</a>
+  <a href="#scripts">Scripts</a>
+  <a href="#faq">FAQ</a>
+</aside>
+
+<main id="top">
+  <section>
+    <h1>Any table in, a dashboard worth a second look out.</h1>
+    <p class="lede">A Claude skill that plans and builds interactive one-page dashboards from CSV, Parquet, JSON, Excel or a database table. Every run designs a fresh page: its own layout, chart forms, palette and motion, where one set of marks morphs from chart to chart. Every chart passes 19 honesty rules.</p>
+    <div class="cta">
+      <a class="btn primary" href="#quick-start"><i class="ti ti-rocket" aria-hidden="true"></i>Get started</a>
+      <a class="btn" href="gallery/"><i class="ti ti-layout-grid" aria-hidden="true"></i>See the gallery</a>
+      <a class="btn" href="https://github.com/kasivisu4/mosaic-dashboard-skill"><i class="ti ti-brand-github" aria-hidden="true"></i>GitHub</a>
+    </div>
+    <div class="hero-frame" id="hero"><div class="ph">Loading a live dashboard…</div></div>
+    <p class="hero-cap">A live dashboard the skill generated, running here: a year of LLM traffic, told as a bead abacus that regroups, small multiples, a 3D skyline and a 24-hour clock. <a href="gallery/chutes-reel-opus/index.html">Open it full screen</a>.</p>
+  </section>
+
+  <section id="quick-start">
+    <h2>Quick start</h2>
+    <h3>1. Install the skill</h3>
+    <p>In Claude Code, add this repository as a plugin marketplace and install the planner:</p>
+    <pre><code>/plugin marketplace add kasivisu4/mosaic-dashboard-skill
+/plugin install planning-dashboard@mosaic-dashboard-skills</code></pre>
+    <p>Or copy <code>skills/planning-dashboard/</code> into your project's <code>.claude/skills/</code> folder (or <code>~/.claude/skills/</code> for every project).</p>
+    <h3>2. Install DuckDB for Python</h3>
+    <pre><code>pip install duckdb</code></pre>
+    <h3>3. Ask for a dashboard</h3>
+    <pre><code>Build an interactive dashboard from data/orders.parquet. I want to understand
+what drives returns, for my leadership team.</code></pre>
+    <p>The skill profiles the data, shows a short form for anything your request didn't answer (goal, page format, audience, how much to check with you), then builds the page and hands you a link and a shareable <code>report.html</code>.</p>
+  </section>
+
+  <section id="how-it-works">
+    <h2>How it works</h2>
+    <p>Five steps, each saved in its own folder of the run (<code>out/&lt;name&gt;/</code>), so you can see how every decision was made.</p>
+    <ol class="steps">
+      <li><b>Profile</b><span>A quick look at the data in about a second, a full DuckDB profile in the background, then the model's own exploratory SQL (<code>explore.py</code>) until the story's angles have their numbers.</span></li>
+      <li><b>Intake</b><span>A short form built from the data: what the page should help with, how it should tell the story (one-page story, dashboard grid or scrolling report), who reads it. Then a written brief: the reader, the hook, supporting questions and five concepts for the hook, one of them invented.</span></li>
+      <li><b>Layout and design seed</b><span><code>design_seed.py</code> draws a fresh concept, chains of chart forms, palette, theme, icons, motion and two creative constraints, avoiding earlier runs. A confirmation card checks the data definitions with you (skipped for "just build it").</span></li>
+      <li><b>Plan</b><span>The data is exported, and a <code>plan.md</code> is written and validated: every title a finding computed by DuckDB, every chart's visual named.</span></li>
+      <li><b>Build and share</b><span>The page is written from an empty file with Mosaic, DuckDB-WASM, D3 and d3-3d, checked (motion check, honesty pass, a critique), then bundled into one self-contained <code>report.html</code>.</span></li>
+    </ol>
+  </section>
+
+  <section id="features">
+    <h2>What makes it different</h2>
+    <div class="grid">
+      <div class="card"><i class="ti ti-dice-5" aria-hidden="true"></i><h3>Fresh design every run</h3><p>A design seed picks the layout, chart chains, palette and motion, and steers away from what earlier runs used. No templates, no copied code.</p></div>
+      <div class="card"><i class="ti ti-transform" aria-hidden="true"></i><h3>Charts that morph</h3><p>Every mark is drawn as polygons with the same points in every form, so one set of marks flows from stacked area to bars to 3D boxes to a heatmap.</p></div>
+      <div class="card"><i class="ti ti-bulb" aria-hidden="true"></i><h3>Invented forms</h3><p>Five concepts for the hook before any chart is chosen, at least one in no catalog, so lists inspire instead of limiting.</p></div>
+      <div class="card"><i class="ti ti-scale" aria-hidden="true"></i><h3>Honest by rule</h3><p>Zero baselines, proportional areas, no dual axes, full periods only. A motion check and an honesty pass run before anything is shared.</p></div>
+      <div class="card"><i class="ti ti-search" aria-hidden="true"></i><h3>Explores your data</h3><p>Beyond a fixed profile, the model asks its own questions in SQL and keeps the queries and answers on record.</p></div>
+      <div class="card"><i class="ti ti-message-circle-question" aria-hidden="true"></i><h3>Explains itself</h3><p>Every mark has a tooltip with exact values; every title, number and control has help text.</p></div>
+      <div class="card"><i class="ti ti-file-export" aria-hidden="true"></i><h3>One file to share</h3><p><code>report.html</code> carries its own data: double-click it, email it, or put it on any static host. No server.</p></div>
+      <div class="card"><i class="ti ti-receipt" aria-hidden="true"></i><h3>Costs and versions</h3><p>Each run records its model, tokens, estimated cost and the skill version that built it.</p></div>
+    </div>
+  </section>
+
+  <section id="honesty">
+    <h2>Honest by rule</h2>
+    <p>An unusual chart is where deception creeps in, so the skill keeps conventions of form and rules of truth apart. Conventions can be broken; these can't:</p>
+    <table>
+      <tr><th>Rule</th><th>What it prevents</th></tr>
+      <tr><td>Lengths and areas start at zero; areas scale with values</td><td>Bars that exaggerate a small change; bubbles that triple a doubling</td></tr>
+      <tr><td>One axis per measure</td><td>Dual-axis charts that suggest correlations</td></tr>
+      <tr><td>"From X to Y" uses full periods, never a peak, low or partial month</td><td>Cherry-picked windows that invent a trend</td></tr>
+      <tr><td>Missing data is a gap; partial periods are marked</td><td>Interpolated or zero-filled holes</td></tr>
+      <tr><td>3D only with three data axes, an orbit camera and values on hover</td><td>Decorative 3D that distorts</td></tr>
+      <tr><td>Animation interpolates real values; reduced motion is respected by default</td><td>Tweens that show numbers the data doesn't have</td></tr>
+    </table>
+    <p>All 19 rules: <a href="https://github.com/kasivisu4/mosaic-dashboard-skill/blob/main/skills/planning-dashboard/references/visual-language.md">references/visual-language.md</a>.</p>
+  </section>
+
+  <section id="run-folder">
+    <h2>The run folder</h2>
+    <table>
+      <tr><th>Folder</th><th>What it holds</th></tr>
+      <tr><td><code>1-profile/</code></td><td>Quick look, full profile, your exploratory SQL with results (<code>explore.md</code>), observations</td></tr>
+      <tr><td><code>2-intake/</code></td><td>The form, your answers (<code>intake.md</code>), the brief with the five concepts</td></tr>
+      <tr><td><code>3-layout/</code></td><td>The design seed, the layout with the SQL behind every number, the confirmation card</td></tr>
+      <tr><td><code>4-dashboard/</code></td><td><code>plan.md</code>, the exported data, the validator's output, the page</td></tr>
+      <tr><td><code>5-handoff/</code></td><td><code>report.html</code> to share, <code>usage.json</code> (model, tokens, cost, skill version), the hand-off notes with the motion check and honesty pass</td></tr>
+    </table>
+  </section>
+
+  <section id="sharing">
+    <h2>Sharing a dashboard</h2>
+    <h3>One self-contained file</h3>
+    <pre><code>python scripts/bundle_report.py out/&lt;name&gt;</code></pre>
+    <p>Writes <code>5-handoff/report.html</code> with the data embedded. It opens by double-click with no server (it needs internet for the chart libraries). Keep it under about 15 MB by exporting pre-aggregated data.</p>
+    <h3>A public gallery on GitHub Pages</h3>
+    <pre><code>python tools/build_gallery.py skills/planning-dashboard/out/&lt;name&gt;="Built by Claude Opus 5.5"</code></pre>
+    <p>Copies the run into <code>docs/gallery/</code> and rebuilds the <a href="gallery/">gallery</a>: live previews that play each story, filters by model, layout and skill version, and cost per run.</p>
+    <div class="gal" id="gal"></div>
+  </section>
+
+  <section id="customizing">
+    <h2>Customizing</h2>
+    <p>Organizations adapt the planner by editing <code>skills/planning-dashboard/guidelines/</code> only; the method in <code>references/</code> stays shared.</p>
+    <table>
+      <tr><th>File</th><th>What you set</th></tr>
+      <tr><td><code>goals.md</code></td><td>Form wording, goals and their signals, page formats, audiences, cadence</td></tr>
+      <tr><td><code>dashboard.md</code></td><td>Build stack (pinned versions), visual ambition, interaction must-haves, brand colors</td></tr>
+      <tr><td><code>metrics.md</code></td><td>Approved metric definitions, used without asking when the data fits</td></tr>
+      <tr><td><code>timing.md</code></td><td>Latency budget per step</td></tr>
+    </table>
+    <p>More: <a href="https://github.com/kasivisu4/mosaic-dashboard-skill/blob/main/docs/customizing.md">docs/customizing.md</a>.</p>
+  </section>
+
+  <section id="costs">
+    <h2>Costs and versions</h2>
+    <pre><code>python scripts/record_usage.py out/&lt;name&gt; --model claude-opus-5-5 --tokens 306115</code></pre>
+    <p>Records model, tokens, estimated cost and skill version in <code>5-handoff/usage.json</code>. Agent runs usually report one total, so cost is estimated from a typical token mix and shown with a range; pass the input/output/cache split for an exact figure. Recent runs: about $0.35 on Opus 5.5, about $0.01 on Haiku 5.5.</p>
+    <p>The skill's version lives in <code>SKILL.md</code> (<code>metadata.version</code>), each release is a git tag, and <a href="https://github.com/kasivisu4/mosaic-dashboard-skill/blob/main/CHANGELOG.md">CHANGELOG.md</a> says what changed. Compare releases with <code>git diff v0.1.0 v0.2.0 -- skills/</code>.</p>
+  </section>
+
+  <section id="references">
+    <h2>Method references</h2>
+    <p>The skill loads these as each step needs them.</p>
+    <table id="refs">
+      <tr><th>Reference</th><th>What it covers</th></tr>
+    </table>
+  </section>
+
+  <section id="scripts">
+    <h2>Scripts</h2>
+    <table>
+      <tr><th>Script</th><th>Does</th></tr>
+      <tr><td><code>start_run.py</code></td><td>First turn in one command: run folder, quick look, background profile, intake form</td></tr>
+      <tr><td><code>explore.py</code></td><td>Runs the model's own exploratory SQL, saves queries with results</td></tr>
+      <tr><td><code>design_seed.py</code></td><td>A fresh design per run: concept, chains of forms, palette, theme, icons, motion, provocations</td></tr>
+      <tr><td><code>confirmation_card.py</code></td><td>The confirmation card from a small JSON file</td></tr>
+      <tr><td><code>validate_plan.py</code></td><td>Checks <code>plan.md</code> against the format and the data</td></tr>
+      <tr><td><code>bundle_report.py</code></td><td>One self-contained <code>report.html</code> with the data embedded</td></tr>
+      <tr><td><code>record_usage.py</code></td><td>Model, tokens, estimated cost and skill version per run</td></tr>
+      <tr><td><code>run_folder.py</code></td><td>Creates run folders and writes each run's summary</td></tr>
+    </table>
+  </section>
+
+  <section id="faq">
+    <h2>FAQ</h2>
+    <h3>Why don't the animations play?</h3>
+    <p>Your system asks for reduced motion (on Windows: Settings › Accessibility › Visual effects › Animation effects), and the dashboards respect it by default. Turn animations on with the Motion switch on any dashboard, or the Animations switch in the <a href="gallery/">gallery</a>, which applies to all of them.</p>
+    <h3>Does my data leave my machine?</h3>
+    <p>No server is involved: the page runs DuckDB in your browser. The shared <code>report.html</code> contains the exported data, so share it only where the data may go.</p>
+    <h3>Which models can run it?</h3>
+    <p>Any current Claude model. The gallery has runs by Opus 5.5 and Haiku 5.5; Haiku's passed the motion check at a fraction of the cost.</p>
+    <h3>Is there a template?</h3>
+    <p>Deliberately not. Each page is written from an empty file for its data, guided by the method references and a fresh design seed.</p>
+  </section>
+
+  <footer>Mosaic Dashboard Skill · <span id="ver2">v0.2.0</span> · built with Mosaic, DuckDB-WASM, D3, d3-3d and Tabler icons · <a href="https://github.com/kasivisu4/mosaic-dashboard-skill">GitHub</a></footer>
+</main>
+</div>
+
+<script>
+  // Theme toggle (remembered in this browser).
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("docs-theme"); if (t) root.dataset.theme = t; } catch {}
+  document.getElementById("theme").onclick = () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark"; try { localStorage.setItem("docs-theme", root.dataset.theme); } catch {}
+  };
+  // Copy buttons on code blocks.
+  document.querySelectorAll("pre").forEach((pre) => {
+    const b = Object.assign(document.createElement("button"), { className: "copy", type: "button", textContent: "Copy" });
+    b.onclick = async () => { try { await navigator.clipboard.writeText(pre.innerText.replace(/Copy$/, "").trim()); b.textContent = "Copied"; setTimeout(() => (b.textContent = "Copy"), 1500); } catch {} };
+    pre.append(b);
+  });
+  // Sidebar: highlight the section in view.
+  const links = [...document.querySelectorAll("aside a")];
+  const secs = links.map((a) => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+  const mark = () => { let cur = secs[0]; for (const s of secs) if (s.getBoundingClientRect().top < 120) cur = s;
+    links.forEach((a) => a.classList.toggle("on", a.getAttribute("href") === "#" + (cur.id || "top"))); };
+  addEventListener("scroll", mark, { passive: true }); mark();
+  // Live hero: one real dashboard, scaled to fit, loaded when the page is idle.
+  const hero = document.getElementById("hero");
+  const loadHero = () => { const f = document.createElement("iframe"); f.src = "gallery/chutes-reel-opus/index.html"; f.title = "Live dashboard"; f.tabIndex = -1;
+    const fit = () => (f.style.transform = `scale(${hero.clientWidth / 1280})`); fit(); new ResizeObserver(fit).observe(hero);
+    f.onload = () => setTimeout(() => hero.querySelector(".ph")?.remove(), 1500); hero.append(f); };
+  if ("requestIdleCallback" in window) requestIdleCallback(loadHero, { timeout: 1500 }); else setTimeout(loadHero, 600);
+  hero.style.cursor = "pointer"; hero.onclick = () => location.assign("gallery/chutes-reel-opus/index.html");
+  // Gallery strip from gallery.json.
+  fetch("gallery/gallery.json").then((r) => r.json()).then((runs) => {
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    document.getElementById("gal").innerHTML = runs.map((r) => `<a href="gallery/${esc(r.name)}/index.html"><div class="sw">${(r.colors || []).slice(0, 6).map((c) => `<i style="background:${esc(c)}"></i>`).join("")}</div><b>${esc(r.title)}</b><span>${esc([r.label, r.concept && r.concept + " layout", r.scenes + " scenes"].filter(Boolean).join(" · "))}</span></a>`).join("");
+  }).catch(() => {});
+  // Method references.
+  const REFS = [
+    ["intake.md", "The intake form, parsing answers, review depth, the confirmation card"],
+    ["understand-data.md", "Profiling, exploring with your own SQL, choosing metrics"],
+    ["question-brief.md", "The reader, the hook, five concepts (one invented), supporting questions and angles"],
+    ["data-story.md", "Finding-titles, page structure per goal, full-period claims"],
+    ["visual-language.md", "The conventional playbook, what to draw instead, the 19 honesty rules"],
+    ["d3-toolkit.md", "D3 as a vocabulary: modules and techniques, one sentence each"],
+    ["show-reel.md", "The polygon morph engine, form catalog, smoothness rules, motion check"],
+    ["stage.md", "One-screen story pages: layout concepts, scenes and acts, honest 3D"],
+    ["motion.md", "The Motion switch, transitions, reveals, count-ups, gliding Play, morphs"],
+    ["interaction.md", "Cross-filtering rules, tooltips and help text"],
+    ["style-system.md", "The Style Profile: goal bases, audience limits, color, typography"],
+    ["mosaic-tech.md", "Mosaic + DuckDB-WASM wiring, loading data (also from report.html), pitfalls"],
+    ["destinations.md", "Where the page runs and what data to export"],
+    ["plan-format.md", "The plan contract (format v2)"],
+  ];
+  const t = document.getElementById("refs");
+  for (const [f, d] of REFS) t.insertAdjacentHTML("beforeend", `<tr><td><a href="https://github.com/kasivisu4/mosaic-dashboard-skill/blob/main/skills/planning-dashboard/references/${f}"><code>${f}</code></a></td><td>${d}</td></tr>`);
+</script>
+</body>
+</html>

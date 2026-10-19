@@ -4,13 +4,15 @@ A **dashboard planner** for Claude, with **swappable executors**.
 
 Most dashboard tools go straight from a request to charts. This planner decides first, with the person: what the page should help with, who reads it, how often, and what the numbers mean. Then it writes a validated plan. An executor (a Claude skill, another program, or a BI tool) builds from that plan. Organizations adapt the planner by editing one folder, `guidelines/`.
 
+**Docs and live examples:** https://kasivisu4.github.io/mosaic-dashboard-skill/ (homepage) and https://kasivisu4.github.io/mosaic-dashboard-skill/gallery/ (generated dashboards).
+
 New here? Start with [docs/how-it-works.md](docs/how-it-works.md). Customizing it? [docs/customizing.md](docs/customizing.md). Writing an executor? [docs/plan-spec.md](docs/plan-spec.md). Original design: [docs/brief.html](docs/brief.html) and [docs/intake-spec.md](docs/intake-spec.md).
 
 ## Status
 
 | Part | State |
 |---|---|
-| `planning-dashboard` (planner) | Active. Five steps: profile, intake form fitted to the data, layout + confirmation card, validated plan (format v2), build; run folders with timing. Pages are designed fresh each time (no template) with Mosaic + DuckDB-WASM + Observable Plot, live cross-filtering |
+| `planning-dashboard` (planner) | Active, v0.2.0 ([changelog](CHANGELOG.md)). Five steps: profile and explore, intake form fitted to the data, design seed + layout + confirmation card, validated plan (format v2), build and share. Pages are designed fresh each time (no template) from a design seed, with Mosaic + DuckDB-WASM, D3 show-reel morphs and d3-3d; shared as one self-contained `report.html`; each run records its tokens, estimated cost and skill version |
 | `building-dashboard-mosaic` (executor) | Parked and not used for now (the planner builds the page itself). Builds pages from plans, but doesn't yet draw v2's KPI targets, exceptions lists, annotations or "last updated", and axis labels ignore the plan's number formats |
 
 ## How a run goes
