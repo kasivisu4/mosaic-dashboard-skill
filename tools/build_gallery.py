@@ -79,6 +79,7 @@ def add_run(arg):
         "has_report": has_report, "has_brief": brief.exists(), "added": date.today().isoformat(),
         "model": usage.get("model", ""), "skill_version": usage.get("skill_version", ""), "tokens": usage.get("tokens"),
         "cost_usd": usage.get("cost_usd"), "cost_range_usd": usage.get("cost_range_usd"), "usage_note": usage.get("note", ""),
+        "calls": usage.get("calls"), "exact": "split" in usage,
     }
 
 
@@ -183,7 +184,9 @@ def page(runs):
         links.append(f'<a href="{e(r["name"])}/plan.md">Plan</a>')
         if r["has_brief"]:
             links.append(f'<a href="{e(r["name"])}/brief.md">Brief</a>')
-        if r.get("tokens"):
+        if r.get("tokens") and r.get("exact"):
+            usage = f"${r['cost_usd']:.2f} · {r['calls']} model calls · {r['tokens'] / 1e6:.1f}M tokens"
+        elif r.get("tokens"):
             rng = f" (est. ${r['cost_range_usd'][0]}–${r['cost_range_usd'][1]})" if r.get("cost_range_usd") else ""
             usage = f"{r['tokens']:,} tokens · about ${r['cost_usd']}{rng}"
         else:
@@ -257,7 +260,7 @@ def page(runs):
 {chr(10).join(cards)}
 </section>
 {SCRIPT}
-<footer>Costs are estimates from total token counts (see each run's usage.json for the basis); hover a cost for notes. Built with <code>python tools/build_gallery.py</code>. Data: see each dashboard's technical notes for its source.</footer>
+<footer>Costs are measured from each run's Claude Code transcript (exact input, output, cache-read and cache-write tokens; cache writes at 1.25x input), see its usage.json; hover a cost for notes. Built with <code>python tools/build_gallery.py</code>. Data: see each dashboard's technical notes for its source.</footer>
 </main></body></html>
 """
 

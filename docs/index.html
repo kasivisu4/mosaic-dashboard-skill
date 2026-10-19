@@ -165,7 +165,7 @@ what drives returns, for my leadership team.</code></pre>
       <div class="card"><i class="ti ti-search" aria-hidden="true"></i><h3>Explores your data</h3><p>Beyond a fixed profile, the model asks its own questions in SQL and keeps the queries and answers on record.</p></div>
       <div class="card"><i class="ti ti-message-circle-question" aria-hidden="true"></i><h3>Explains itself</h3><p>Every mark has a tooltip with exact values; every title, number and control has help text.</p></div>
       <div class="card"><i class="ti ti-file-export" aria-hidden="true"></i><h3>One file to share</h3><p><code>report.html</code> carries its own data: double-click it, email it, or put it on any static host. No server.</p></div>
-      <div class="card"><i class="ti ti-receipt" aria-hidden="true"></i><h3>Costs and versions</h3><p>Each run records its model, tokens, estimated cost and the skill version that built it.</p></div>
+      <div class="card"><i class="ti ti-receipt" aria-hidden="true"></i><h3>Costs and versions</h3><p>Each run records its exact tokens and cost, read from its transcript, plus the skill version that built it.</p></div>
     </div>
   </section>
 
@@ -222,8 +222,8 @@ what drives returns, for my leadership team.</code></pre>
 
   <section id="costs">
     <h2>Costs and versions</h2>
-    <pre><code>python scripts/record_usage.py out/&lt;name&gt; --model claude-opus-5-5 --tokens 306115</code></pre>
-    <p>Records model, tokens, estimated cost and skill version in <code>5-handoff/usage.json</code>. Agent runs usually report one total, so cost is estimated from a typical token mix and shown with a range; pass the input/output/cache split for an exact figure. Recent runs: about $0.35 on Opus 5.5, about $0.01 on Haiku 5.5.</p>
+    <pre><code>python scripts/record_usage.py out/&lt;name&gt; --transcript ~/.claude/projects/&lt;project&gt;/&lt;session&gt;.jsonl</code></pre>
+    <p>Reads the run's Claude Code transcript and records the exact token split (input, output, cache reads, cache writes), the cost, the model and the skill version in <code>5-handoff/usage.json</code>. Measured runs so far: <b>$5.71–$9.48 on Opus 5.5</b> (67–98 model calls) and <b>$0.35 on Haiku 5.5</b>. About 98% of the tokens are cache reads: each call resends the conversation, which is cheap per token but adds up.</p>
     <p>The skill's version lives in <code>SKILL.md</code> (<code>metadata.version</code>), each release is a git tag, and <a href="https://github.com/kasivisu4/mosaic-dashboard-skill/blob/main/CHANGELOG.md">CHANGELOG.md</a> says what changed. Compare releases with <code>git diff v0.1.0 v0.2.0 -- skills/</code>.</p>
   </section>
 
@@ -257,7 +257,7 @@ what drives returns, for my leadership team.</code></pre>
     <h3>Does my data leave my machine?</h3>
     <p>No server is involved: the page runs DuckDB in your browser. The shared <code>report.html</code> contains the exported data, so share it only where the data may go.</p>
     <h3>Which models can run it?</h3>
-    <p>Any current Claude model. The gallery has runs by Opus 5.5 and Haiku 5.5; Haiku's passed the motion check at a fraction of the cost.</p>
+    <p>Any current Claude model. The gallery has runs by Opus 5.5 ($5.71–$9.48 each) and Haiku 5.5 ($0.35); Haiku's passed the motion check at about a twentieth of the cost.</p>
     <h3>Is there a template?</h3>
     <p>Deliberately not. Each page is written from an empty file for its data, guided by the method references and a fresh design seed.</p>
   </section>
