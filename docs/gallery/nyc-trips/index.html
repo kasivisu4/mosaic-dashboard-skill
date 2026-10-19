@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A day of New York taxis</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.35.0/dist/tabler-icons.min.css">
+<style>
+:root {
+  --bg: #ffffff; --panel: #f4f6f8; --ink: #111418; --muted: #5f6b78; --rule: #e3e7ec;
+  --mark: #8794a1; --sel: #111418; --focus: #4269d0; --breach: #ff725c;
+  --z0: #4269d0; --z1: #6cc5b0; --z2: #3ca951; --z3: #ff8ab7; --z4: #ff725c; --z5: #c48a00;
+  --map-lo: #dfe7f5; --map-hi: #0b2a6b; --lens: #c48a00; --heat-lo: #e6ecf8; --heat-hi: #1d3f99;
+  --shadow: 0 1px 2px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1216; --panel: #181c22; --ink: #eef1f4; --muted: #9aa6b2; --rule: #2a3038;
+    --mark: #7d8a97; --sel: #ffffff; --focus: #7b9cff; --breach: #ff8a75;
+    --z0: #7b9cff; --z1: #6cc5b0; --z2: #5cc56f; --z3: #ff9cc4; --z4: #ff8a75; --z5: #f0c040;
+    --map-lo: #2d4a7e; --map-hi: #e8f0ff; --lens: #f0c040; --heat-lo: #1b2333; --heat-hi: #9cb8ff;
+    --shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1216; --panel: #181c22; --ink: #eef1f4; --muted: #9aa6b2; --rule: #2a3038;
+  --mark: #7d8a97; --sel: #ffffff; --focus: #7b9cff; --breach: #ff8a75;
+  --z0: #7b9cff; --z1: #6cc5b0; --z2: #5cc56f; --z3: #ff9cc4; --z4: #ff8a75; --z5: #f0c040;
+  --map-lo: #2d4a7e; --map-hi: #e8f0ff; --lens: #f0c040; --heat-lo: #1b2333; --heat-hi: #9cb8ff;
+  --shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+:root { color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; } }
+:root[data-theme="dark"] { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; font-variant-numeric: tabular-nums; }
+body { overflow: hidden; }
+button { font: inherit; color: inherit; }
+.app { height: 100dvh; display: grid; grid-template-rows: auto 1fr; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; padding: 10px 18px; border-bottom: 1px solid var(--rule); }
+header h1 { font-size: 20px; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 8px; }
+.kpis { display: flex; gap: 20px; flex-wrap: wrap; }
+.kpi { min-width: 104px; }
+.kpi .lab { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.kpi .val { font-size: 22px; font-weight: 600; line-height: 1.15; }
+.kpi .tot { font-size: 11.5px; color: var(--muted); }
+.tools { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 6px 3px 10px; border-radius: 99px; background: var(--panel); border: 1px solid var(--rule); font-size: 12.5px; }
+.chip button { border: 0; background: none; cursor: pointer; padding: 0 2px; color: var(--muted); }
+.btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rule); background: var(--bg); border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 13px; box-shadow: var(--shadow); }
+.btn:hover { border-color: var(--muted); }
+.btn[aria-pressed="true"] { background: var(--panel); }
+.btn:disabled { opacity: .45; cursor: default; }
+.hint { font-size: 11.5px; color: var(--muted); }
+.info { color: var(--muted); cursor: help; font-size: 14px; }
+.main { display: grid; grid-template-columns: minmax(280px, 360px) 1fr; min-height: 0; }
+.cards { overflow-y: auto; border-right: 1px solid var(--rule); padding: 30vh 18px 50vh; scroll-behavior: smooth; }
+.card { padding: 14px 16px; margin: 0 0 22vh; border-radius: 12px; border: 1px solid var(--rule); background: var(--bg); cursor: pointer; opacity: .55; transition: opacity .3s, border-color .3s; }
+.card.on { opacity: 1; border-color: var(--muted); box-shadow: var(--shadow); }
+.card .act { font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; letter-spacing: .02em; }
+.card h3 { font-size: 15px; font-weight: 600; margin: 4px 0 6px; line-height: 1.35; }
+.card p { margin: 0; color: var(--muted); font-size: 13px; }
+.stagewrap { position: relative; display: grid; grid-template-rows: auto 1fr auto; min-width: 0; min-height: 0; }
+.stagehead { padding: 12px 20px 0; }
+.stagehead h2 { margin: 0; min-height: 2.6em; font-size: 22px; font-weight: 600; line-height: 1.3; display: flex; gap: 8px; align-items: baseline; }
+.stagehead .note { font-size: 12px; color: var(--muted); min-height: 18px; }
+.stage { position: relative; min-height: 0; }
+.stage canvas, .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.stage svg { touch-action: none; }
+.transport { display: flex; align-items: center; gap: 8px; padding: 8px 20px 12px; flex-wrap: wrap; }
+.hours { display: flex; gap: 2px; align-items: flex-end; margin-left: 8px; }
+.hours button { width: 13px; height: 18px; border: 0; border-radius: 2px; background: var(--rule); cursor: pointer; padding: 0; }
+.hours button.on { background: var(--sel); }
+.hours button:focus-visible { outline: 2px solid var(--focus); }
+.scenecount { margin-left: auto; font-size: 12px; color: var(--muted); }
+#tip { position: fixed; pointer-events: none; z-index: 20; background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; box-shadow: 0 4px 16px rgba(0,0,0,.14); max-width: 280px; opacity: 0; transition: opacity .12s; }
+#tip b { font-weight: 600; }
+#tip .m { color: var(--muted); }
+.drawer { position: fixed; right: 0; top: 0; bottom: 0; width: min(440px, 100vw); background: var(--bg); border-left: 1px solid var(--rule); z-index: 30; padding: 18px 22px; overflow-y: auto; transform: translateX(100%); transition: transform .3s ease; box-shadow: -8px 0 24px rgba(0,0,0,.12); }
+.drawer.open { transform: none; }
+.drawer h3 { margin: 0 0 8px; font-size: 17px; }
+.drawer li { margin-bottom: 6px; }
+#loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); z-index: 5; background: var(--bg); }
+.axis text, .guide text { fill: var(--muted); font-size: 11.5px; }
+.guide .lab { fill: var(--ink); font-size: 12px; }
+.guide .ann { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.guide .tick line { stroke: var(--rule); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+@media (max-width: 820px) {
+  body { overflow: auto; }
+  .app { height: auto; min-height: 100dvh; }
+  .main { grid-template-columns: 1fr; grid-template-rows: 62dvh auto; }
+  .stagewrap { order: -1; border-bottom: 1px solid var(--rule); }
+  .cards { border-right: 0; padding: 12px 16px 30vh; max-height: 60dvh; }
+  .card { margin-bottom: 14px; }
+  .stagehead h2 { font-size: 17px; }
+  .tools { margin-left: 0; }
+  .hours { flex: 1 1 100%; margin-left: 0; }
+  .hours button { flex: 1; width: auto; min-width: 0; }
+  .stagehead h2 { min-height: 0; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1><i class="ti ti-car" aria-hidden="true"></i>A day of New York taxis
+      <i class="ti ti-info-circle info" tabindex="0" data-help="999,033 New York taxi trips: where they started, where they ended, the hour, distance and fare. The file has no dates, so every hour pools all the days in it. Open Notes for definitions."></i></h1>
+    <div class="kpis" id="kpis"></div>
+    <div class="tools">
+      <span id="chips"></span>
+      <button class="btn" id="reset" data-help="Clear the map box and the hour selection."><i class="ti ti-refresh" aria-hidden="true"></i>Reset</button>
+      <button class="btn" id="motion" aria-pressed="true" data-help="Turn animation on or off. It starts from your system setting and is remembered in this browser.">Motion: on</button>
+      <span class="hint" id="motionhint"></span>
+      <button class="btn" id="notesbtn" data-help="Definitions, exclusions and how the page was made."><i class="ti ti-notes" aria-hidden="true"></i>Notes</button>
+    </div>
+  </header>
+  <div class="main">
+    <nav class="cards" id="cards" aria-label="Scenes"></nav>
+    <section class="stagewrap" aria-live="polite">
+      <div class="stagehead">
+        <h2><i id="sceneicon" class="ti" aria-hidden="true"></i><span id="title"></span>
+          <i class="ti ti-info-circle info" tabindex="0" id="titlehelp"></i></h2>
+        <div class="note" id="note"></div>
+      </div>
+      <div class="stage" id="stage">
+        <canvas id="map"></canvas>
+        <svg id="svg" role="img" aria-labelledby="title"></svg>
+        <div id="loading">Loading 999,033 trips into DuckDB in your browser…</div>
+      </div>
+      <div class="transport">
+        <button class="btn" id="prev" aria-label="Previous scene" data-help="Previous scene (left arrow)."><i class="ti ti-player-track-prev" aria-hidden="true"></i></button>
+        <button class="btn" id="next" aria-label="Next scene" data-help="Next scene (right arrow)."><i class="ti ti-player-track-next" aria-hidden="true"></i></button>
+        <button class="btn" id="auto" aria-pressed="false" data-help="Step through the scenes on their own; any interaction pauses it (space bar)."><i class="ti ti-movie" aria-hidden="true"></i>Autoplay</button>
+        <button class="btn" id="play" aria-pressed="false" data-help="Sweep a 3-hour window around the clock. Every scene, the map and the numbers follow it."><i class="ti ti-player-play" aria-hidden="true"></i>Play hours</button>
+        <div class="hours" id="hours" role="group" aria-label="Hours of the day" data-help="The hour filter. Click an hour to filter every scene; shift-click adds hours."></div>
+        <span class="scenecount" id="scenecount"></span>
+      </div>
+    </section>
+  </div>
+</div>
+<div id="tip" role="tooltip"></div>
+<aside class="drawer" id="drawer" aria-label="Notes">
+  <button class="btn" id="closenotes" style="float:right"><i class="ti ti-x" aria-hidden="true"></i>Close</button>
+  <h3>Notes</h3>
+  <ul id="notes"></ul>
+</aside>
+
+<script type="module">
+import * as vg from "https://cdn.jsdelivr.net/npm/@uwdata/vgplot@0.31.0/+esm";
+import * as core from "https://cdn.jsdelivr.net/npm/@uwdata/mosaic-core@0.31.0/+esm";
+import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
+import { polygons3D } from "https://cdn.jsdelivr.net/npm/d3-3d@1.0.0/+esm";
+
+/* ---------- plan content (titles, captions, notes) ---------- */
+const PLAN = {
+  scenes: [
+    { key: "map", act: "city", icon: "ti-map-pin", actName: "The city",
+      title: "93.2% of 999,033 pickups start within 4 miles of Times Square",
+      caption: "Every pickup in the file, binned to the pixel. Hover to look through the lens at where trips that start there end; drag a box to filter every scene.",
+      help: "Pickups per 200 × 200 ft cell, on a log color scale. Rings mark 1, 2, 4 and 8 miles from Times Square. The share counts every trip in the file." },
+    { key: "waffle-trips", act: "share", icon: "ti-layout-grid", actName: "Where the money is",
+      title: "Of every 100 pickups, 3 start at JFK or LaGuardia",
+      caption: "One square is 1% of the pickups in view, colored by where they start.",
+      help: "Squares are rounded to whole percent with the largest-remainder method; hover a square for the exact share and count." },
+    { key: "waffle-fares", act: "share", icon: "ti-coin", actName: "Where the money is",
+      title: "Count dollars instead of trips and the airports take 8 of every 100",
+      caption: "Same 100 squares, now 1% of fares each; squares change zone as the measure switches.",
+      help: "Fares are the metered fare in USD summed over the trips in view, by pickup zone." },
+    { key: "units-fares", act: "share", icon: "ti-list-details", actName: "Where the money is",
+      title: "Airport pickups earn 2.9× their share of trips",
+      caption: "Squares are fares; the outline on each row is that zone's share of trips.",
+      help: "Each row is a pickup zone. Squares: 1% of fares each. Outline: the zone's exact share of trips. The ratio is fare share ÷ trip share." },
+    { key: "clock", act: "clock", icon: "ti-clock-hour-12", actName: "Around the clock",
+      title: "Midnight is the busiest hour: 67,964 trips, 4.7× the 6 a.m. low",
+      caption: "The day as a clock: each wedge's length from the inner ring is the hour's trips. Click an hour to filter; Play sweeps the hand.",
+      help: "Trips that started in each hour of the day, pooled over every day in the file. The inner ring is zero; length is linear." },
+    { key: "miles", act: "clock", icon: "ti-ruler-measure", actName: "Around the clock",
+      title: "6 a.m. trips are the longest: 4.64 miles on average, twice 7 p.m.'s 2.31",
+      caption: "The dial unrolls: same 24 marks, now average trip length by starting hour.",
+      help: "Average trip = total miles ÷ trips in that hour. Bars start at zero." },
+    { key: "airport", act: "clock", icon: "ti-plane", actName: "Around the clock",
+      title: "At 8 a.m., trips to or from an airport earn 32.8% of the hour's fares",
+      caption: "Dot: airport share of the hour's fares. Tick: their share of the hour's trips.",
+      help: "Airport trips start or end inside the JFK or LaGuardia box. Share of fares = their fares ÷ all fares in the hour." },
+    { key: "heat", act: "terrain", icon: "ti-grid-dots", actName: "Two rhythms",
+      title: "Within a mile of Times Square trips peak at 1 p.m.; 1–4 miles out they peak at midnight and 1 a.m.",
+      caption: "Rows are zones, columns are hours, darker is more trips.",
+      help: "Trips by pickup zone and starting hour. Color is linear in trips; see the legend." },
+    { key: "terrain", act: "terrain", icon: "ti-mountain", actName: "Two rhythms",
+      title: "The highest point is the 1–2 mile ring at midnight: 23,871 trips",
+      caption: "The heatmap rises into a terrain. Drag to turn it; height and color both show trips.",
+      help: "Three data axes: hour, zone and trips. Height is linear from zero and repeated by color. Hover a column for its exact value." },
+    { key: "lines", act: "terrain", icon: "ti-chart-line", actName: "Two rhythms",
+      title: "4–8 miles out, 9.5% of the day's trips start in the 1 a.m. hour, the sharpest peak of any ring",
+      caption: "Each line is one zone's day as a share of its own trips, so shapes compare despite different sizes.",
+      help: "Share of the zone's trips that start in each hour, on one shared scale. The line wraps from 11 p.m. back to midnight." },
+  ],
+  notes: [
+    "<b>Data.</b> 999,033 taxi trips: pickup and drop-off position, starting hour, distance (miles), fare (USD) and riders. The file has no dates or ids, so hours pool every day in it.",
+    "<b>Excluded.</b> 967 trips (0.1%) whose pickup or drop-off lies outside the New York area (x 900,000–1,070,000 ft, y 110,000–280,000 ft, coordinates of 0 or far away).",
+    "<b>Kept and noted.</b> 7,429 trips with zero miles (average fare $21.32, likely meter or GPS gaps), 7 exact duplicate rows, 1 trip with zero riders.",
+    "<b>Coordinates.</b> New York State Plane Long Island, US feet, rounded to 50 ft. Checked against Times Square and JFK.",
+    "<b>Zones.</b> Straight-line rings around Times Square by pickup point: under 1, 1–2, 2–4, 4–8 and 8+ miles. Pickups inside the JFK or LaGuardia box count as Airport first. These are approximations, not borough or taxi-zone borders.",
+    "<b>Airport trip.</b> Pickup or drop-off inside the JFK or LaGuardia box.",
+    "<b>Metrics.</b> Trips = count. Fares = sum of fare. Average fare = fares ÷ trips. Average trip = miles ÷ trips. Shares state their denominator (trips or fares in view).",
+    "<b>Titles</b> describe all the data. While a filter is on, the charts and numbers follow it and a note under the title says so.",
+    "<b>Built with</b> Mosaic and DuckDB-WASM (the data runs in your browser), D3 for every chart and morph, d3-3d for the terrain, Tabler icons.",
+  ],
+};
+
+/* ---------- motion settings ---------- */
+const SYSTEM_REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let saved = null; try { saved = localStorage.getItem("motion"); } catch {}
+let REDUCED = saved ? saved === "off" : SYSTEM_REDUCED;
+const T = (ms) => (REDUCED ? 0 : ms);
+const TEMPO = 700;                          // seed: brisk
+const EASE = d3.easeExpOut;                 // seed: expOut
+let quick = false, quickTimer;
+const hurry = () => { quick = true; clearTimeout(quickTimer); quickTimer = setTimeout(() => (quick = false), 400); };
+const upd = () => T(quick ? 160 : 450);
+document.documentElement.classList.toggle("motion-on", !REDUCED);
+const motionBtn = document.getElementById("motion");
+motionBtn.textContent = REDUCED ? "Motion: off" : "Motion: on";
+motionBtn.setAttribute("aria-pressed", String(!REDUCED));
+if (REDUCED && SYSTEM_REDUCED) document.getElementById("motionhint").textContent = "Animations are off: your system asks for reduced motion";
+motionBtn.onclick = () => { REDUCED = !REDUCED; try { localStorage.setItem("motion", REDUCED ? "off" : "on"); } catch {} location.reload(); };
+
+/* ---------- formats ---------- */
+const fmtK = (v) => v >= 1e6 ? d3.format(".2~f")(v / 1e6) + "M" : v >= 1e4 ? d3.format(".0f")(v / 1e3) + "K" : v >= 1e3 ? d3.format(".1~f")(v / 1e3) + "K" : d3.format(",")(Math.round(v));
+const fmtInt = d3.format(",");
+const fmtMoney = (v) => v >= 1e6 ? "$" + d3.format(".2~f")(v / 1e6) + "M" : v >= 1e3 ? "$" + d3.format(".1~f")(v / 1e3) + "K" : "$" + d3.format(".2f")(v);
+const fmtPct = (v) => (v > 0 && v < 0.001 ? "<0.1%" : d3.format(".1f")(v * 100) + "%");
+const hourName = (h) => { h = ((h % 24) + 24) % 24; return h === 0 ? "midnight" : h === 12 ? "noon" : h < 12 ? h + " a.m." : (h - 12) + " p.m."; };
+const hourShort = (h) => { h = ((h % 24) + 24) % 24; return h === 0 ? "12a" : h === 12 ? "12p" : h < 12 ? h + "a" : (h - 12) + "p"; };
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* ---------- tooltip and help ---------- */
+const tip = document.getElementById("tip");
+function showTip(html, ev) {
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect();
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => (tip.style.opacity = 0);
+function wireHelp(root = document) {
+  root.querySelectorAll("[data-help]").forEach((el) => {
+    if (el.__help) return; el.__help = true;
+    el.addEventListener("mouseenter", (e) => showTip(el.dataset.help, e));
+    el.addEventListener("mousemove", (e) => showTip(el.dataset.help, e));
+    el.addEventListener("mouseleave", hideTip);
+    el.addEventListener("focus", () => { const b = el.getBoundingClientRect(); showTip(el.dataset.help, { clientX: b.left, clientY: b.bottom }); });
+    el.addEventListener("blur", hideTip);
+  });
+}
+
+/* ---------- DuckDB + Mosaic ---------- */
+const connector = vg.wasmConnector();
+vg.coordinator().databaseConnector(connector);
+// Pre-aggregation needs Plot scale metadata on interval clauses; the D3 map brush has none, and the preaggregator
+// then throws inside a swallowed promise and no client updates. Every query here is small, so turn it off.
+vg.coordinator().preaggregator.enabled = false;
+async function loadTable(name, file) {
+  const tag = document.querySelector(`script[type="application/octet-stream"][data-file="${file}"]`);
+  if (!tag) return vg.coordinator().exec([vg.loadParquet(name, new URL(file, location.href).href)]);
+  const bytes = new Uint8Array(await (await fetch(`data:application/octet-stream;base64,${tag.textContent.trim()}`)).arrayBuffer());
+  await (await connector.getDuckDB()).registerFileBuffer(file, bytes);
+  await vg.coordinator().exec(`CREATE TABLE "${name}" AS SELECT * FROM read_parquet('${file}')`);
+}
+const Q = async (sql) => (await vg.coordinator().query(sql)).toArray().map((r) => ({ ...r }));
+const num = (v) => (typeof v === "bigint" ? Number(v) : v == null ? 0 : +v);
+
+class Live extends vg.MosaicClient {
+  constructor(filterBy, query, render) { super(filterBy); this.q = query; this.r = render; this.ready = new Promise((res) => (this._res = res)); }
+  query(where = []) { return this.q(where); }
+  queryResult(data) { this.r(data.toArray().map((d) => ({ ...d }))); this._res(); return this; }
+  queryError(e) { console.error(e); this._res(); return this; }
+}
+
+await loadTable("t", "trips.parquet");
+
+/* reference values computed from the data */
+const [ext] = await Q(`SELECT quantile_cont(px,0.0005) x0, quantile_cont(px,0.9995) x1, quantile_cont(py,0.0005) y0, quantile_cont(py,0.9995) y1,
+  count(*) n FROM t`);
+const ZONES = (await Q(`SELECT zone, count(*) n FROM t GROUP BY zone ORDER BY (zone = 'Airport'), min(sqrt((px-988267)^2+(py-215437)^2))`)).map((d) => d.zone);
+const ZCOL = ZONES.map((z, i) => `var(--z${i})`);
+const zoneColor = (z) => ZCOL[ZONES.indexOf(z)] || "var(--mark)";
+const AIR = "Airport";
+// Landmarks and ring centre come from the zone definition in the plan (Times Square, the two airport boxes).
+const TSQ = [988267, 215437];
+const AIRPORTS = [{ name: "JFK", x: (1035000 + 1056000) / 2, y: (160000 + 185000) / 2 }, { name: "LaGuardia", x: (1012000 + 1026000) / 2, y: (216000 + 228000) / 2 }];
+const pad = 0.04 * (ext.x1 - ext.x0);
+const X0 = Math.floor(ext.x0 - pad), X1 = Math.ceil(ext.x1 + pad), Y0 = Math.floor(ext.y0 - pad), Y1 = Math.ceil(ext.y1 + pad);
+const CELL = 200, NX = Math.ceil((X1 - X0) / CELL), NY = Math.ceil((Y1 - Y0) / CELL);
+
+const $page = vg.Selection.crossfilter();
+
+/* ---------- stage geometry ---------- */
+const stageEl = document.getElementById("stage");
+const canvas = document.getElementById("map"), ctx = canvas.getContext("2d");
+const svg = d3.select("#svg");
+const guideLayer = svg.append("g").attr("class", "guides");
+const markLayer = svg.append("g").attr("class", "marks");
+const mapLayer = svg.append("g").attr("class", "maplayer");
+let W = 800, H = 600, DPR = window.devicePixelRatio || 1;
+function measure() {
+  const r = stageEl.getBoundingClientRect();
+  W = Math.max(320, r.width || window.innerWidth * 0.6); H = Math.max(300, r.height || window.innerHeight * 0.6);
+  svg.attr("viewBox", [0, 0, W, H]);
+  canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+}
+measure();
+const NARROW = () => W < 560;
+const insetBox = () => { const w = NARROW() ? 104 : Math.min(300, Math.max(150, W * 0.24)); const h = w * (Y1 - Y0) / (X1 - X0); return { x: W - w - 12, y: 8, w, h }; };
+const fullBox = () => { const s = Math.min((W - 40) / (X1 - X0), (H - 30) / (Y1 - Y0)); const w = (X1 - X0) * s, h = (Y1 - Y0) * s; return { x: (W - w) / 2, y: (H - h) / 2, w, h }; };
+const chartArea = () => { const ib = insetBox();
+  if (NARROW()) { const top = ib.y + ib.h + 26; return { x: 10, y: top, w: W - 20, h: Math.max(180, H - top - 24) }; }
+  return { x: 36, y: 16, w: Math.max(200, ib.x - 36 - 28), h: H - 46 }; };
+
+/* ---------- the polygon engine (show-reel §2) ---------- */
+const K = 24, HK = K / 2;
+const lerp = (a, b, t) => a + (b - a) * t;
+const edge = (a, b) => d3.range(HK).map((j) => [lerp(a[0], b[0], j / (HK - 1)), lerp(a[1], b[1], j / (HK - 1))]);
+const quad = (tl, tr, br, bl) => [...edge(tl, tr), ...edge(br, bl)];
+const rectP = (x, y, w, h) => quad([x, y], [x + w, y], [x + w, y + h], [x, y + h]);
+const wedgeP = (cx, cy, r0, r1, a0, a1) => {
+  const arc = (r, f, t) => d3.range(HK).map((j) => { const a = lerp(f, t, j / (HK - 1)); return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; });
+  return [...arc(r1, a0, a1), ...arc(r0, a1, a0)];
+};
+const circleP = (cx, cy, r) => [
+  ...d3.range(HK).map((j) => { const a = Math.PI - (Math.PI * j) / (HK - 1); return [cx + r * Math.cos(a), cy - r * Math.sin(a)]; }),
+  ...d3.range(HK).map((j) => { const a = -(Math.PI * j) / (HK - 1); return [cx + r * Math.cos(a), cy - r * Math.sin(a)]; }),
+];
+const flatTop = (p) => { const t = p.slice(0, HK); return [...t, ...t.slice().reverse()]; };
+const pointP = (x, y) => d3.range(K).map(() => [x, y]);
+const toPath = (p) => "M" + p.map((q) => q[0].toFixed(1) + "," + q[1].toFixed(1)).join("L") + "Z";
+const twoD = (front, fill, opacity = 1, extra = {}) => ({ front, top: flatTop(front), side: flatTop(front), fill, opacity, ...extra });
+const shade = (fill, face) => face === "front" ? fill : face === "top" ? `color-mix(in srgb, ${fill} 72%, white)` : `color-mix(in srgb, ${fill} 70%, black)`;
+
+function stagger(order, total) { // seed: centre-out; whole stagger ≤ 25% of the duration
+  const n = order.length || 1, per = Math.min(4, (0.25 * total) / n);
+  return (i) => T(order[i] * per);
+}
+function morph(sel, form, { dur = TEMPO, delay = () => 0, ease = EASE, enter } = {}) {
+  sel.each(function (d, i) {
+    const g = d3.select(this), next = form(d, i);
+    for (const face of ["side", "top", "front"]) {
+      const path = g.select("." + face), node = path.node(), to = next[face];
+      if (!node.__pts) { node.__pts = enter ? enter(d, i)[face] : to; path.attr("d", toPath(node.__pts)); }
+      const t = path.transition("geo").duration(dur).delay(delay(i)).ease(ease)
+        .attrTween("d", function () { const ip = d3.interpolateArray(this.__pts, to); return (k) => toPath((this.__pts = ip(k))); });
+      path.transition("paint").duration(dur * 0.6).delay(delay(i) + dur * 0.35).ease(d3.easeCubicOut)
+        .attr("fill", next.fill === "none" ? "none" : face === "top" && next.topPlain ? next.fill : shade(next.fill, face))
+        .attr("fill-opacity", face === "front" ? (next.fo ?? 1) : (next.fo3 ?? 1))
+        .attr("stroke", next.stroke || "none").attr("stroke-width", next.sw || 0)
+        .attr("opacity", next.opacity);
+      if (dur === 0) { t.on("end", null); }
+    }
+    g.style("pointer-events", next.opacity > 0 ? null : "none");
+  });
+}
+function makeMarks(cls, data, key) {
+  const g = markLayer.selectAll("g." + cls).data(data, key).join((en) => {
+    const m = en.append("g").attr("class", "mark " + cls).attr("tabindex", -1);
+    for (const f of ["side", "top", "front"]) m.append("path").attr("class", f).attr("opacity", 0);
+    return m;
+  });
+  return g;
+}
+
+/* ---------- guides: crossfade with the marks ---------- */
+function newGuides(dur) {
+  guideLayer.selectAll("g.guide").interrupt().transition().duration(T(dur * 0.33)).attr("opacity", 0).remove();
+  return guideLayer.append("g").attr("class", "guide").attr("opacity", 0).call((g) => g.transition().delay(T(dur * 0.6)).duration(T(dur * 0.4)).attr("opacity", 1));
+}
+
+/* ---------- data state ---------- */
+const state = { scene: 0, kpi: null, total: null, zones: [], hours: [], grid: [], mapBins: null, lens: null, brush: null, hoursSel: [] };
+
+/* ---------- KPIs ---------- */
+const KPIS = [
+  { key: "n", label: "Trips", fmt: fmtK, help: "Trips in view (count). The grey line is the total for the whole file." },
+  { key: "f", label: "Fares", fmt: fmtMoney, help: "Sum of metered fares in USD for the trips in view." },
+  { key: "af", label: "Average fare", fmt: (v) => "$" + d3.format(".2f")(v), help: "Fares ÷ trips, for the trips in view." },
+  { key: "ad", label: "Average trip", fmt: (v) => d3.format(".2f")(v) + " mi", help: "Miles ÷ trips, for the trips in view. Straight distances are not used; this is the metered trip distance." },
+];
+const kpiEl = d3.select("#kpis").selectAll("div").data(KPIS).join("div").attr("class", "kpi")
+  .html((d) => `<div class="lab">${d.label}<i class="ti ti-info-circle info" tabindex="0" data-help="${d.help}"></i></div><div class="val">–</div><div class="tot"></div>`);
+wireHelp();
+function tweenNumber(el, to, format) {
+  const from = el.__v ?? 0; el.__v = to;
+  d3.select(el).transition().duration(T(quick ? 150 : 700)).ease(d3.easeCubicOut)
+    .tween("text", () => { const i = d3.interpolateNumber(from, to); return (t) => { el.textContent = format(i(t)); }; });
+}
+const kq = (where) => vg.Query.from("t").select({ n: vg.count(), f: vg.sum("fare"), af: vg.avg("fare"), ad: vg.avg("distance") }).where(where);
+const kpiClient = new Live($page, kq, ([r]) => {
+  state.kpi = { n: num(r.n), f: num(r.f), af: num(r.af), ad: num(r.ad) };
+  kpiEl.each(function (d) { tweenNumber(this.querySelector(".val"), state.kpi[d.key] || 0, d.fmt); });
+  drawTotals(); busy = false;
+});
+const totalClient = new Live(undefined, kq, ([r]) => { state.total = { n: num(r.n), f: num(r.f), af: num(r.af), ad: num(r.ad) }; drawTotals(); });
+function drawTotals() {
+  if (!state.total) return;
+  const filtered = $page.clauses.some((c) => c.value != null);
+  kpiEl.each(function (d) { this.querySelector(".tot").textContent = filtered && state.kpi ? `of ${d.fmt(state.total[d.key])} in all` : `all ${fmtK(state.total.n)} trips`; });
+}
+
+/* ---------- zones (act: share) ---------- */
+const zq = (where) => vg.Query.from("t").select({ zone: "zone", n: vg.count(), f: vg.sum("fare") }).where(where).groupby("zone");
+const zoneClient = new Live($page, zq, (rows) => {
+  const by = new Map(rows.map((r) => [r.zone, r]));
+  state.zones = ZONES.map((z) => ({ zone: z, n: num(by.get(z)?.n), f: num(by.get(z)?.f) }));
+  if (frame) placeMapLayer();
+  if (ACTS[SCENES[state.scene].act] === "share") renderScene(false);
+});
+function allocate(vals) { // largest remainder to 100
+  const tot = d3.sum(vals) || 1, raw = vals.map((v) => (v / tot) * 100), fl = raw.map(Math.floor);
+  let left = 100 - d3.sum(fl);
+  raw.map((v, i) => [v - fl[i], i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (left > 0) { fl[i]++; left--; } });
+  return d3.sum(vals) ? fl : vals.map(() => 0);
+}
+const squares = d3.range(100).map((i) => ({ i }));
+
+/* ---------- hours (act: clock) ---------- */
+const hq = (where) => vg.Query.from("t").select({ hour: "hour", n: vg.count(), d: vg.sum("distance"), f: vg.sum("fare"), af: vg.sum("airport_fare"), a: vg.sum("airport") }).where(where).groupby("hour");
+const hourClient = new Live($page, hq, (rows) => {
+  const by = new Map(rows.map((r) => [num(r.hour), r]));
+  state.hours = d3.range(24).map((h) => { const r = by.get(h) || {}; const n = num(r.n), f = num(r.f);
+    return { hour: h, n, mi: n ? num(r.d) / n : 0, f, afs: f ? num(r.af) / f : 0, ats: n ? num(r.a) / n : 0 }; });
+  if (ACTS[SCENES[state.scene].act] === "clock") renderScene(false);
+});
+
+/* ---------- zone × hour (act: terrain) ---------- */
+const gq = (where) => vg.Query.from("t").select({ zone: "zone", hour: "hour", n: vg.count() }).where(where).groupby("zone", "hour");
+const gridClient = new Live($page, gq, (rows) => {
+  const by = new Map(rows.map((r) => [r.zone + "|" + num(r.hour), num(r.n)]));
+  state.grid = ZONES.flatMap((z, zi) => d3.range(24).map((h) => ({ id: z + "|" + h, zone: z, zi, hour: h, n: by.get(z + "|" + h) || 0 })));
+  const tot = d3.rollup(state.grid, (v) => d3.sum(v, (d) => d.n), (d) => d.zone);
+  state.grid.forEach((d) => { d.share = tot.get(d.zone) ? d.n / tot.get(d.zone) : 0; d.next = by.get(d.zone + "|" + ((d.hour + 1) % 24)) || 0; d.nextShare = tot.get(d.zone) ? d.next / tot.get(d.zone) : 0; });
+  if (ACTS[SCENES[state.scene].act] === "terrain") renderScene(false);
+});
+
+/* ---------- map (act: city, and the inset filter) ---------- */
+const mq = (where) => vg.Query.from("t")
+  .select({ bx: vg.sql`CAST(floor((px - ${X0}) / ${CELL}) AS INTEGER)`, by: vg.sql`CAST(floor((py - ${Y0}) / ${CELL}) AS INTEGER)`, n: vg.count() })
+  .where(where).where(vg.sql`px >= ${X0} AND px < ${X1} AND py >= ${Y0} AND py < ${Y1}`).groupby("bx", "by");
+const mapClient = new Live($page, mq, (rows) => {
+  const grid = new Float32Array(NX * NY); let max = 0;
+  for (const r of rows) { const i = (NY - 1 - num(r.by)) * NX + num(r.bx); const n = num(r.n); grid[i] = n; if (n > max) max = n; }
+  state.mapBins = { grid, max }; paintBins(); drawMap();
+});
+const binCanvas = document.createElement("canvas"); binCanvas.width = NX; binCanvas.height = NY;
+const lensCanvas = document.createElement("canvas"); lensCanvas.width = NX; lensCanvas.height = NY;
+function rgb(c) { const x = d3.color(c); return x ? [x.r, x.g, x.b] : [128, 128, 128]; }
+function paintBins() {
+  const { grid, max } = state.mapBins; const bctx = binCanvas.getContext("2d"); const img = bctx.createImageData(NX, NY);
+  const lo = rgb(css("--map-lo")), hi = rgb(css("--map-hi")), L = Math.log1p(max || 1);
+  const dim = state.lens && state.lens.n > 0;
+  for (let i = 0; i < grid.length; i++) { const n = grid[i]; if (!n) continue; const t = Math.log1p(n) / L;
+    img.data[i * 4] = lerp(lo[0], hi[0], t); img.data[i * 4 + 1] = lerp(lo[1], hi[1], t); img.data[i * 4 + 2] = lerp(lo[2], hi[2], t);
+    img.data[i * 4 + 3] = (dim ? 0.35 : 1) * (90 + 165 * Math.min(1, t * 1.4)); }
+  bctx.putImageData(img, 0, 0);
+}
+let frame = null;
+function drawMap() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, W, H);
+  if (!frame || !state.mapBins) return;
+  ctx.save();
+  ctx.fillStyle = css("--panel"); ctx.globalAlpha = frame.inset; ctx.fillRect(frame.x - 4, frame.y - 4, frame.w + 8, frame.h + 8); ctx.globalAlpha = 1;
+  ctx.imageSmoothingEnabled = frame.w < NX; ctx.drawImage(binCanvas, frame.x, frame.y, frame.w, frame.h);
+  if (state.lens && state.lens.n > 0) ctx.drawImage(lensCanvas, frame.x, frame.y, frame.w, frame.h);
+  ctx.restore();
+  placeMapLayer();
+}
+const fx = (x) => frame.x + ((x - X0) / (X1 - X0)) * frame.w;
+const fy = (y) => frame.y + ((Y1 - y) / (Y1 - Y0)) * frame.h;
+const ifx = (px) => X0 + ((px - frame.x) / frame.w) * (X1 - X0);
+const ify = (py) => Y1 - ((py - frame.y) / frame.h) * (Y1 - Y0);
+
+/* map overlay: rings, landmarks, legend, brush, lens */
+const mapClip = svg.append("clipPath").attr("id", "mapclip").append("rect");
+const ringG = mapLayer.append("g").attr("class", "rings").attr("clip-path", "url(#mapclip)");
+const lmG = mapLayer.append("g");
+const legendG = mapLayer.append("g");
+const brushRect = mapLayer.append("rect").attr("fill", "var(--focus)").attr("fill-opacity", 0.1).attr("stroke", "var(--focus)").attr("stroke-width", 1.5).attr("display", "none");
+const lensCircle = mapLayer.append("circle").attr("fill", "none").attr("stroke", "var(--lens)").attr("stroke-width", 2).attr("display", "none");
+const frameRect = mapLayer.append("rect").attr("fill", "none").attr("stroke", "var(--rule)");
+const mapTitle = mapLayer.append("text").attr("font-size", 11.5).attr("fill", "var(--muted)");
+const hintG = mapLayer.append("g").attr("pointer-events", "none");
+let lensUsed = false;
+const hit = mapLayer.append("rect").attr("fill", "transparent").style("cursor", "crosshair");
+function placeMapLayer() {
+  if (!frame) return;
+  const sc = frame.w / (X1 - X0);
+  mapClip.attr("x", frame.x).attr("y", frame.y).attr("width", frame.w).attr("height", frame.h);
+  frameRect.attr("x", frame.x).attr("y", frame.y).attr("width", frame.w).attr("height", frame.h).attr("opacity", frame.inset);
+  hit.attr("x", frame.x).attr("y", frame.y).attr("width", frame.w).attr("height", frame.h);
+  mapTitle.attr("x", frame.x).attr("y", frame.y + frame.h + 14).attr("opacity", frame.inset)
+    .text(state.brush ? "Pickup area filter on · drag again or Reset" : "Drag a box to filter by pickup area");
+  ringG.selectAll("circle").data([1, 2, 4, 8]).join("circle").attr("cx", fx(TSQ[0])).attr("cy", fy(TSQ[1])).attr("r", (m) => m * 5280 * sc)
+    .attr("fill", "none").attr("stroke", "var(--muted)").attr("stroke-opacity", 0.45).attr("stroke-dasharray", "3 4").attr("pointer-events", "none");
+  ringG.selectAll("text").data([1, 2, 4, 8]).join("text").attr("x", fx(TSQ[0]) + 3).attr("y", (m) => fy(TSQ[1]) - m * 5280 * sc - 3)
+    .attr("font-size", 10.5).attr("fill", "var(--muted)").attr("opacity", 1 - frame.inset).text((m) => m + " mi");
+  const lms = [{ name: "Times Square", x: TSQ[0], y: TSQ[1] }, ...AIRPORTS];
+  lmG.selectAll("g").data(lms).join((en) => { const g = en.append("g").attr("pointer-events", "none"); g.append("circle").attr("r", 3); g.append("text").attr("x", 6).attr("y", 4); return g; })
+    .attr("transform", (d) => `translate(${fx(d.x)},${fy(d.y)})`)
+    .call((g) => g.select("circle").attr("fill", "var(--ink)").attr("stroke", "var(--bg)"))
+    .call((g) => g.select("text").attr("font-size", frame.inset ? 10 : 12).attr("fill", "var(--ink)").attr("paint-order", "stroke").attr("stroke", "var(--bg)").attr("stroke-width", 3).text((d) => d.name));
+  const jfk = AIRPORTS.find((a) => a.name === "JFK");
+  const hintOn = !lensUsed && frame.inset < 0.5 && jfk;
+  hintG.selectAll("g").data(hintOn ? [jfk] : []).join((en) => { const g = en.append("g");
+      g.append("circle").attr("r", 16).attr("fill", "none").attr("stroke", "var(--lens)").attr("stroke-width", 2).attr("stroke-dasharray", "4 3");
+      g.append("text").attr("class", "h1").attr("text-anchor", "end").attr("x", -24).attr("y", -6).attr("font-size", 12.5).attr("font-weight", 600).attr("fill", "var(--ink)").attr("paint-order", "stroke").attr("stroke", "var(--bg)").attr("stroke-width", 4).text("Point here: where do JFK pickups go?");
+      g.append("text").attr("text-anchor", "end").attr("x", -24).attr("y", 10).attr("font-size", 11.5).attr("fill", "var(--muted)").attr("paint-order", "stroke").attr("stroke", "var(--bg)").attr("stroke-width", 4).attr("class", "h2");
+      return g; })
+    .attr("transform", (d) => `translate(${fx(d.x)},${fy(d.y)})`)
+    .call((g) => g.select("text.h2").text(() => { const Z = state.zones, a = Z.find((z) => z.zone === AIR), n = d3.sum(Z, (z) => z.n), f = d3.sum(Z, (z) => z.f);
+      return a && n ? `Airports: ${fmtPct(a.n / n)} of pickups, ${fmtPct(a.f / f)} of fares in view` : ""; }));
+  if (state.brush) { const [[a, b], [c, d]] = state.brush; brushRect.attr("display", null).attr("x", fx(Math.min(a, c))).attr("y", fy(Math.max(b, d))).attr("width", Math.abs(fx(c) - fx(a))).attr("height", Math.abs(fy(d) - fy(b))); }
+  else brushRect.attr("display", "none");
+  drawLegend();
+}
+function drawLegend() {
+  const show = 1 - frame.inset;
+  legendG.attr("opacity", show).attr("pointer-events", show > 0.5 ? null : "none");
+  if (!state.mapBins) return;
+  const x = frame.x + 8, y = frame.y + frame.h - 42, w = 150, max = state.mapBins.max || 1;
+  const id = "mapgrad";
+  let defs = svg.select("defs"); if (defs.empty()) defs = svg.insert("defs", ":first-child");
+  defs.selectAll("#" + id).data([0]).join("linearGradient").attr("id", id).selectAll("stop").data([0, 1]).join("stop")
+    .attr("offset", (d) => d).attr("stop-color", (d) => (d ? "var(--map-hi)" : "var(--map-lo)"));
+  legendG.selectAll("rect.bar").data([0]).join("rect").attr("class", "bar").attr("x", x).attr("y", y).attr("width", w).attr("height", 8).attr("fill", `url(#${id})`);
+  const s = d3.scaleLog().domain([1, max]).range([x, x + w]);
+  const ticks = [1, 10, 100, 1000].filter((t) => t <= max).concat([max]);
+  legendG.selectAll("text.t").data(ticks).join("text").attr("class", "t").attr("x", (d) => s(d)).attr("y", y + 21).attr("text-anchor", "middle").attr("font-size", 10).attr("fill", "var(--muted)").text((d) => fmtK(d));
+  legendG.selectAll("text.h").data([0]).join("text").attr("class", "h").attr("x", x).attr("y", y - 5).attr("font-size", 10.5).attr("fill", "var(--muted)").text("Pickups per 200 ft cell (log scale)");
+  legendG.selectAll("rect.lens").data(state.lens && state.lens.n ? [0] : []).join("rect").attr("class", "lens").attr("x", x + w + 16).attr("y", y).attr("width", 10).attr("height", 8).attr("fill", "var(--lens)");
+  legendG.selectAll("text.lens").data(state.lens && state.lens.n ? [0] : []).join("text").attr("class", "lens").attr("x", x + w + 30).attr("y", y + 8).attr("font-size", 10.5).attr("fill", "var(--muted)").text("drop-offs of trips from the lens");
+}
+
+/* map interaction: hover = lens, drag = box brush */
+let drag = null, lensTimer = null, lensBusy = false, lensWanted = null;
+hit.on("pointerdown", (ev) => { const [x, y] = d3.pointer(ev, svg.node()); drag = { x0: x, y0: y, moved: false }; hit.node().setPointerCapture(ev.pointerId); stopAuto(); });
+hit.on("pointermove", (ev) => {
+  const [x, y] = d3.pointer(ev, svg.node());
+  if (drag) {
+    if (Math.hypot(x - drag.x0, y - drag.y0) > 4) drag.moved = true;
+    if (drag.moved) { hurry(); setBrush([[ifx(drag.x0), ify(drag.y0)], [ifx(x), ify(y)]]); }
+    return;
+  }
+  if (!lensUsed) { lensUsed = true; placeMapLayer(); }
+  const r = frame.inset ? 14 : 26;
+  lensCircle.attr("display", null).attr("cx", x).attr("cy", y).attr("r", r);
+  lensWanted = { x: ifx(x), y: ify(y), r: (r / frame.w) * (X1 - X0), ev };
+  runLens();
+});
+hit.on("pointerup", (ev) => { if (drag && !drag.moved) setBrush(null); drag = null; });
+hit.on("pointerleave", () => { if (drag) return; lensCircle.attr("display", "none"); lensWanted = null; state.lens = null; paintBins(); drawMap(); hideTip(); });
+async function runLens() {
+  if (lensBusy || !lensWanted) return; lensBusy = true;
+  const L = lensWanted; lensWanted = null;
+  const pred = $page.predicate(mapClient);
+  const base = vg.Query.from("t").where(pred || []).where(vg.sql`(CAST(px AS DOUBLE) - ${L.x.toFixed(1)})^2 + (CAST(py AS DOUBLE) - ${L.y.toFixed(1)})^2 <= ${(L.r * L.r).toFixed(1)}`);
+  try {
+    const [agg] = await Q(base.clone().select({ n: vg.count(), f: vg.sum("fare"), a: vg.sum("airport"), d: vg.avg("distance") }));
+    const all = await Q(vg.Query.from("t").where(pred || []).select({ f: vg.sum("fare") }));
+    const bins = await Q(base.clone().select({ bx: vg.sql`CAST(floor((dx - ${X0}) / ${CELL}) AS INTEGER)`, by: vg.sql`CAST(floor((dy - ${Y0}) / ${CELL}) AS INTEGER)`, n: vg.count() })
+      .where(vg.sql`dx >= ${X0} AND dx < ${X1} AND dy >= ${Y0} AND dy < ${Y1}`).groupby("bx", "by"));
+    state.lens = { n: num(agg.n), f: num(agg.f), share: num(all[0].f) ? num(agg.f) / num(all[0].f) : 0, a: num(agg.a), d: num(agg.d) };
+    const lctx = lensCanvas.getContext("2d"), img = lctx.createImageData(NX, NY), c = rgb(css("--lens"));
+    const max = d3.max(bins, (b) => num(b.n)) || 1;
+    for (const b of bins) { const i = (NY - 1 - num(b.by)) * NX + num(b.bx); if (i < 0 || i >= NX * NY) continue; const t = Math.log1p(num(b.n)) / Math.log1p(max);
+      img.data[i * 4] = c[0]; img.data[i * 4 + 1] = c[1]; img.data[i * 4 + 2] = c[2]; img.data[i * 4 + 3] = 70 + 185 * t; }
+    lctx.putImageData(img, 0, 0);
+    if (state.mapBins) paintBins(); drawMap();
+    const l = state.lens;
+    showTip(l.n ? `<b>${fmtInt(l.n)} trips start inside the lens</b><br>They end where the map turns gold.<br><span class="m">${fmtPct(l.share)} of fares in view · ${fmtPct(l.a / l.n)} touch an airport · ${d3.format(".1f")(l.d)} mi average</span>`
+      : `<b>No pickups inside the lens</b><span class="m"><br>under the current filters</span>`, L.ev);
+  } catch (e) { console.error(e); }
+  lensBusy = false; if (lensWanted) runLens();
+}
+let brushSent = 0;
+function setBrush(b) {
+  state.brush = b; placeMapLayer();
+  const val = b ? [[Math.min(b[0][0], b[1][0]), Math.max(b[0][0], b[1][0])], [Math.min(b[0][1], b[1][1]), Math.max(b[0][1], b[1][1])]] : null;
+  $page.update(core.clauseIntervals(["px", "py"], val, { source: mapClient, clients: new Set([mapClient]) }));
+}
+
+/* ---------- hour filter: click + Play ---------- */
+const hourBtns = d3.select("#hours").selectAll("button").data(d3.range(24)).join("button")
+  .attr("aria-label", (h) => "Filter to " + hourName(h)).attr("data-help", (h) => `${hourName(h)}: click to filter every scene; shift-click adds`)
+  .on("click", (ev, h) => { stopPlay(); stopAuto(); toggleHour(h, ev.shiftKey); });
+wireHelp(document.getElementById("hours"));
+function toggleHour(h, add) {
+  const s = state.hoursSel;
+  setHours(add ? (s.includes(h) ? s.filter((x) => x !== h) : [...s, h]) : (s.length === 1 && s[0] === h ? [] : [h]));
+}
+function setHours(list) {
+  state.hoursSel = list.slice().sort((a, b) => a - b);
+  hourBtns.classed("on", (h) => state.hoursSel.includes(h));
+  $page.update(core.clausePoints(["hour"], state.hoursSel.length ? state.hoursSel.map((h) => [h]) : null, { source: hourClient, clients: new Set([hourClient]) }));
+  if (ACTS[SCENES[state.scene].act] === "clock") renderScene(false);
+}
+let playing = false, playTimer = null, busy = false, hand = null;
+const playBtn = document.getElementById("play");
+function startPlay() {
+  playing = true; playBtn.setAttribute("aria-pressed", "true"); playBtn.innerHTML = '<i class="ti ti-player-pause" aria-hidden="true"></i>Pause';
+  const start = state.hoursSel.length ? state.hoursSel[0] : 0, t0 = performance.now(), speed = 1.4; // hours per second
+  let lastHour = -1;
+  playTimer = d3.timer(() => {
+    const pos = start + ((performance.now() - t0) / 1000) * speed; hand = pos % 24; drawHand();
+    const h = Math.floor(pos) % 24;
+    if (h !== lastHour && !busy) { lastHour = h; busy = true; quick = true; setHours([h, (h + 1) % 24, (h + 2) % 24]); }
+    if (pos - start >= 24) stopPlay();
+  });
+}
+function stopPlay() { if (!playing) return; playing = false; playTimer?.stop(); quick = false; hand = null; drawHand(); playBtn.setAttribute("aria-pressed", "false"); playBtn.innerHTML = '<i class="ti ti-player-play" aria-hidden="true"></i>Play hours'; }
+playBtn.onclick = () => { stopAuto(); playing ? stopPlay() : startPlay(); };
+
+/* ---------- chips, reset, note ---------- */
+function describeFilters() {
+  const chips = [];
+  if (state.brush) { const [[a, b], [c, d]] = state.brush; chips.push({ k: "map", t: `Pickup area: ${d3.format(".1f")(Math.abs(c - a) / 5280)} × ${d3.format(".1f")(Math.abs(d - b) / 5280)} mi box` }); }
+  if (state.hoursSel.length) {
+    const s = state.hoursSel; const contiguous = s.length > 1 && s.every((h, i) => !i || h === s[i - 1] + 1);
+    chips.push({ k: "hour", t: "Hours: " + (s.length === 1 ? hourName(s[0]) : contiguous ? `${hourName(s[0])}–${hourName(s[s.length - 1] + 1)}` : s.map(hourShort).join(", ")) });
+  }
+  d3.select("#chips").selectAll("span.chip").data(chips, (d) => d.k).join((en) => { const c = en.append("span").attr("class", "chip"); c.append("span"); c.append("button").attr("aria-label", "Remove filter").html('<i class="ti ti-x" aria-hidden="true"></i>'); return c; })
+    .call((c) => c.select("span").text((d) => d.t))
+    .call((c) => c.select("button").on("click", (ev, d) => { if (d.k === "map") setBrush(null); else { stopPlay(); setHours([]); } }));
+  document.getElementById("note").textContent = chips.length ? "The title describes all the data; the chart and the numbers follow your filters." : "";
+  drawTotals();
+}
+$page.addEventListener("value", () => { describeFilters(); if (frame) placeMapLayer(); });
+document.getElementById("reset").onclick = () => { stopPlay(); setBrush(null); setHours([]); };
+
+/* ---------- scenes ---------- */
+const ACTS = { city: "city", share: "share", clock: "clock", terrain: "terrain" };
+const SCENES = PLAN.scenes;
+const markSets = {};
+
+function centreOut(list, cx, cy) { // stagger order: distance from the centre of the target view
+  const ds = list.map((p) => Math.hypot(p[0] - cx, p[1] - cy)); const order = d3.range(list.length).sort((a, b) => ds[a] - ds[b]);
+  const rank = new Array(list.length); order.forEach((o, r) => (rank[o] = r)); return rank;
+}
+const bboxC = (p) => [d3.mean(p, (q) => q[0]), d3.mean(p, (q) => q[1])];
+
+/* share act: waffle, waffle by fares, unit bars */
+function shareLayouts(kind) {
+  const A = chartArea(), Z = state.zones;
+  const tripAlloc = allocate(Z.map((z) => z.n)), fareAlloc = allocate(Z.map((z) => z.f));
+  const alloc = kind === "waffle-trips" ? tripAlloc : fareAlloc;
+  // Square identity: square i belongs to its trip zone; in a fares view a zone keeps its first squares up to its new
+  // count and hands the surplus to zones that need more, so squares that change zone travel to their new block.
+  const tripOwner = []; tripAlloc.forEach((c, zi) => { for (let k = 0; k < c; k++) tripOwner.push(zi); });
+  let owner = tripOwner.slice();
+  if (kind !== "waffle-trips") {
+    const kept = Z.map(() => 0), spare = [];
+    owner = tripOwner.map((zi, i) => (kept[zi] < fareAlloc[zi] ? (kept[zi]++, zi) : (spare.push(i), null)));
+    fareAlloc.forEach((c, zi) => { while (kept[zi] < c && spare.length) { owner[spare.shift()] = zi; kept[zi]++; } });
+  }
+  const slot = d3.range(owner.length).sort((a, b) => owner[a] - owner[b] || a - b); const pos = []; slot.forEach((sq, k) => (pos[sq] = k));
+  const rankIn = []; const seen = Z.map(() => 0); slot.forEach((sq) => (rankIn[sq] = seen[owner[sq]]++));
+  const totN = d3.sum(Z, (z) => z.n) || 1, totF = d3.sum(Z, (z) => z.f) || 1;
+  if (kind !== "units-fares") {
+    const side = Math.min(A.w * 0.62, A.h - 10), s = side / 10, g = Math.max(2, s * 0.12), x0 = A.x + 8, y0 = A.y + (A.h - side) / 2;
+    return { owner, alloc, tripAlloc, fareAlloc, totN, totF, geo: (i) => rectP(x0 + (pos[i] % 10) * s, y0 + Math.floor(pos[i] / 10) * s, s - g, s - g),
+      legend: { x: x0 + side + 24, y: y0, s }, cx: x0 + side / 2, cy: y0 + side / 2 };
+  }
+  const rows = Z.length, rowH = Math.min(46, (A.h - 20) / rows), lab = 108, maxSq = d3.max(fareAlloc) || 1;
+  const s = Math.min(rowH * 0.78, (A.w - lab - 150) / Math.max(maxSq, d3.max(Z, (z) => (z.n / totN) * 100)) ), x0 = A.x + lab, y0 = A.y + (A.h - rows * rowH) / 2;
+  return { owner, alloc, tripAlloc, fareAlloc, totN, totF, rowH, x0, y0, s, lab,
+    geo: (i) => rectP(x0 + rankIn[i] * s, y0 + owner[i] * rowH + (rowH - s * 0.86) / 2, s * 0.86, s * 0.86), cx: x0, cy: y0 + (rows * rowH) / 2 };
+}
+function renderShare(key, dur, entering) {
+  const L = shareLayouts(key), Z = state.zones;
+  const marks = makeMarks("sq", squares, (d) => d.i);
+  const fronts = squares.map((d) => (L.owner[d.i] == null ? null : L.geo(d.i)));
+  const centres = fronts.map((f) => (f ? bboxC(f) : [L.cx, L.cy]));
+  const rank = centreOut(centres, L.cx, L.cy);
+  morph(marks, (d) => { const zi = L.owner[d.i]; if (zi == null) return twoD(pointP(L.cx, L.cy), "var(--mark)", 0); return twoD(fronts[d.i], ZCOL[zi], 1); },
+    { dur, delay: stagger(rank, dur), enter: entering ? (d) => twoD(pointP(centres[d.i][0], centres[d.i][1]), "var(--mark)", 0) : undefined });
+  marks.on("mouseenter mousemove", (ev, d) => { const zi = L.owner[d.i]; if (zi == null) return; const z = Z[zi];
+    showTip(`<b>${z.zone}</b><br>${fmtPct(z.n / L.totN)} of trips (${fmtInt(z.n)} of ${fmtInt(L.totN)})<br>${fmtPct(z.f / L.totF)} of fares (${fmtMoney(z.f)} of ${fmtMoney(L.totF)})<br><span class="m">1 square = 1% of ${key === "waffle-trips" ? "trips" : "fares"} in view</span>`, ev); })
+    .on("mouseleave", hideTip).on("click", null);
+  const g = newGuides(dur);
+  if (key !== "units-fares") {
+    const { x, y, s } = L.legend;
+    const items = Z.map((z, zi) => ({ ...z, zi, sq: L.alloc[zi], pct: key === "waffle-trips" ? z.n / L.totN : z.f / L.totF }));
+    const row = g.selectAll("g.it").data(items).join("g").attr("class", "it").attr("transform", (d, i) => `translate(${x},${y + i * Math.max(28, s * 0.9)})`);
+    row.append("rect").attr("width", 12).attr("height", 12).attr("rx", 2).attr("fill", (d) => ZCOL[d.zi]);
+    row.append("text").attr("class", "lab").attr("x", 20).attr("y", 10).text((d) => d.zone);
+    row.append("text").attr("x", 20).attr("y", 25).text((d) => `${fmtPct(d.pct)} · ${d.sq} square${d.sq === 1 ? "" : "s"}`);
+    const air = items.find((d) => d.zone === AIR);
+    if (air) g.append("text").attr("class", "ann").attr("x", x).attr("y", y + items.length * Math.max(28, s * 0.9) + 18)
+      .text(`Airport: ${fmtPct(air.pct)} of ${key === "waffle-trips" ? "trips" : "fares"}`);
+    g.append("text").attr("x", x).attr("y", y + items.length * Math.max(28, s * 0.9) + 36).text(`1 square = 1% of ${key === "waffle-trips" ? fmtInt(L.totN) + " trips" : fmtMoney(L.totF) + " in fares"} in view`);
+  } else {
+    const items = Z.map((z, zi) => ({ ...z, zi, ts: z.n / L.totN, fs: z.f / L.totF }));
+    const rows = g.selectAll("g.r").data(items).join("g").attr("transform", (d, i) => `translate(0,${L.y0 + i * L.rowH})`);
+    rows.append("text").attr("class", "lab").attr("x", L.x0 - 10).attr("y", L.rowH / 2 + 4).attr("text-anchor", "end").text((d) => d.zone);
+    rows.append("rect").attr("x", L.x0).attr("y", (L.rowH - L.s * 0.86) / 2 - 3).attr("height", L.s * 0.86 + 6).attr("width", (d) => d.ts * 100 * L.s - L.s * 0.14)
+      .attr("fill", "none").attr("stroke", "var(--ink)").attr("stroke-dasharray", "3 2").attr("rx", 2).attr("opacity", 0.7);
+    rows.append("text").attr("x", (d) => L.x0 + Math.max(d.fs, d.ts) * 100 * L.s + 8).attr("y", L.rowH / 2 + 4)
+      .text((d) => `${fmtPct(d.fs)} of fares · ${fmtPct(d.ts)} of trips${d.ts ? " · " + d3.format(".1f")(d.fs / d.ts) + "×" : ""}`)
+      .attr("class", (d) => (d.zone === AIR ? "ann" : null));
+    g.append("text").attr("x", L.x0).attr("y", L.y0 - 10).text("Squares: 1% of fares each · dashed outline: share of trips");
+  }
+}
+
+/* clock act: radial bars → bars → dot plot */
+function renderClock(key, dur, entering) {
+  const A = chartArea(), Hs = state.hours, sel = state.hoursSel;
+  const marks = makeMarks("hr", Hs, (d) => d.hour);
+  const fill = (d) => (sel.length ? (sel.includes(d.hour) ? "var(--sel)" : "var(--mark)") : "var(--focus)");
+  const opac = (d) => (sel.length && !sel.includes(d.hour) ? 0.45 : 1);
+  const g = newGuides(dur);
+  let form, centres, cx, cy, enter;
+  if (key === "clock") {
+    const R = Math.min(A.w, A.h) / 2 - 26, r0 = R * 0.26; cx = A.x + A.w / 2; cy = A.y + A.h / 2;
+    const max = d3.max(Hs, (d) => d.n) || 1, len = (v) => r0 + (R - r0) * (v / max), gap = 0.012;
+    form = (d) => twoD(wedgeP(cx, cy, r0, len(d.n), (d.hour / 24) * 2 * Math.PI + gap, ((d.hour + 1) / 24) * 2 * Math.PI - gap), fill(d), opac(d));
+    enter = (d) => twoD(wedgeP(cx, cy, r0, r0, (d.hour / 24) * 2 * Math.PI + gap, ((d.hour + 1) / 24) * 2 * Math.PI - gap), fill(d), 0);
+    const ticks = d3.ticks(0, max, 3).filter((t) => t > 0);
+    g.selectAll("circle.grid").data(ticks).join("circle").attr("cx", cx).attr("cy", cy).attr("r", (t) => len(t)).attr("fill", "none").attr("stroke", "var(--rule)");
+    g.selectAll("text.gl").data(ticks).join("text").attr("x", cx + 4).attr("y", (t) => cy - len(t) - 3).text((t) => fmtK(t));
+    g.append("circle").attr("cx", cx).attr("cy", cy).attr("r", r0).attr("fill", "none").attr("stroke", "var(--muted)");
+    g.append("text").attr("x", cx).attr("y", cy + 4).attr("text-anchor", "middle").text("0 trips");
+    g.selectAll("text.hl").data(d3.range(0, 24, 3)).join("text").attr("text-anchor", "middle")
+      .attr("x", (h) => cx + (R + 14) * Math.sin(((h + 0.5) / 24) * 2 * Math.PI)).attr("y", (h) => cy - (R + 14) * Math.cos(((h + 0.5) / 24) * 2 * Math.PI) + 4).text((h) => hourShort(h));
+    const pk = d3.greatest(Hs, (d) => d.n), lo = d3.least(Hs.filter((d) => d.n > 0), (d) => d.n);
+    for (const [d, lab] of [[pk, "Busiest"], [lo, "Quietest"]]) if (d && d.n) {
+      const a = ((d.hour + 0.5) / 24) * 2 * Math.PI, r = Math.max(len(d.n) + 10, R + 30), x = cx + r * Math.sin(a), y = cy - r * Math.cos(a);
+      const t = g.append("text").attr("class", "ann").attr("x", x + (Math.sin(a) >= 0 ? 6 : -6)).attr("y", y).attr("text-anchor", Math.sin(a) >= 0 ? "start" : "end").text(`${lab}: ${hourName(d.hour)}, ${fmtInt(d.n)}`);
+      const bb = t.node().getBBox();                                   // keep the label inside the chart so a screenshot never cuts a number
+      if (bb.x + bb.width > A.x + A.w) t.attr("text-anchor", "end").attr("x", A.x + A.w).attr("y", y + (y < cy ? -12 : 14));
+      else if (bb.x < A.x) t.attr("text-anchor", "start").attr("x", A.x).attr("y", y + (y < cy ? -12 : 14));
+    }
+    centres = Hs.map((d) => bboxC(form(d).front));
+    drawHand.geo = { cx, cy, R };
+  } else {
+    drawHand.geo = null;
+    const x = d3.scaleBand().domain(d3.range(24)).range([A.x + 40, A.x + A.w]).padding(0.18);
+    const isMiles = key === "miles";
+    const val = (d) => (isMiles ? d.mi : d.afs);
+    const max = isMiles ? d3.max(Hs, val) || 1 : Math.max(d3.max(Hs, (d) => Math.max(d.afs, d.ats)) || 0.01, 0.01);
+    const y = d3.scaleLinear().domain([0, max * 1.08]).nice().range([A.y + A.h - 26, A.y + 24]);
+    cx = A.x + A.w / 2; cy = A.y + A.h - 26;
+    form = isMiles
+      ? (d) => twoD(rectP(x(d.hour), y(d.mi), x.bandwidth(), y(0) - y(d.mi)), fill(d), opac(d))
+      : (d) => twoD(circleP(x(d.hour) + x.bandwidth() / 2, y(d.afs), Math.min(7, x.bandwidth() / 2)), sel.length ? fill(d) : zoneColor(AIR), opac(d));
+    enter = (d) => twoD(rectP(x(d.hour), y(0), x.bandwidth(), 0), fill(d), 0);
+    g.append("g").attr("class", "axis").attr("transform", `translate(0,${y(0)})`).call(d3.axisBottom(x).tickFormat((h) => (h % 3 ? "" : hourShort(h))).tickSizeOuter(0));
+    g.append("g").attr("class", "axis").attr("transform", `translate(${A.x + 40},0)`).call(d3.axisLeft(y).ticks(5, isMiles ? ".1f" : ".0%").tickSize(-(A.w - 40)))
+      .call((a) => a.select(".domain").remove()).call((a) => a.selectAll(".tick line").attr("stroke", "var(--rule)"));
+    g.append("text").attr("x", A.x).attr("y", A.y + 12).text(isMiles ? "Average trip, miles (from zero)" : "Airport trips' share of the hour, from 0%");
+    if (!isMiles) {
+      g.selectAll("line.tk").data(Hs).join("line").attr("x1", (d) => x(d.hour) + 2).attr("x2", (d) => x(d.hour) + x.bandwidth() - 2).attr("y1", (d) => y(d.ats)).attr("y2", (d) => y(d.ats)).attr("stroke", "var(--ink)").attr("stroke-width", 2);
+      const lg = g.append("g").attr("transform", `translate(${A.x + A.w - 250},${A.y + 6})`);
+      lg.append("circle").attr("cx", 6).attr("cy", 6).attr("r", 5).attr("fill", zoneColor(AIR)); lg.append("text").attr("x", 16).attr("y", 10).text("share of the hour's fares");
+      lg.append("line").attr("x1", 0).attr("x2", 12).attr("y1", 24).attr("y2", 24).attr("stroke", "var(--ink)").attr("stroke-width", 2); lg.append("text").attr("x", 16).attr("y", 28).text("share of the hour's trips");
+    }
+    const pk = d3.greatest(Hs, val);
+    if (pk && val(pk)) g.append("text").attr("class", "ann").attr("x", x(pk.hour) + x.bandwidth() / 2).attr("y", y(val(pk)) - 12).attr("text-anchor", pk.hour > 18 ? "end" : "middle")
+      .text(isMiles ? `${hourName(pk.hour)}: ${d3.format(".2f")(pk.mi)} mi` : `${hourName(pk.hour)}: ${fmtPct(pk.afs)} of fares`);
+    if (isMiles) { const lo = d3.least(Hs.filter((d) => d.n), val); if (lo) g.append("text").attr("x", x(lo.hour) + x.bandwidth() / 2).attr("y", y(lo.mi) - 8).attr("text-anchor", "middle").attr("class", "lab").text(`${d3.format(".2f")(lo.mi)} mi`); }
+    centres = Hs.map((d) => bboxC(form(d).front));
+  }
+  morph(marks, form, { dur, delay: stagger(centreOut(centres, cx, cy), dur), enter: entering ? enter : undefined });
+  marks.style("cursor", "pointer")
+    .on("click", (ev, d) => { stopPlay(); stopAuto(); toggleHour(d.hour, ev.shiftKey); })
+    .on("mouseenter mousemove", (ev, d) => showTip(`<b>${hourName(d.hour)}–${hourName(d.hour + 1)}</b><br>${fmtInt(d.n)} trips · ${d3.format(".2f")(d.mi)} mi average<br>Fares ${fmtMoney(d.f)} · ${d.mi ? "$" + d3.format(".2f")(d.f / d.n / d.mi) + " per mile" : ""}<br>Airport trips: ${fmtPct(d.ats)} of trips, ${fmtPct(d.afs)} of fares<br><span class="m">Click to filter · shift-click adds</span>`, ev))
+    .on("mouseleave", hideTip);
+  drawHand();
+}
+const handG = svg.append("g").attr("pointer-events", "none");
+function drawHand() {
+  const geo = drawHand.geo;
+  const data = geo && hand != null && SCENES[state.scene].key === "clock" ? [hand] : [];
+  handG.selectAll("line").data(data).join("line").attr("stroke", "var(--ink)").attr("stroke-width", 2.5).attr("stroke-linecap", "round")
+    .attr("x1", geo?.cx).attr("y1", geo?.cy).attr("x2", (h) => geo.cx + geo.R * 1.02 * Math.sin((h / 24) * 2 * Math.PI)).attr("y2", (h) => geo.cy - geo.R * 1.02 * Math.cos((h / 24) * 2 * Math.PI));
+}
+
+/* terrain act: heatmap → 3D terrain → small-multiple lines */
+let yaw = -0.62, pitch = -0.6;
+function renderTerrain(key, dur, entering) {
+  const A = chartArea(), G = state.grid, nz = ZONES.length;
+  const marks = makeMarks("cell", G, (d) => d.id);
+  const maxN = d3.max(G, (d) => d.n) || 1;
+  const heat = d3.scaleSequential(d3.interpolateLab(css("--heat-lo"), css("--heat-hi"))).domain([0, maxN]);
+  const g = newGuides(dur);
+  let form, enter, cx = A.x + A.w / 2, cy = A.y + A.h / 2;
+  const lab = 92;
+  if (key === "heat") {
+    const x = d3.scaleBand().domain(d3.range(24)).range([A.x + lab, A.x + A.w]).paddingInner(0.06);
+    const y = d3.scaleBand().domain(ZONES).range([A.y + 28, A.y + Math.min(A.h - 50, 28 + nz * 52)]).paddingInner(0.08);
+    form = (d) => { const r = rectP(x(d.hour), y(d.zone), x.bandwidth(), y.bandwidth()); const bottom = edge([x(d.hour), y(d.zone) + y.bandwidth()], [x(d.hour) + x.bandwidth(), y(d.zone) + y.bandwidth()]);
+      const flatB = [...bottom, ...bottom.slice().reverse()];
+      return { top: r, front: flatB, side: flatB, fill: heat(d.n), fo3: 1, opacity: 1, topPlain: true }; };
+    enter = (d) => { const c = [x(d.hour) + x.bandwidth() / 2, y(d.zone) + y.bandwidth() / 2]; return twoD(pointP(c[0], c[1]), heat(d.n), 0); };
+    g.append("g").attr("class", "axis").attr("transform", `translate(0,${y.range()[1] + 4})`).call(d3.axisBottom(x).tickFormat((h) => (h % 3 ? "" : hourShort(h))).tickSize(0)).call((a) => a.select(".domain").remove());
+    g.selectAll("text.zl").data(ZONES).join("text").attr("class", "lab").attr("x", A.x + lab - 8).attr("y", (z) => y(z) + y.bandwidth() / 2 + 4).attr("text-anchor", "end").text((z) => z);
+    heatLegend(g, heat, maxN, A.x + lab, y.range()[1] + 34);
+    const peaks = ZONES.map((z) => d3.greatest(G.filter((d) => d.zone === z), (d) => d.n)).filter((d) => d && d.n);
+    g.selectAll("circle.pk").data(peaks).join("circle").attr("cx", (d) => x(d.hour) + x.bandwidth() / 2).attr("cy", (d) => y(d.zone) + y.bandwidth() / 2).attr("r", 3).attr("fill", "var(--bg)").attr("stroke", "var(--ink)");
+    g.append("text").attr("x", A.x + lab).attr("y", A.y + 16).text("○ each zone's busiest hour · columns are starting hours");
+  } else if (key === "terrain") {
+    const proj = polygons3D().origin({ x: 0, y: 0 }).scale(1).rotateY(yaw).rotateX(pitch);
+    const Hmax = 9; const hgt = (n) => (n / maxN) * Hmax;
+    const box = (d) => { const x0 = d.hour - 12, z0 = d.zi * 1.6 - (nz * 1.6) / 2, w = 0.82, dd = 1.25, h = hgt(d.n); const P = (x, y, z) => ({ x, y: -y, z });
+      return { front: [P(x0, h, z0 + dd), P(x0 + w, h, z0 + dd), P(x0 + w, 0, z0 + dd), P(x0, 0, z0 + dd)],
+        top: [P(x0, h, z0), P(x0 + w, h, z0), P(x0 + w, h, z0 + dd), P(x0, h, z0 + dd)],
+        side: [P(x0 + w, h, z0 + dd), P(x0 + w, h, z0), P(x0 + w, 0, z0), P(x0 + w, 0, z0 + dd)] }; };
+    // fit: project the bounding box once at scale 1
+    const corners = [-12, 12].flatMap((x) => [0, Hmax].flatMap((h) => [-(nz * 1.6) / 2, (nz * 1.6) / 2].map((z) => ({ x, y: -h, z }))));
+    const pc = proj([corners])[0].map((v) => [v.projected.x, v.projected.y]);
+    const ex = d3.extent(pc, (p) => p[0]), ey = d3.extent(pc, (p) => p[1]);
+    const s = Math.min((A.w - 60) / (ex[1] - ex[0]), (A.h - 70) / (ey[1] - ey[0]));
+    const ox = A.x + 30 + (A.w - 60 - (ex[1] - ex[0]) * s) / 2 - ex[0] * s, oy = A.y + 20 + (A.h - 70 - (ey[1] - ey[0]) * s) / 2 - ey[0] * s;
+    const P2 = (pts) => proj([pts])[0];
+    const toScr = (poly) => quad(...poly.map((v) => [ox + v.projected.x * s, oy + v.projected.y * s]));
+    const depth = new Map();
+    form = (d) => { const b = box(d); const f = P2(b.front), t = P2(b.top), sd = P2(b.side);
+      depth.set(d.id, d3.mean(t, (v) => v.rotated.z)); return { front: toScr(f), top: toScr(t), side: toScr(sd), fill: heat(d.n), opacity: 1 }; };
+    G.forEach((d) => form(d));
+    marks.sort((a, b) => depth.get(a.id) - depth.get(b.id));
+    // floor labels
+    const lp = (x, z) => { const v = P2([{ x, y: 0, z }])[0]; return [ox + v.projected.x * s, oy + v.projected.y * s]; };
+    g.selectAll("text.hx").data(d3.range(0, 24, 3)).join("text").attr("text-anchor", "middle").each(function (h) { const [x, y] = lp(h - 12 + 0.4, (nz * 1.6) / 2 + 1.6); d3.select(this).attr("x", x).attr("y", y + 4); }).text((h) => hourShort(h));
+    g.selectAll("text.zx").data(ZONES).join("text").attr("class", "lab").each(function (z, i) { const [x, y] = lp(12.6, i * 1.6 - (nz * 1.6) / 2 + 0.6); d3.select(this).attr("x", x).attr("y", y + 4); }).text((z) => z);
+    heatLegend(g, heat, maxN, A.x + 30, A.y + A.h - 22);
+    const pk = d3.greatest(G, (d) => d.n);
+    if (pk && pk.n) { const b = box(pk); const top = P2(b.top); const [x, y] = [ox + d3.mean(top, (v) => v.projected.x) * s, oy + d3.min(top, (v) => v.projected.y) * s];
+      g.append("line").attr("x1", x).attr("x2", x).attr("y1", y - 4).attr("y2", y - 26).attr("stroke", "var(--ink)");
+      g.append("text").attr("class", "ann").attr("x", x).attr("y", y - 30).attr("text-anchor", "middle").text(`Highest: ${pk.zone}, ${hourName(pk.hour)} · ${fmtInt(pk.n)}`); }
+    g.append("text").attr("x", A.x + A.w - 6).attr("y", A.y + 12).attr("text-anchor", "end").text("Drag to turn · height and color: trips, from zero");
+  } else {
+    const cols = A.w > 640 ? 3 : 2, rowsN = Math.ceil(nz / cols), gw = (A.w - 20) / cols, gh = (A.h - 30) / rowsN;
+    const maxS = d3.max(G, (d) => Math.max(d.share, d.nextShare)) || 0.01;
+    form = (d) => { const c = d.zi % cols, r = Math.floor(d.zi / cols); const x0 = A.x + 20 + c * gw + 34, x1 = A.x + 20 + (c + 1) * gw - 14, y0 = A.y + 24 + r * gh, y1 = A.y + 24 + (r + 1) * gh - 34;
+      const x = d3.scaleLinear().domain([0, 24]).range([x0, x1]), y = d3.scaleLinear().domain([0, maxS * 1.1]).range([y1, y0]); const t = 1.6;
+      return twoD(quad([x(d.hour), y(d.share) - t], [x(d.hour + 1), y(d.nextShare) - t], [x(d.hour + 1), y(d.nextShare) + t], [x(d.hour), y(d.share) + t]), zoneColor(d.zone), 1); };
+    for (let zi = 0; zi < nz; zi++) {
+      const c = zi % cols, r = Math.floor(zi / cols); const x0 = A.x + 20 + c * gw + 34, x1 = A.x + 20 + (c + 1) * gw - 14, y0 = A.y + 24 + r * gh, y1 = A.y + 24 + (r + 1) * gh - 34;
+      const x = d3.scaleLinear().domain([0, 24]).range([x0, x1]), y = d3.scaleLinear().domain([0, maxS * 1.1]).range([y1, y0]);
+      const p = g.append("g");
+      p.append("g").attr("class", "axis").attr("transform", `translate(0,${y1})`).call(d3.axisBottom(x).tickValues([0, 6, 12, 18, 24]).tickFormat((h) => hourShort(h)).tickSizeOuter(0));
+      p.append("g").attr("class", "axis").attr("transform", `translate(${x0},0)`).call(d3.axisLeft(y).ticks(3, ".0%").tickSize(-(x1 - x0))).call((a) => a.select(".domain").remove()).call((a) => a.selectAll(".tick line").attr("stroke", "var(--rule)"));
+      p.append("text").attr("class", "lab").attr("x", x0).attr("y", y0 - 6).text(ZONES[zi]);
+      const pk = d3.greatest(G.filter((d) => d.zi === zi), (d) => d.share);
+      if (pk && pk.share) p.append("text").attr("class", "ann").attr("x", x1).attr("y", y0 - 6).attr("text-anchor", "end").text(`peak ${hourName(pk.hour)}: ${fmtPct(pk.share)}`);
+    }
+    g.append("text").attr("x", A.x + 20).attr("y", A.y + 6).text("Share of the zone's own trips by starting hour · one shared scale");
+  }
+  const centres = G.map((d) => bboxC(form(d).front.concat(form(d).top)));
+  morph(marks, form, { dur, delay: stagger(centreOut(centres, cx, cy), dur), enter: entering ? enter || ((d, i) => { const c = centres[i]; return twoD(pointP(c[0], c[1]), heat(d.n), 0); }) : undefined });
+  marks.style("cursor", key === "terrain" ? "grab" : null)
+    .on("mouseenter mousemove", (ev, d) => showTip(`<b>${d.zone} · ${hourName(d.hour)}</b><br>${fmtInt(d.n)} trips<br>${fmtPct(d.share)} of the zone's trips<br><span class="m">Pickup zone × starting hour</span>`, ev))
+    .on("mouseleave", hideTip).on("click", null);
+}
+function heatLegend(g, heat, maxN, x, y) {
+  const w = 160, n = 24, l = g.append("g").attr("transform", `translate(${x},${y})`);
+  l.selectAll("rect").data(d3.range(n)).join("rect").attr("x", (i) => (i * w) / n).attr("width", w / n + 0.5).attr("height", 8).attr("fill", (i) => heat(((i + 0.5) / n) * maxN));
+  l.append("text").attr("x", 0).attr("y", 21).text("0"); l.append("text").attr("x", w).attr("y", 21).attr("text-anchor", "end").text(fmtK(maxN) + " trips");
+  l.append("text").attr("x", w + 10).attr("y", 8).text("linear");
+}
+// drag to rotate the terrain (no transition while dragging)
+svg.call(d3.drag().filter((ev) => SCENES[state.scene].key === "terrain" && !ev.target.closest(".maplayer"))
+  .on("drag", (ev) => { yaw = Math.max(-1.4, Math.min(1.4, yaw + ev.dx * 0.008)); pitch = Math.max(-1.2, Math.min(-0.15, pitch - ev.dy * 0.006)); renderTerrain("terrain", 0, false); }));
+
+/* ---------- scene engine ---------- */
+let current = { act: null };
+function collapseAct(act, dur) {
+  const cls = { share: "sq", clock: "hr", terrain: "cell" }[act]; if (!cls) return;
+  const sel = markLayer.selectAll("g." + cls); if (sel.empty()) return;
+  sel.each(function () {
+    const g = d3.select(this);
+    for (const face of ["side", "top", "front"]) {
+      const path = g.select("." + face), node = path.node(); if (!node.__pts) continue;
+      const c = bboxC(node.__pts), to = pointP(c[0], c[1] + 0);
+      path.transition("geo").duration(dur).ease(d3.easeCubicIn)
+        .attrTween("d", function () { const ip = d3.interpolateArray(this.__pts, to); return (k) => toPath((this.__pts = ip(k))); });
+      path.transition("paint").duration(dur).attr("opacity", 0);
+    }
+    g.style("pointer-events", "none");
+  });
+}
+function mapTo(full, dur) {
+  const target = full ? { ...fullBox(), inset: 0 } : { ...insetBox(), inset: 1 };
+  const from = frame || target;
+  if (!dur) { frame = target; drawMap(); return; }
+  const ip = d3.interpolateObject(from, target);
+  d3.select(canvas).transition("frame").duration(dur).ease(d3.easeCubicInOut).tween("frame", () => (t) => { frame = ip(t); drawMap(); });
+}
+function renderScene(entering, dur = upd()) {
+  const sc = SCENES[state.scene];
+  if (sc.act === "city") {
+    newGuides(dur);
+  } else if (sc.act === "share") { if (state.zones.length) renderShare(sc.key, dur, entering); }
+  else if (sc.act === "clock") { if (state.hours.length) renderClock(sc.key, dur, entering); }
+  else if (sc.act === "terrain") { if (state.grid.length) renderTerrain(sc.key, dur, entering); }
+}
+function showScene(i, { fromScroll = false } = {}) {
+  i = Math.max(0, Math.min(SCENES.length - 1, i));
+  const sc = SCENES[i], prevAct = current.act, dur = T(TEMPO);
+  state.scene = i;
+  document.getElementById("title").textContent = sc.title;
+  document.getElementById("sceneicon").className = "ti " + sc.icon;
+  const th = document.getElementById("titlehelp"); th.dataset.help = sc.help; th.__help = false; wireHelp(th.parentElement);
+  document.getElementById("scenecount").textContent = `Scene ${i + 1} of ${SCENES.length} · ${sc.actName}`;
+  cards.classed("on", (d, k) => k === i);
+  try { history.replaceState(null, "", "#" + sc.key); } catch {}
+  if (prevAct !== sc.act) {
+    lensCircle.attr("display", "none"); lensWanted = null; if (state.lens) { state.lens = null; if (state.mapBins) paintBins(); } hideTip();
+    if (prevAct) collapseAct(prevAct, T(TEMPO * 0.6));
+    mapTo(sc.act === "city", T(TEMPO));
+    setTimeout(() => renderScene(true, dur), prevAct ? T(TEMPO * 0.25) : 0);
+  } else renderScene(false, dur);
+  current.act = sc.act;
+  drawHand();
+  if (!fromScroll) scrollToCard(i);
+  document.getElementById("prev").disabled = i === 0; document.getElementById("next").disabled = i === SCENES.length - 1;
+}
+
+/* ---------- scene cards (scrolly-split) ---------- */
+const cardsEl = document.getElementById("cards");
+const cards = d3.select(cardsEl).selectAll("article").data(SCENES).join("article").attr("class", "card").attr("tabindex", 0)
+  .attr("aria-label", (d, i) => `Scene ${i + 1}: ${d.title}`)
+  .html((d, i) => `<div class="act"><i class="ti ${d.icon}" aria-hidden="true"></i>${i + 1} · ${d.actName}</div><h3>${d.title}</h3><p>${d.caption}</p>`)
+  .on("click", (ev, d) => { stopAuto(); showScene(SCENES.indexOf(d)); })
+  .on("keydown", (ev, d) => { if (ev.key === "Enter") { stopAuto(); showScene(SCENES.indexOf(d)); } });
+let suppress = 0, userScroll = 0;
+for (const ev of ["wheel", "touchmove", "pointerdown", "keydown"]) cardsEl.addEventListener(ev, () => (userScroll = performance.now() + 1500), { passive: true });
+function scrollToCard(i) { suppress = performance.now() + 900; const el = cardsEl.children[i]; if (el) cardsEl.scrollTo({ top: el.offsetTop - cardsEl.clientHeight / 2 + el.clientHeight / 2, behavior: REDUCED ? "auto" : "smooth" }); }
+const io = new IntersectionObserver((entries) => {
+  if (performance.now() < suppress || performance.now() > userScroll) return;
+  for (const e of entries) if (e.isIntersecting) { const i = [...cardsEl.children].indexOf(e.target); if (i !== state.scene) { stopAuto(); showScene(i, { fromScroll: true }); } }
+}, { root: cardsEl, rootMargin: "-45% 0px -45% 0px", threshold: 0 });
+
+/* ---------- navigation ---------- */
+let autoTimer = null; const autoBtn = document.getElementById("auto");
+function stopAuto() { if (!autoTimer) return; clearTimeout(autoTimer); autoTimer = null; autoBtn.setAttribute("aria-pressed", "false"); }
+function autoStep() { const sc = SCENES[state.scene]; const hold = 4000 + 300 * (sc.title + " " + sc.caption).split(/\s+/).length;
+  autoTimer = setTimeout(() => { if (state.scene >= SCENES.length - 1) { stopAuto(); return; } showScene(state.scene + 1); autoStep(); }, hold); }
+autoBtn.onclick = () => { if (autoTimer) stopAuto(); else { autoBtn.setAttribute("aria-pressed", "true"); autoStep(); } };
+document.getElementById("prev").onclick = () => { stopAuto(); showScene(state.scene - 1); };
+document.getElementById("next").onclick = () => { stopAuto(); showScene(state.scene + 1); };
+addEventListener("keydown", (e) => {
+  if (e.target.closest("input, textarea")) return;
+  if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); stopAuto(); showScene(state.scene + 1); }
+  if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); stopAuto(); showScene(state.scene - 1); }
+  if (e.key === " ") { e.preventDefault(); autoBtn.click(); }
+  if (e.key === "Escape") document.getElementById("drawer").classList.remove("open");
+});
+let touch0 = null;
+stageEl.addEventListener("touchstart", (e) => (touch0 = e.touches[0]), { passive: true });
+stageEl.addEventListener("touchend", (e) => { if (!touch0 || SCENES[state.scene].act === "city") return; const dx = e.changedTouches[0].clientX - touch0.clientX; if (Math.abs(dx) > 60) showScene(state.scene + (dx < 0 ? 1 : -1)); touch0 = null; });
+document.getElementById("notes").innerHTML = PLAN.notes.map((n) => `<li>${n}</li>`).join("");
+document.getElementById("notesbtn").onclick = () => document.getElementById("drawer").classList.toggle("open");
+document.getElementById("closenotes").onclick = () => document.getElementById("drawer").classList.remove("open");
+wireHelp();
+
+/* ---------- resize ---------- */
+let rz; new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => { measure(); frame = null; mapTo(SCENES[state.scene].act === "city", 0); renderScene(false, 0); }, 120); }).observe(stageEl);
+
+/* ---------- start after the first data ---------- */
+const clients = [kpiClient, totalClient, zoneClient, hourClient, gridClient, mapClient];
+clients.forEach((c) => vg.coordinator().connect(c));
+await Promise.all(clients.map((c) => c.ready));
+document.getElementById("loading").remove();
+const startKey = location.hash.slice(1);
+const start = Math.max(0, SCENES.findIndex((s) => s.key === startKey));
+[...cardsEl.children].forEach((c) => io.observe(c));
+showScene(start);
+describeFilters();
+window.__dash = { showScene, SCENES, $page, kpiClient, mapClient, state };
+</script>
+</body>
+</html>
