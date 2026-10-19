@@ -6,7 +6,7 @@ The destination decides what data the plan must export. It doesn't decide the ch
 |---|---|---|
 | `local` (a file opened from disk, e.g. from Claude Code) | yes | the cleaned row-level table (exclusions applied) as Parquet |
 | `self-hosted` | yes | same as `local` |
-| `file` (one self-contained `report.html` to share: email, chat, any static host; opens by double-click, no server) | yes: the data is embedded in the page | a table small enough to embed: pre-aggregated to the grain the plan needs, Parquet with zstd, aim under ~10 MB |
+| `file` (one self-contained `report.html` to share: email, chat, any static host; opens by double-click, no server) | yes: the data is embedded in the page | a table small enough to embed: pre-aggregated to the grain the plan needs, Parquet with zstd, at most ~7.5 MB of Parquet: the page embeds it as base64, which grows it by about 4/3, so `report.html` stays under 10 MB (`bundle_report.py` warns above that) |
 | `artifact` (a claude.ai artifact) | no: the DuckDB-WASM engine is larger than artifact file limits | a pre-aggregated table (below) |
 | `dashboard-type` (claude.ai Dashboard artifact type) | no: small data files only | a pre-aggregated table, kept small |
 

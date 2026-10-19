@@ -57,6 +57,9 @@ const $page = vg.Selection.crossfilter();
 const own = () => { const s = vg.Selection.single(); s._relay.add($page); return s; };
 // _relay is what Selection.crossfilter({ include: [a, b] }) uses; this form lets you add charts one by one.
 // If you know all selections up front, use: const $page = vg.Selection.crossfilter({ include: [a, b, c] });
+// A custom (D3) client can skip its own selection and update the page filter directly:
+//   $page.update({ ...clause, source: client, clients: new Set([client]) });
+// source makes the crossfilter leave that client out of its own filter: the simplest pattern for D3 clients.
 
 const $cat = own();
 vg.plot(
@@ -125,6 +128,9 @@ $mine.update(clauseInterval("d", [lo, hi], opts));             // brush: range (
 ```
 
 ## Pitfalls we've hit
+
+- **Interval clause from a D3 brush without `scales`** (e.g. `core.clauseIntervals(["px","py"], extents, { source, clients })`): Mosaic 0.31's preaggregator throws `TypeError: a[h] is not a function`, the coordinator swallows it (`Promise.allSettled`), and **no client re-queries**: chips update but no chart or number changes, with nothing in the console. Pass `scales` on the clause, or turn the preaggregator off with `vg.coordinator().preaggregator.enabled = false` (fine up to a few million rows).
+- **DECIMAL overflow:** a decimal literal makes DuckDB use DECIMAL math, so `(px - 1045832.53) * (px - 1045832.53)` fails with "Overflow in multiplication of DECIMAL(18)". Cast to DOUBLE first (`CAST(px AS DOUBLE)`) in distance, lens and other arithmetic queries.
 
 - **Computed x axis + brush:** with `x: vg.sql\`date_trunc(...)\`` the brush filters on Plot's internal name `x`, which no other query has → "column x not found". Brush the real column: `intervalX({ as, field: "order_date" })`.
 - **Highlight by the page filter** → GROUP BY errors on aggregated marks. Always `highlight({ by: ownSelection })`.

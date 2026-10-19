@@ -41,6 +41,8 @@ The sketch below is `stage-rail`; adapt the regions for the others.
 ```
 
 - `100dvh` tall, no page scroll. The stage takes the remaining space and is redrawn at its real size on resize.
+- The scene title and caption have a fixed height (two lines for the title), so a title that wraps differently doesn't resize the stage mid-morph. Resize redraws animate, or wait for a running morph to end; a redraw at duration 0 cuts the morph.
+- Overlays that aren't data marks (lens, crosshair, brush) carry `data-motion-ignore`, so the motion check (`show-reel.md` §7) skips them.
 - The **rail** holds what stays true across scenes: the KPIs (`motion.md` §4), the filters and their chips, a small time strip with a brush and Play, and the scene list (each entry is the scene's short name; the current one is marked).
 - Technical notes open in a drawer from the rail, not below the fold.
 - On phones the rail collapses to a bar above the stage, and scenes advance by swipe as well.

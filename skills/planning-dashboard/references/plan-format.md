@@ -75,8 +75,11 @@ KPIs: `target>=N` or `target<=N` (optional) sets the on/off-track status. N is i
 | `bar` | `category=<column>` `value=<value>` | `click` or `none` |
 | `histogram` | `value=<numeric column>` | `brush` or `none` |
 | `scatter` | `x=<numeric column>` `y=<numeric column>` | `brush` or `none` |
+| `map` | `x=<position column>` `y=<position column>` (longitude/latitude or projected x/y), optional `value=<value>` | `brush` or `none` |
 | `exceptions` | `category=<column>` `value=<value>` and `above=<number>` or `below=<number>` | `none` |
 
+- `map` draws places: the profile classes its columns `coordinate`. It's a question shape (where), allowed for every audience; how it's drawn (density raster, hexbins, dots, a lens) goes in `~ draw:`.
+- `trend` takes `x=<column>:cycle` for a position-in-a-cycle column (hour of day, weekday, month of year; the profile classes it `cycle`), plotted as is rather than truncated to a date.
 - `exceptions` lists the categories whose value breaks the limit, worst first, under the page filter (e.g. stores whose return rate is above 10%).
 - `trend` may add `color=<dimension>` to draw one series per value of that column.
 - Any line may add `from=<file>` to read a data file other than the first, and `format=<format>` for how values are shown.

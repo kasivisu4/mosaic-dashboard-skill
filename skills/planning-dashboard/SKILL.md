@@ -3,7 +3,7 @@ name: planning-dashboard
 description: Plans interactive, cross-filtered dashboards from any tabular data before anything is built. Use this skill whenever someone asks for a dashboard, report page, KPI view, scorecard, monitoring page, or interactive charts, or asks to visualize, explore, track, summarize, or tell the story of a dataset (CSV, TSV, Parquet, JSON, Excel, or a database table), even if they never say the word "dashboard". Captures intent with a short intake form (goal, audience, cadence, success criteria), profiles the data with DuckDB, confirms its read with the person, and writes a validated plan that any dashboard executor can build from.
 compatibility: Requires Python with the duckdb package for profiling, validation, and data export.
 metadata:
-  version: "0.2.0"
+  version: "0.2.1"
 ---
 
 # Planning a dashboard
@@ -29,7 +29,7 @@ What it does: creates the run folder, takes a quick look at the data, starts the
 ## Speed
 
 The first dashboard must not wait on anything it doesn't need; see the budget in [guidelines/timing.md](guidelines/timing.md).
-- **When answers arrive,** write `2-intake/intake.md` first, then the brief (`2-intake/brief.md`), then continue from the profile that's already done.
+- **When answers arrive,** work in this order: `2-intake/intake.md`, then the explore rounds on the finished profile (step 1), then `design_seed.py` (step 3), then the brief (`2-intake/brief.md`, whose hook needs a computed number and whose concepts use the seed's provocations), then `3-layout/`.
 - **Quick depth** has no card: it builds straight from the plan, whose Assumptions section records what was assumed. Every depth hands over the dashboard link as soon as the page exists.
 
 ## Workflow

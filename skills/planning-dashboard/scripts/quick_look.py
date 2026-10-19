@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from profile import LARGE_ROWS, classify, parquet_stats, sample_sql, source_sql, total_rows  # noqa: E402
+from profile import LARGE_ROWS, classify, parquet_stats, refine, sample_sql, source_sql, total_rows  # noqa: E402
 
 import duckdb  # noqa: E402  (profile.py already exits with a clear message if it's missing)
 
@@ -47,7 +47,10 @@ def look(path, sheet=None):
         cls = classify(name, dtype, distinct, n)
         if cls == "flag" and dtype != "BOOLEAN" and name in exact and (exact[name][2] or 0) > 1:
             cls = "measure"
-        columns.append({"name": name, "type": dtype, "class": cls, "distinct": distinct})
+        columns.append({"name": name, "type": dtype, "class": cls, "distinct": distinct, "lo": r[idx["min"]], "hi": r[idx["max"]]})
+    refined = refine({c["name"]: (c["class"], c["lo"], c["hi"]) for c in columns})
+    for c in columns:
+        c["class"] = refined[c["name"]]
     by_class = lambda c: [x["name"] for x in columns if x["class"] == c]  # noqa: E731
     dims = sorted((x for x in columns if x["class"] == "dimension" and DIM_MIN <= x["distinct"] <= DIM_MAX),
                   key=lambda x: x["distinct"])
@@ -57,6 +60,7 @@ def look(path, sheet=None):
         "date": (by_class("date") or [None])[0],
         "measure": (by_class("measure") or [None])[0],
         "flag": (by_class("flag") or [None])[0],
+        "cycle": (by_class("cycle") or [None])[0],
         "dims": [d["name"] for d in dims][:3],
     }
 

@@ -8,6 +8,7 @@ Large files (over LARGE_ROWS rows, or a non-Parquet file over LARGE_BYTES) are p
 and the output says so. For Parquet the row count, null% and min/max stay exact (file metadata).
 Formats: .csv .tsv .txt .parquet .json .ndjson .jsonl .xlsx (anything else is read as delimited text)
 """
+import re
 import sys
 from pathlib import Path
 
@@ -108,6 +109,43 @@ def classify(name, dtype, distinct, rows):
     return "dimension" if distinct <= MAX_DIMENSION else "text"
 
 
+# A measure named like a position in a cycle; or "time"/"hour" whose values stay inside one day (0-24).
+CYCLE_NAME = re.compile(r"(^|_)(hour|hod|hr|weekday|dow|day_of_week|month|minute)(_|$)", re.I)
+DAY_HOURS = 24
+
+
+def refine(columns):
+    """Re-class measures that are really positions or cycle positions, given {name: (class, lo, hi)}.
+
+    coordinate: x/y name pairs (px/py, pickup_x/pickup_y) or latitude/longitude names.
+    cycle: hour of day, weekday or month by name, or a time/hour column whose values stay within 0-24.
+    Returns {name: class}.
+    """
+    out = {n: c for n, (c, _, _) in columns.items()}
+    measures = {n for n, c in out.items() if c == "measure"}
+    lower = {n.lower(): n for n in measures}
+    for n in measures:
+        partner = n[:-1] + ("Y" if n.endswith("X") else "y")
+        if n[-1:] in ("x", "X") and partner in measures:
+            out[n] = out[partner] = "coordinate"
+        if n.lower() in ("lat", "latitude", "lon", "lng", "long", "longitude"):
+            out[n] = "coordinate"
+    def num(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+    for n in measures:
+        if out[n] != "measure":
+            continue
+        _, lo, hi = columns[n]
+        lo, hi = num(lo), num(hi)
+        in_day = lo is not None and hi is not None and 0 <= lo and hi <= DAY_HOURS
+        if CYCLE_NAME.search(n) or (("time" in n.lower() or "hour" in n.lower()) and in_day):
+            out[n] = "cycle"
+    return out
+
+
 def time_bucket(con, col):
     days = con.execute(f"SELECT date_diff('day', min({col}), max({col})) FROM t").fetchone()[0] or 0
     # ~90 points per chart keeps trends readable at any of these buckets.
@@ -175,7 +213,7 @@ def main():
         print(f"profiled: {len(summary)} requested column(s); not profiled: {', '.join(others)}")
     print()
     print(f"{'column':<22}{'type':<12}{'class':<11}{'distinct':>9}{'null%':>7}  range")
-    classes = {}
+    entries = []
     for r in summary:
         name, dtype = r[idx["column_name"]], r[idx["column_type"]]
         distinct = int(r[idx["approx_unique"]] or 0)
@@ -188,7 +226,10 @@ def main():
             nulls, lo_x, hi_x = exact[name]
             null_pct = 100 * (nulls or 0) / total
             lo, hi = (lo_x, hi_x) if lo_x is not None else (lo, hi)
-        cls = classes[name] = classify(name, dtype, distinct, rows)
+        entries.append((name, dtype, classify(name, dtype, distinct, rows), distinct, null_pct, lo, hi))
+    classes = refine({e[0]: (e[2], e[5], e[6]) for e in entries})
+    for name, dtype, _, distinct, null_pct, lo, hi in entries:
+        cls = classes[name]
         rng = f"{lo} .. {hi}"
         print(f"{name[:21]:<22}{dtype[:11]:<12}{cls:<11}{distinct:>9,}{null_pct:>6.1f}%  {rng[:48]}")
 
@@ -215,7 +256,11 @@ def main():
             if p99 and mx and p99 > 0 and mx > 10 * p99:
                 notes.append(f"{name}: max {mx:,.2f} is more than 10x p99 {p99:,.2f}")
             if distinct <= 11:
-                notes.append(f"{name}: only {distinct} distinct values, likely ordinal (rating/score)")
+                notes.append(f"{name}: only {distinct} distinct values: a small-integer count or a rating (sum a count, average a rating)")
+        elif cls == "coordinate":
+            notes.append(f"{name}: a coordinate (position), read as a place, not a measure to sum")
+        elif cls == "cycle":
+            notes.append(f"{name}: a position in a cycle (e.g. hour of day): group by it, don't sum it")
         elif cls == "flag":
             rate = con.execute(f"SELECT avg({q}::DOUBLE) FROM t").fetchone()[0]
             notes.append(f"{name}: rate {rate:.2%}")

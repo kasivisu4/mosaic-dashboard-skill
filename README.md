@@ -12,7 +12,7 @@ New here? Start with [docs/how-it-works.md](docs/how-it-works.md). Customizing i
 
 | Part | State |
 |---|---|
-| `planning-dashboard` (planner) | Active, v0.2.0 ([changelog](CHANGELOG.md)). Five steps: profile and explore, intake form fitted to the data, design seed + layout + confirmation card, validated plan (format v2), build and share. Pages are designed fresh each time (no template) from a design seed, with Mosaic + DuckDB-WASM, D3 show-reel morphs and d3-3d; shared as one self-contained `report.html`; each run records its tokens, estimated cost and skill version |
+| `planning-dashboard` (planner) | Active, v0.2.1 ([changelog](CHANGELOG.md)). Five steps: profile and explore, intake form fitted to the data, design seed + layout + confirmation card, validated plan (format v2), build and share. Pages are designed fresh each time (no template) from a design seed, with Mosaic + DuckDB-WASM, D3 show-reel morphs and d3-3d; shared as one self-contained `report.html`; each run records its tokens, estimated cost and skill version |
 | `building-dashboard-mosaic` (executor) | Parked and not used for now (the planner builds the page itself). Builds pages from plans, but doesn't yet draw v2's KPI targets, exceptions lists, annotations or "last updated", and axis labels ignore the plan's number formats |
 
 ## How a run goes

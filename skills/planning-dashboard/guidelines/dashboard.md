@@ -11,7 +11,7 @@
 | Anything Plot can't draw, and every animated chart | **D3** (`d3` 7.9.0) as a Mosaic client | still joins the same cross-filter; keyed transitions, staged reveals and a time player (`references/motion.md`) |
 | 3D that morphs with 2D (three data axes only) | **d3-3d** (`d3-3d` 1.0.0) projecting boxes to SVG polygons | 3D forms join the polygon morph engine (`references/show-reel.md` §5) |
 | 3D with thousands of marks | **three.js** (`three` 0.160.0) as a Mosaic client | GPU instancing; orbit camera; heights tweened with D3 (`references/stage.md` §5) |
-| Icons | **Tabler icons** webfont (`@tabler/icons-webfont` 3.35.0) | scene markers, controls, category chips, KPI labels; never a quantity (`references/show-reel.md` §6) |
+| Icons | **Tabler icons** webfont (`@tabler/icons-webfont` 3.35.0) | scene markers, controls, category chips, KPI labels; never a quantity (`references/show-reel.md` §6). The main stylesheet (`dist/tabler-icons.min.css`) has few `-filled` icons; for filled ones also load `dist/tabler-icons-filled.min.css` from the same package |
 
 How to use them, with the pitfalls already found: `references/mosaic-tech.md`. There is **no page template**: each page is designed fresh for its data and story (layout, chart types, how numbers are shown). One HTML file next to the data while building (served over http for testing), shared as a single self-contained `report.html` (`scripts/bundle_report.py`) that needs no server. No other chart library (Plotly, Chart.js and similar can't brush live against DuckDB).
 

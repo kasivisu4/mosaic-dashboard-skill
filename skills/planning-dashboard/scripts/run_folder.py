@@ -76,8 +76,19 @@ def timing(root):
     if not start_file.exists():
         return ["", "## Timing", "", "No timing: the run folder wasn't created with `init` at the start."]
     t0 = float(start_file.read_text(encoding="utf-8").strip())
-    # The built page lives next to the plan, but building it is the hand-off's work.
-    saves = sorted((p.stat().st_mtime, "5-handoff" if p.name == "index.html" else p.relative_to(root).parts[0], p)
+    intake = root / "2-intake" / "intake.md"
+    answered = intake.stat().st_mtime if intake.exists() else None
+
+    def step(p):
+        # The built page lives next to the plan, but building it is the hand-off's work. Explore rounds and the
+        # brief written after the answers serve the layout (guidelines/timing.md), so they count toward step 3.
+        if p.name == "index.html":
+            return "5-handoff"
+        if answered and p.stat().st_mtime > answered and (p.name.startswith("explore") or p.name == "brief.md"):
+            return "3-layout"
+        return p.relative_to(root).parts[0]
+
+    saves = sorted((p.stat().st_mtime, step(p), p)
                    for folder, _, _ in STEPS for p in (root / folder).glob("**/*") if p.is_file())
     if not saves:
         return []

@@ -59,6 +59,8 @@ Written as bullets in the plan's `## Style` section (`- field: value`). Every fi
 | `balanced` | ≤ 5 | ≤ 6 | ≤ 3 | collapsed |
 | `dense` | ≤ 8 | ≤ 12 (small multiples count as one) | any | yes |
 
+A stage (`surface: stage`) shows one scene at a time, so its scenes count as one surface: the chart cap doesn't apply to them, and the scene count follows [stage.md](stage.md) §2 (6–12).
+
 ### Interaction levels
 
 | interaction | brush | click filter | menus | hover tooltips | Reset + chips | detail table |
@@ -66,6 +68,8 @@ Written as bullets in the plan's `## Style` section (`- field: value`). Every fi
 | `none` | no | no | no | yes | no | no |
 | `light` | 1 chart | 1 chart | ≤ 1 | yes | yes | no |
 | `full` | every time/number chart | every categorical chart | every useful dimension | yes | yes | yes |
+
+On a stage, the rail's controls (the time strip with its brush, Play, and scene navigation) are part of the stage and don't count against the level. There, `light` means at most one brushable and one clickable mark set per act.
 
 ## Deriving a profile
 
@@ -91,7 +95,7 @@ Record the result in the plan, then check it against any stricter limits in `gui
 | type_scale | standard | compact | standard | display | standard | display |
 | interaction | light | full | light | none | as asked | light |
 | motion | transitions | reveal | none | reveal | none | reveal |
-| chart_set | bar, trend, KPIs | bar, trend, histogram, scatter | KPIs, exceptions, trend | bar, trend, KPIs | as asked | KPIs, bar, trend, histogram, scatter |
+| chart_set | bar, trend, KPIs | bar, trend, histogram, scatter, map | KPIs, exceptions, trend | bar, trend, KPIs | as asked | KPIs, bar, trend, histogram, scatter |
 | anomalies | explain | flag | spotlight | explain | flag | spotlight |
 | narrative | captions | none | none | story | none | annotated |
 | provenance | footnote | hidden | footnote | footnote | footnote | footnote |
@@ -124,7 +128,7 @@ Hard constraints. The organization can tighten these in `guidelines/dashboard.md
 | provenance (min) | hidden | hidden | footnote | footnote | per-number |
 | numbers | (goal) | (goal) | rounded | rounded | exact |
 | anomalies | (goal) | (goal) | explain or spotlight | explain | footnote (with the reconciling figure), never spotlight |
-| chart_set (remove) | none | none | scatter, histogram unless it is the answer | scatter, histogram | scatter, any smoothed curve, stacked area, dual axis |
+| chart_set (remove) | none | none | scatter, histogram unless it is the answer | scatter and histogram *as conventionally drawn*: keep the form when its `~ draw:` is a readable replacement (scatter → hexbins, a density raster or a `map`; histogram → a strip or quantile dots) | scatter, any smoothed curve, stacked area, dual axis |
 | narrative (min) | none | none | captions | captions | captions (definitions, not persuasion) |
 | reconcile | (request) | (request) | (request) | (request) | always on |
 
@@ -190,7 +194,7 @@ All numbers use tabular figures. Units live in labels, not in every value.
 
 ## Chart vocabulary
 
-The plan may only use forms in `chart_set`. How each form is *drawn* is chosen with [visual-language.md](visual-language.md): the conventional form is known and set aside, and its honesty rules always hold. Beyond the audience removals above:
+The plan may only use forms in `chart_set`; `map` (places, from `coordinate` columns) may be added to any chart_set when the data has positions. The check is on the form, not the drawing: a `~ draw:` that draws an allowed form unconventionally is fine. How each form is *drawn* is chosen with [visual-language.md](visual-language.md): the conventional form is known and set aside, and its honesty rules always hold. Beyond the audience removals above:
 - **Never:** pie or donut with > 5 slices, decorative 3D (3D bars, pies, extruded single measures), dual axes, radar, gauges, word clouds. 3D is allowed only when all three axes are data ([stage.md](stage.md) §5).
 - **Bars** start at zero, sorted by value unless the categories have an order.
 - **Lines** are drawn point to point; smoothing only for `register: editorial` and never on a line a number is read from.
@@ -273,7 +277,7 @@ Axis rule for every mode: one extreme value must not compress the rest. Cap the 
 - type_scale: compact
 - interaction: full
 - motion: transitions
-- chart_set: bar, trend, histogram, scatter
+- chart_set: bar, trend, histogram, scatter, map
 - anomalies: flag
 - narrative: none
 - provenance: hidden

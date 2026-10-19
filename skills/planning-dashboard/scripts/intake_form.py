@@ -70,21 +70,21 @@ def ask_options(look):
 
 
 def numeric_asks(look):
-    """Asks for data that is all measures: relationships, spreads, and x/y pairs read as positions."""
-    names = [c["name"] for c in look.get("columns", []) if c.get("class") == "measure"]
-    pairs = {}
-    for n in names:   # 'px'/'py', 'pickup_x'/'pickup_y': same prefix, ending in x and y
-        if n[-1:].lower() == "x" and (n[:-1] + ("Y" if n[-1] == "X" else "y")) in names:
-            pairs[n[:-1].rstrip("_") or n] = (n, n[:-1] + ("Y" if n[-1] == "X" else "y"))
-    in_pair = {c for pr in pairs.values() for c in pr}
-    plain = [n for n in names if n not in in_pair]
+    """Asks for data with no date, flag or dimension: relationships, spreads, cycles and places."""
+    cols = look.get("columns", [])
+    plain = [c["name"] for c in cols if c.get("class") == "measure"]
+    coords = [c["name"] for c in cols if c.get("class") == "coordinate"]
+    cycle = look.get("cycle")
     asks = []
-    if len(plain) >= 2:
-        asks.append(f"How does {plain[-2]} relate to {plain[-3] if len(plain) > 2 else plain[0]}?")
-    for prefix in list(pairs)[:1]:
+    if cycle and plain:
+        asks.append(f"How does {plain[-1]} change across {cycle}?")
+    if coords:
+        prefix = coords[0][:-1].rstrip("_") if coords[0][-1:].lower() == "x" else coords[0]
         asks.append(f"Where do the {prefix} points cluster?")
+    if len(plain) >= 2:
+        asks.append(f"How does {plain[-1]} relate to {plain[-2]}?")
     if plain:
-        asks.append(f"What does the spread of {plain[-2] if len(plain) > 1 else plain[0]} look like?")
+        asks.append(f"What does the spread of {plain[-1]} look like?")
     return asks
 
 
@@ -104,8 +104,6 @@ def data_text(look):
         texts["success_criteria"] = f"e.g. I can see which {dim} has the highest {metric} at a glance"
         if date:
             subtitles["monitor"] = f"Watch {metric} by {dim}"
-    if measure:
-        subtitles["present"] = f"Tell the story of {measure}"
     return texts, subtitles
 
 

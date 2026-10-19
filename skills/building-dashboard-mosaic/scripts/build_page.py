@@ -34,12 +34,13 @@ def chart_sql(chart, file):
     k, src = chart["keys"], f"'{k_file(chart, file)}'"
     if chart["form"] == "trend":
         col, _, bucket = k["x"].partition(":")
-        return f"SELECT date_trunc('{bucket}', \"{col}\") AS x, {sql_value(k['y'])} AS y\nFROM {src}\nGROUP BY 1 ORDER BY 1"
+        x = f'"{col}"' if bucket == "cycle" else f"date_trunc('{bucket}', \"{col}\")"
+        return f"SELECT {x} AS x, {sql_value(k['y'])} AS y\nFROM {src}\nGROUP BY 1 ORDER BY 1"
     if chart["form"] == "bar":
         return f"SELECT \"{k['category']}\", {sql_value(k['value'])} AS value\nFROM {src}\nGROUP BY 1 ORDER BY 2 DESC"
     if chart["form"] == "histogram":
         return f"SELECT \"{k['value']}\"  -- binned in the chart\nFROM {src}"
-    if chart["form"] == "scatter":
+    if chart["form"] in ("scatter", "map"):
         return f"SELECT \"{k['x']}\", \"{k['y']}\"\nFROM {src}"
     if chart["form"] == "exceptions":
         op, limit = (">", k["above"]) if "above" in k else ("<", k["below"])

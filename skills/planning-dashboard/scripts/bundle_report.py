@@ -19,6 +19,8 @@ from plan_format import parse  # noqa: E402
 # 15 MB keeps the report under common email attachment limits (20-25 MB, after the mail client's own encoding)
 # and under the 16 MB page limit of claude.ai artifacts.
 DEFAULT_MAX_MB = 15
+# Above 10 MB the report is slow to open on phones and on slow links; the target in references/destinations.md.
+WARN_MB = 10
 
 
 def die(msg):
@@ -68,6 +70,9 @@ def main(argv):
         print(f"bundle_report: {mb:.1f} MB is over {max_mb:g} MB: export a smaller, pre-aggregated table "
               f"(references/destinations.md, 'Pre-aggregated exports') and bundle again", file=sys.stderr)
         sys.exit(2)
+    if mb > WARN_MB:
+        print(f"bundle_report: warning: {mb:.1f} MB is over the {WARN_MB} MB target; the embedded Parquet should be at most "
+              f"~7.5 MB (base64 grows it by about 4/3; references/destinations.md)", file=sys.stderr)
 
 
 if __name__ == "__main__":

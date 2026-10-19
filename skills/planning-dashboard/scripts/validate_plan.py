@@ -162,7 +162,7 @@ def annotation_checks(con, plan, default, errors, warnings):
                         f'SELECT min("{col}"), max("{col}"), CAST(? AS {cast}) BETWEEN min("{col}") AND max("{col}") FROM {sql_str(default)}', [at]).fetchone()
                     if not inside:
                         warnings.append(f"{where}: annotation '@ {at}' is outside the data ({lo} to {hi})")
-                elif c["form"] in ("histogram", "scatter"):
+                elif c["form"] in ("histogram", "scatter", "map"):
                     float(at)
                 else:
                     errors.append(f"{where}: {c['form']} charts don't take annotations")

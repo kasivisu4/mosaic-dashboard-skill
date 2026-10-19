@@ -165,15 +165,17 @@ Step through every chain forwards and backwards, with a filter on, while Play ru
 // Run it with the browser tab in front: hidden tabs pause requestAnimationFrame and every scene reads as a cut.
 // Start it from scene 1. It checks every mark; with thousands of marks it takes a few seconds per scene.
 async function motionCheck({ settle = 2600 } = {}) {
+  // Overlays that follow the pointer, and guides (lens, crosshair, brush), carry data-motion-ignore and aren't measured.
+  const MARKS = ":is(svg path, svg rect, svg circle):not([data-motion-ignore], [data-motion-ignore] *)";
   const box = (el) => { const b = el.getBBox(); return [b.x + b.width / 2, b.y + b.height / 2, Math.sqrt(b.width * b.height)]; };
   const out = [];
   const n = window.__dash.SCENES.length;
   for (const i of [...Array(n).keys()].slice(1).concat(0)) {   // end on scene 1, so every change (including back to the start) is measured
-    const before = new Set(document.querySelectorAll("svg path, svg rect, svg circle"));
+    const before = new Set(document.querySelectorAll(MARKS));
     window.__dash.showScene(i);
     const t0 = performance.now(), frames = [];
     await new Promise((done) => { const tick = () => {
-      const marks = [...document.querySelectorAll("svg path, svg rect, svg circle")].filter((el) => before.has(el) || frames.length);
+      const marks = [...document.querySelectorAll(MARKS)].filter((el) => before.has(el) || frames.length);
       frames.push({ t: performance.now() - t0, m: new Map(marks.map((el) => [el, box(el)])) });
       performance.now() - t0 < settle ? requestAnimationFrame(tick) : done(); }; requestAnimationFrame(tick); });
     let jump = 0, last = 0;

@@ -157,13 +157,15 @@ def main(argv):
     seed = int(args["--seed"]) if "--seed" in args else random.SystemRandom().randrange(10**9)
     rng = random.Random(seed)
     past = history(run)
+    print(f"design_seed: {len(past)} earlier seed(s) found in {run.resolve().parent} (runs without a design-seed.json aren't counted)", file=sys.stderr)
     used_concepts = [s.get("concept") for s in past]
     used_starts = {u: {s.get("chains", {}).get(u, [None])[0] for s in past} for u in units}
     concept = rng.choice([c for c in CONCEPTS if c not in used_concepts] or CONCEPTS)
     chains = {}
     for i, u in enumerate(units):
         lo, hi = MAIN_CHAIN if i == 0 else SIDE_CHAIN
-        chains[u] = walk(rng, GRAPH[u], rng.randint(lo, min(hi, len(GRAPH[u]))), used_starts[u])
+        n = len(GRAPH[u])   # a unit with few forms gets a shorter chain, never more forms than it has
+        chains[u] = walk(rng, GRAPH[u], rng.randint(min(lo, n), min(hi, n)), used_starts[u])
     palette = rng.choice([p for p in PALETTES if p not in [s.get("palette") for s in past]] or list(PALETTES))
     theme = rng.choice([t for t in THEMES if t not in [s.get("theme") for s in past]] or list(THEMES))
     out = {

@@ -38,6 +38,7 @@ ENUMS = {
 SECTIONS = ["Assumptions", "Data", "Story", "Interaction", "Style", "Data for the executor"]
 FORMS = {
     "trend": ({"x", "y"}, {"brush", "none"}),
+    "map": ({"x", "y"}, {"brush", "none"}),
     "bar": ({"category", "value"}, {"click", "none"}),
     "histogram": ({"value"}, {"brush", "none"}),
     "scatter": ({"x", "y"}, {"brush", "none"}),
@@ -46,7 +47,8 @@ FORMS = {
 # Chart keys that hold settings, not column names.
 SETTING_KEYS = {"from", "above", "below", "format"}
 FORMATS = {"number", "compact", "percent", "currency"}
-BUCKETS = {"day", "week", "month", "quarter", "year"}
+# "cycle" plots a position-in-a-cycle column (hour of day, weekday) as it is, without date truncation.
+BUCKETS = {"day", "week", "month", "quarter", "year", "cycle"}
 VALUE_RE = re.compile(r"^(count|sum|avg|median|min|max|rate|ratio)\((.*)\)$")
 NUMBER_RE = re.compile(r"^-?\d+(?:\.\d+)?%?$")
 
@@ -328,7 +330,7 @@ def _story(story, plan, errors):
         if form == "trend" and "x" in keys:
             col, _, bucket = keys["x"].partition(":")
             if bucket not in BUCKETS:
-                errors.append(f'Story: "{title}": x needs a bucket, e.g. x={col}:week')
+                errors.append(f'Story: "{title}": x needs a bucket, e.g. x={col}:week (or x={col}:cycle for an hour-of-day or weekday column)')
         for key in ("y", "value") if form in ("trend", "bar", "exceptions") else ():
             if key in keys:
                 try:

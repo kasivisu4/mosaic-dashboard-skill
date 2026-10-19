@@ -1,7 +1,7 @@
 ---
 plan_version: 2
 goals: {one or two of answer, spec, explore, monitor, present, impact, in page order}
-audience: {one or more of me, team, leadership, clients}
+audience: {one or more of me, team, leadership, clients, regulators}
 cadence: {one-time | daily | weekly | monthly}
 review_depth: {quick | guided | deep}
 success_criteria: "{what makes it useful, in the person's words, or none stated}"
@@ -29,7 +29,7 @@ data:
 
 ## Story
 1. KPIs: {Label} = {value} [{format}]; {Label} = {value} [{format}] {target>=N or target<=N, optional}
-2. "{finding stated as a title}" | {trend | bar | histogram | scatter | exceptions} | {key=value ...} | {brush | click | none}
+2. "{finding stated as a title}" | {trend | bar | histogram | scatter | map | exceptions} | {key=value ...} | {brush | click | none}
    {> narrative under the chart, optional}
    {~ draw: visual instead of conventional form, why (optional)}
    {@ date, category or number: annotation label, optional}
@@ -43,7 +43,7 @@ data:
 ## Style
 - register: {analytic | operational | editorial | formal | evidentiary}
 - density: {sparse | balanced | dense}
-- surface: {headline | status | grid | narrative | ledger | exact}
+- surface: {headline | status | grid | narrative | ledger | exact | stage}
 - focus: {what the focus color marks, one phrase}
 - color_mode: {focus | status | categorical | sequential | diverging}
 - direction: {up-good | down-good | none}

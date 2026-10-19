@@ -2,6 +2,16 @@
 
 The planning-dashboard skill's version is in `skills/planning-dashboard/SKILL.md` (`metadata.version`); each release is a git tag (`v0.2.0`). Every run records the version that built it in `5-handoff/usage.json`, so dashboards can be compared across versions (`git diff v0.1.0 v0.2.0 -- skills/`).
 
+## 0.2.1 (2026-10-19)
+
+Fixes from the NYC trips run (21 issues reported by a separate session).
+
+- **Data:** the profile and quick look class `coordinate` (positions) and `cycle` (hour of day, weekday) columns; the intake suggests asks for all-numeric data and no longer asks for a data file it was given.
+- **Plan format (v2, compatible):** new `map` form; `trend x=<col>:cycle` plots a position-in-a-cycle column as is. The plan template lists `regulators`, `stage` and `map`.
+- **Rules made consistent:** an explicit order once the answers arrive (intake, explore, seed, brief, layout); a stage counts as one surface for density, and its rail controls don't count against `light` interaction; clients keep scatter and histogram when they're drawn as readable replacements (hexbins, density, strips, quantile dots); timing budgets in minutes for the design and build steps, with post-intake exploration booked to step 3.
+- **Build references:** Mosaic pitfalls (D3 interval clauses without `scales` silently stop all re-queries; DECIMAL overflow), direct `$page.update` for D3 clients, a fixed title height on stages, `data-motion-ignore` for overlays in the motion check, the filled Tabler icons stylesheet, and a ~7.5 MB Parquet target for `report.html` (`bundle_report.py` warns above 10 MB).
+- **Scripts:** `design_seed.py` no longer crashes on units with few forms; `record_usage.py --transcript` measures runs exactly.
+
 ## 0.2.0 (2026-10-18)
 
 Out-of-the-box, animated, honest dashboards, designed fresh every run.

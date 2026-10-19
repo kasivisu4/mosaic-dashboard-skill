@@ -6,9 +6,11 @@
 |---|---|---|---|---|
 | 1. Profile | `1-profile` | quick look (column types on a sample) before the form; the full profile runs in the background | 1.5–4 | 8 |
 | 2. Intake form | `2-intake` | infer from the first message, build the form from the quick look, show it (or skip it) | 0.3–0.8 | 1.2 |
-| 3. Layout and card | `3-layout` | data definitions, page blocks, finding-titles, and the confirmation card | 4–10 | 17 |
+| 3. Layout and card | `3-layout` | explore rounds after the answers, the design seed, the brief, five concepts, data definitions, page blocks, finding-titles, and the confirmation card | 60–180 | 300 |
 | 4. Plan | `4-dashboard` | final plan, SQL, export, validation | 2–6 | 10 |
-| 5. Hand-off | `5-handoff` | build the dashboard (charts, queries, layout) and share the link | 3–12 | 20 |
+| 5. Hand-off | `5-handoff` | build the page from an empty file (a stage takes longest), the motion check, the honesty pass, the critique, the bundle, and share the link | 300–900 | 1500 |
+
+Steps 3 and 5 are the model's design and build work, measured in minutes: every run writes an original page from scratch (SKILL.md). Steps 1, 2 and 4 are mostly script runs and stay in seconds. Explore rounds and the brief saved after `2-intake/intake.md` count toward step 3, since they answer the intake.
 
 ## Rules that keep the first dashboard fast
 
